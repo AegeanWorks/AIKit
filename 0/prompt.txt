@@ -1,0 +1,202 @@
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+
+Summary:
+1. Primary Request and Intent
+
+The user's requests, in order:
+- Deep review the neurocore ideas in the idea-catcher register.
+- Record the verdicts, note any bugs found for future work, and review every idea.
+- Do the same for AIKit, then a second pass over AIKit's Deferred and Rejected ideas.
+- Implement AIKit's approved ideas.
+- Re-read neurocore's ideas, then implement neurocore's approved ideas.
+- Build a Brain UI section where the brain can be started and talked to, and make it autonomous ("both but it should be autonomous").
+- Continue the brain work.
+- Most recent: "There is some new ideas. Let's look at those deep reviewthem." This means deep-review the 418 new Proposed ideas (IDs 632–1060) across all targets.
+
+Security and working constraints (preserve these):
+- The host allows commits or pushes only when the user explicitly asks. PRINCIPLE-018 R1 treats that as "not authorized", so all work stays uncommitted until the user says "commit".
+- The user's email must not be sent to unrelated services.
+- Do not revert the user's own enabling of `modules/brain/module.json` and `modules/autonomous_agent/module.json` (done by their running server).
+- Other agents work in parallel (`opencode:prompt-digest` in neurocore; active tasks in research-engine and modelduck). Check the ledger (`disruption_recovery.py --workspace <proj> --resume`) before editing shared files, and don't edit projects where another agent's task is active.
+
+2. Key Technical Concepts
+
+- **AIKit governance.**
+  - GUIDELINES principles; Track A/B/C changes.
+  - Phase 4 gates: `check_test_budgets.py`, `sync_principles.py --check`, `update_knowledge_base.py --check`, `check_reachability.py`, `check_secrets.py`, `dogfood.py`.
+  - Projects use `python aikit.py check <name>` instead.
+  - Checkpoints via `disruption_recovery.py --checkpoint/--complete/--reset [--workspace projects/<name>]`.
+  - ADRs live in `knowledge/decisions.md` (CRLF in the working copy) or `<project>/.aikit/decisions.md`.
+- **Idea register API** (`idea_catcher.registry`):
+  - `set_status(root, id, status=, reason=, decided_by=, evidence=, superseded_by=, target=)` and `set_tags`.
+  - Reasons must be at least 24 characters. Tags come from a fixed vocabulary (verified, unverified, disputed, duplicate, stale, deep-checked, target-checked, revised).
+  - Statuses: Approved, Integrating, Integrated, Deferred, Rejected, Superseded.
+  - `python aikit.py idea-catcher render` and `validate`.
+  - Decider label: `claude:idea-review`.
+- **Other technical points.**
+  - Hygiene allow marker: `hygiene: allow <reason>`, first word at least 3 characters.
+  - DNS-rebinding pinning uses the httpx `sni_hostname` extension.
+  - Untrusted-content fences use random nonces.
+  - Brain kernel modes: NORMAL, DEGRADED, SAFE; self-budget; autonomy allow-list.
+  - Neurocore and AIKit contrast: AIKit is heavily gated, so approvals need evidence of real pain.
+
+3. Files and Code Sections
+
+**AIKit (uncommitted).** Five ideas are Integrating: 406, 398, 262, 005, 210.
+
+- `idea_catcher/registry.py`, `idea_catcher/concept_map.py`
+  - Replaced `python tools/idea_catcher.py` with `python aikit.py idea-catcher`.
+  - The import-fallback comment now reads `python idea_catcher/registry.py`.
+- `scripts/update_knowledge_base.py`
+  - New: `_PYTHON_SCRIPT_REF`, `_REFERENCE_ALLOW`, `script_reference_sources`, `audit_script_references`, `tracked_files`, `check_script_references`, `report_script_references`. Wired into `check_workspace` only when `root == ROOT_DIR`.
+  - Also `build_digest` and `digest_rows` with `DIGEST_MAX_LINES=100` and `DIGEST_MAX_CHARS=16_000`, plus a `--digest` flag.
+- `scripts/marked_blocks.py` (new): `markers`, `block_span`, `fenced`, `replace_block`.
+- `scripts/project_license.py`: `LICENSE_BLOCK="license"`; `_with_license_section` replaces only the marked block.
+- `scripts/project_media.py`: media, screenshots and brand blocks now use the helper (`MEDIA_BLOCK`, `SHOT_BLOCK`, `BRAND_BLOCK`).
+- `scripts/verify_commit.py`
+  - New: `shrunk_files`, `tree_sizes`, `shrink_warnings`.
+  - `SHRINK_RATIO=0.5`, `SHRINK_MIN_BYTES=400`, `SHRINK_EXEMPT=("task_ledger.json",)`.
+  - A `shrink-ok: <reason>` line in the commit message clears the warning.
+- `scripts/sync_principles.py`: `RUNBOOK_TOPICS=("projects.md","delegation.md")`, mirrored into `RUNBOOK_MIRRORS`.
+- `.agents/skills/aikit/SKILL.md` (now an index), plus new `projects.md` and `delegation.md`. `.claude/` mirrors are generated.
+- Also changed: `scripts/ui_contract.py` (allow marker), `README.md` (about 29,927 of 30,000 chars), `knowledge/decisions.md` (ADR-280 to ADR-284), `tests/test_kit.py` (new test classes), `knowledge/codebase_map.md`.
+
+**Neurocore (uncommitted, mixed with the other agent's ADR-068/069/070 work).**
+
+- `core/pinned_http.py` (new): `pinned_target(url, address)`.
+- `core/research_gateway.py`: `_vetted_address`; `_safe_get` pins every hop.
+- `modules/skills/service.py`: the importer is pinned.
+- `modules/tools/outbound.py` (new)
+  - `OUTBOUND_TOOLS={"SendEmail"}`, `SEND_PHRASE="send this draft"`, `OutboundDrafts` (`stage`, `pending`, `transition`), `stage_if_outbound`, `run_library_tool`, `send_draft`.
+  - Called at four dispatch sites in `modules/tools/node.py` and `modules/agent_loop/node.py`.
+  - Routes in `modules/tools/router.py`: `GET /tools/drafts`, `POST /tools/drafts/{id}/send`, `POST /tools/drafts/{id}/discard`.
+  - `tools.json` description updated.
+- `core/errors.py`: `MemoryContentBlocked`.
+- `modules/brain/guardrails.py`: `BLOCKING_SURFACES=("input","memory")`.
+- `modules/memory/backend.py`: `screen_memory_text`; `add_entry` returns -1 on a block, the update and goal methods raise.
+- `modules/memory/router.py`: blocked writes return 400 with Why/Fix (`BLOCKED_FIX`).
+- `core/untrusted.py` (new): `wrap_untrusted`, `fence_tool_messages`.
+  - `core/llm.py` fences tool messages in both chat paths.
+  - `modules/knowledge_base/node.py` fences each chunk at the source.
+- Brain:
+  - `modules/brain/autonomy.py` (new): `AUTONOMOUS_ACTIONS`, `run_action`, `act_on_proposals`, `AUTONOMOUS_ACTOR="brain:autonomous"`, `DEFAULT_MAX_ACTIONS_PER_CYCLE=2`, `JOURNAL_LIMIT=50`.
+  - `modules/brain/conversation.py` (new): `ChatHistory`, `COMMANDS`, `parse_reply`, `execute_command`, `converse` (`raise_errors=True`), `CHAT_ACTOR="brain:chat"`.
+  - `state.py`: autonomous mode and an `actions` field. The other agent added `operator_mode` and resume.
+  - `service.py`: `run_cycle` acts outside the state lock; new `journal()`.
+  - `router.py`: `/brain/chat` (GET/POST) and `/brain/commands`.
+  - `drift.py`: the None pass-rate fix.
+- `web/templates/brain.html`: mode select, chat, journal. `navbar.html`: the Brain link is always shown and enables the module when it is off.
+- Tests:
+  - New: `test_pinned_http.py`, `test_outbound_drafts.py`, `test_memory_write_guard.py`, `test_untrusted_fences.py`, `test_brain_autonomy.py`, `test_brain_chat.py`.
+  - Edited: `test_brain_ui.py`, `test_module_defaults.py` (contract change named in ADR-067), `conftest.py` (tools module.json protected), `test_memory_router.py`, `test_research_gateway.py`, `test_skills_module.py`.
+- Docs: `.aikit/decisions.md` (ADR-063 to ADR-067 mine), `README.md`, `docs/TOOL_GUIDE.md`, `docs/IDEAS.md` (known bugs, including 839).
+
+**Scratchpad** (C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\05aa96e5-db7a-4aed-bad4-f0f3cebd2787\scratchpad\):
+- `apply_verdicts.py` takes a verdicts module with `TARGET` and `V={id:(status, reason[, sup[, evidence]])}`, applies statuses and adds the `deep-checked` tag.
+- Verdict files: `v_neurocore.py`, `v_aikit.py`, `v_research-engine.py`, `v_aegean-licensing.py`, `v_aegean-licensing-ops.py`, `v_merklock.py`, `v_modelduck.py`.
+- Register backups, including `ideas.before-new-review.json`.
+
+4. Errors and fixes
+
+- **Register reasons under 24 characters** crashed the first run partway. I lengthened them and resumed with only the remaining ideas.
+- **Mixed line endings.** Heredocs added LF lines to CRLF files (`decisions.md`, `test_memory_router.py`). I normalized them with Python byte replacement.
+- **Allow-marker wording.** "allow an …" and "allow a …" don't match, because the first word must be at least 3 characters. Reworded.
+- **PRINCIPLE-009 R5.** Tests assigned private attributes directly (`executor._load_tools`, `service._propose`). Switched to `setattr`.
+- **Route test wrote `modules/tools/module.json`.** Restored it and added the file to `PROTECTED_MODULE_FILES` in conftest.
+- **Fence placement.** Fencing tool output in `_redact_tool_output` broke stuck detection. Moved the fence to `LLMBridge` via `fence_tool_messages`.
+- **Contract change.** `test_disabled_brain_is_neither_routed_nor_linked` changed per the user's request and is named in ADR-067. It still asserts the brain is not routed when disabled.
+- **Shipped-defaults check.** The user's module.json enablement made `test_module_defaults` fail locally, so I verified in throwaway git worktrees without those files: 2015 and then 2038 passed.
+- **Live 500 on `/brain/state`.** The drift `float(None)` bug. Fixed in code; the user's server needs a restart.
+- **Edit to another agent's test.** My sed broke their restart test (`shutdown_keep_resume`). Reverted exactly.
+- **Wrong evidence claim.** I said the 4ec9ffa README fix was evidence for IDEA-262; it wasn't. Corrected in ADR-282 and the register.
+- **research-engine status wording.** I wrongly cited "UNFALSIFIABLE". Corrected to the real `CLAIM_STATUSES`.
+
+5. Problem Solving
+
+All approved work for AIKit and neurocore passed Phase 4. The new-idea review is complete: all 418 new ideas have individual verdicts, the register is valid, and the matrix was re-rendered.
+
+Key new approvals, all verified in code:
+
+- **neurocore**
+  - 839, P2: messaging bridges (Telegram, Signal, WhatsApp) have no sender allowlist; also recorded in `docs/IDEAS.md`.
+  - 849, P3: scan skills on import.
+  - 891, P5: keep Retry-After.
+- **aikit**
+  - 909, P2: reforge review packets have unfenced hunks from the audited repository.
+- **research-engine** (16 approved)
+  - P1: 980 (retraction bypass), 987 (unverified protocol digest), 979 (kill-test binding gaps).
+  - P2: 975, 982.
+  - P3: 981, 990, 988, 989, 977, 978.
+  - P4: 986, 993, 984, 974, 991.
+- **aegean-licensing**
+  - 935 narrowed (stale register shipped in the wheel).
+  - 948 (typed revocation reasons).
+- **aegean-licensing-ops**
+  - 928 narrowed (KVKK erase leaves residue in SQLite and backups).
+  - 949 retention (absorbs 931).
+- **merklock** (7 approved)
+  - P1: 1005 (unlocked chain.json write), 1006 (peer dial with no address checks).
+  - P2: 1010 (proof padding), 1009 (integer digit cap), 1008 (silent version and unknown fields).
+  - P3: 654 (no transaction expiry), 661 (no reorg limit).
+- **modelduck** (4 approved)
+  - 1054, P1 security: LAN or CORS can be enabled with `requireAuth` false and CORS `*`.
+  - 1047, P1 data loss: silent cap at 200 conversations.
+  - 967, P2: hostile GGUF files reach the native parser.
+  - 862, P2: no content hash on downloads.
+
+Per-target counts:
+- aegean-licensing: 2 Approved, 21 Deferred, 3 Rejected, 2 Superseded.
+- aegean-licensing-ops: 2 Approved, 21 Deferred, 8 Rejected, 2 Superseded.
+- aikit: 1 Approved, 20 Deferred, 8 Rejected, 6 Superseded.
+- merklock: 7 Approved, 106 Deferred, 7 Rejected, 3 Superseded.
+- modelduck: 4 Approved, 95 Deferred, 2 Rejected, 5 Superseded.
+- neurocore: 3 Approved, 29 Deferred, 8 Rejected, 2 Superseded.
+- research-engine: 16 Approved, 27 Deferred, 8 Rejected.
+
+53 Proposed ideas remain overall, all older.
+
+6. All user messages
+
+- "Deep review neurocore ideas."
+- "Record these and also mention the bug you have find for us work on it in the future. I want you to review every idea /goal"
+- "Now let's analyze the deep reviewed ideas of aikit too"
+- "I want you to look at those deferred ideas and rejected ideas too"
+- "ok let's start working on the aikit then"
+- /goal "Continue with our approved implementations" (a session goal was set).
+- "Any left?"
+- "Read neurocores ideas again."
+- "/GOAL Start working on neurocore" (the uppercase command did not run; treated as a request).
+- AskUserQuestion answer on the email gate: "You choose."
+- "Continue"
+- Mid-turn message: "Let's create a brain section in the ui where we start it. in that section we will interact with this brain."
+- AskUserQuestion answer: "both but it should be autonomous."
+- "Continue working on this"
+- "Continue"
+- "There is some new ideas. Let's look at those deep reviewthem"
+
+7. Pending Tasks
+
+- Report the results of the new-idea deep review to the user. The tool work is finished; the summary message hasn't been written.
+- Still awaiting the user:
+  - "commit" for the AIKit work (5 ideas) and the neurocore work.
+  - A restart of the user's neurocore server so the drift fix loads, and their LLM at localhost:1234 for a live chat test.
+- Remaining approved and unstarted neurocore ideas: 058, 591, 588, 619, 625, 629, plus the new 839, 849 and 891. Coordinate with the other agent to avoid duplicates.
+
+8. Current Work
+
+I had just finished the deep review of all 418 new ideas. The last tool output was the register validation (`[OK] registry is valid`), "reviewed new: 418", the per-target counts above, and "remaining Proposed (all): 53". The verdicts for modelduck, the last target, were applied by running `apply_verdicts.py` on `v_modelduck.py`. I had not yet written the final user-facing summary of the review.
+
+9. Optional Next Step
+
+Write the user-facing summary of the new-idea deep review (the user's request was "There is some new ideas. Let's look at those deep reviewthem"). It should:
+- Give the approval list per project, with the verified evidence: modelduck 1054 (LAN/CORS without auth) and 1047 (silent loss of conversations past 200); merklock 1005 and 1006; research-engine P1 items 980, 987 and 979; neurocore 839 (any stranger can drive the agent via the messaging bridges, recorded in `docs/IDEAS.md`); aikit 909; licensing 935 and 948; ops 928 and 949.
+- Note that research-engine and modelduck have other agents actively working, so I only recorded verdicts there and changed no code.
+- Note that nothing is committed.
+
+Don't start implementing any of these without the user's direction.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: C:\Users\Yunus-Emre\.claude\projects\c--Users-Yunus-Emre-Desktop-portable-agent-kit\05aa96e5-db7a-4aed-bad4-f0f3cebd2787.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+The messages after this summary are the most recent messages from before compaction, kept verbatim. The summary was written without seeing them, so something it says has not happened yet may already have happened in them.
