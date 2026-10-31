@@ -1,0 +1,1 @@
+Verify and analyze changes since last push ; look for bugs, fixes, improvements, new implementations, do these then push
