@@ -56,6 +56,17 @@ TIER_ATTEMPTS = 2
 RETRY_DELAY_SECONDS = 1.0
 
 _SUMMARY = re.compile(r"^Ran (\d+) tests? in ([0-9.]+)s", re.M)
+# A failing tier's own traceback is the reason the gate exists; print a bounded tail of it so the
+# operator does not have to repeat the identical run to learn which test broke (ADR-299).
+FAILURE_TAIL_LINES = 25
+
+
+def _failure_tail(output: str) -> str:
+    """The last bounded slice of a failed tier's output, without its trailing blank lines."""
+    lines = [line.rstrip() for line in (output or "").splitlines()]
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines[-FAILURE_TAIL_LINES:])
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,7 @@ class TierResult:
     attempts: int = 1
     measurements: Tuple[float, ...] = ()
     timed_out: bool = False
+    failure_tail: str = ""
 
     @property
     def per_test_ms(self) -> float:
@@ -132,7 +144,8 @@ def run_tier(module: str, runner: Optional[Callable[[str, int], Tuple[int, str]]
         tests, seconds = summary
         measurements.append((seconds / tests * 1000.0) if tests else 0.0)
         result = TierResult(module=module, tests=tests, seconds=seconds, passed=(code == 0),
-                            attempts=len(measurements), measurements=tuple(measurements))
+                            attempts=len(measurements), measurements=tuple(measurements),
+                            failure_tail="" if code == 0 else _failure_tail(output))
         if not result.passed:
             return result
         if best is None or result.per_test_ms < best.per_test_ms:
@@ -187,6 +200,10 @@ def run_check(runner: Optional[Callable[[str, int], Tuple[int, str]]] = None,
                    if result.attempts > 1 else "")
         print(f"[{verdict}] {module}: {result.tests} tests in {result.seconds:.3f}s "
               f"= {result.per_test_ms:.2f}ms per test (ceiling {result.budget_ms:.2f}ms){retried}")
+        if result.failure_tail:
+            print("-" * 58)
+            print(result.failure_tail)
+            print("-" * 58)
 
     over = budget_errors(results)
     for line in over:

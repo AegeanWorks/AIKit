@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
-- **Total Top-Level Functions**: `820`
-- **Total Class Methods**: `946`
-- **Total Source Lines**: `36176`
+- **Total Top-Level Functions**: `824`
+- **Total Class Methods**: `953`
+- **Total Source Lines**: `36328`
 
 ---
 
@@ -442,7 +442,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `771` lines (`38046` bytes)
+**Size**: `766` lines (`37871` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -547,7 +547,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `568` lines (`22753` bytes)
+**Size**: `562` lines (`22102` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -568,11 +568,13 @@
 - `def save_state(root, data)` - *Persist through AIKit's atomic writer and lock when available, else a portable fallback.*
 - `def entry_from_stage(plan, findings, repairs, tests, gates, skipped, reviewed, review)` - *One stage's durable record; `skipped` names binary files and `reviewed` counts the rest.*
 - `def run_complete(run, window, total_commits)`
+- `def completion_total(run, live)` - *The repository commit count that closes an unlimited run: live first, then the stored one.*
+- `def settle_run(run, state, total_commits, *, reopen)` - *The one completed/active transition, shared by every entry point.*
 - `def pending_reviews(run)` - *Every retained stage whose review object explicitly says it is not reviewed.*
 - `def review_is_ready(run)` - *True when every retained stage has no explicit pending review.*
-- `def finalize_review(root, state, run, total_commits)` - *Complete a run at its stop once every retained stage has been reviewed.*
+- `def finalize_review(root, state, run, total_commits)` - *Settle the run after a review and persist its mirror in one write.*
 - `def record_review(root, state, run, stage, review, total_commits)` - *Attach a host review to one retained stage, then settle the run's status.*
-- `def record_stage(root, state, run, entry, total_commits)` - *Advance one run, remember its audited SHAs, and finish it when its stop is reached.*
+- `def record_stage(root, state, run, entry, total_commits)` - *Advance one run, remember its audited SHAs, and settle it when the window is done.*
 - `def mark_repairs(root, state, run, repairs)` - *Mark repaired findings in the run's last audit so `fix` is idempotent.*
 - `def unrepaired_findings(run)`
 - `def pending_fixable(run)` - *Findings an agent still has to repair before another stage may start.*
@@ -633,7 +635,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1341` lines (`67482` bytes)
+**Size**: `1344` lines (`67550` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -644,7 +646,7 @@
 - `def present_project(name, workspace)` - *The registered project `name`, refusing one whose folder or record is gone.*
 - `def project_is_clean(audit, open_ui_task)` - *Whether the project's tree and ledger are delivery-ready, decided once for every surface.*
 - `def test_command_topic(test_command)` - *The language topic a known test runner implies, or None for a custom command.*
-- `def publish_topics(project_root, recorded)` - *The AI-chosen topics `publish` sets, validated; AIKit adds no tag on its own (ADR-236).*
+- `def publish_topics(recorded)` - *The AI-chosen topics `publish` sets, validated; AIKit adds no tag on its own (ADR-236).*
 - `def license_summary(project)` - *One line on the project's license tier for `status` (ADR-214).*
 - `def project_payload(project)` - *The project half of a `--json` report: what `status` prints as its header lines.*
 - `def error_envelope(error)` - *The stable `--json` failure shape shared by every project command (ADR-167, ADR-172).*
@@ -766,7 +768,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `520` lines (`24460` bytes)
+**Size**: `522` lines (`24599` bytes)
 
 **Functions:**
 - `def shannon_entropy(value)` - *Bits of entropy per character; random credentials score high, English prose low.*
@@ -791,7 +793,7 @@
 ### [`scripts/check_test_budgets.py`](scripts/check_test_budgets.py)
 > *Test Tier Budget Gate (PRINCIPLE-010 Rule 6, PRINCIPLE-014 Rule 3)*
 
-**Size**: `251` lines (`10602` bytes)
+**Size**: `268` lines (`11361` bytes)
 
 **Classes:**
 - `class TierResult` - *One tier's measured outcome; frozen so a report cannot edit what was measured.*
@@ -800,6 +802,7 @@
   - Property `.inside_budget`
 
 **Functions:**
+- `def _failure_tail(output)` - *The last bounded slice of a failed tier's output, without its trailing blank lines.*
 - `def parse_tier_output(output)` - *The count and duration unittest prints, or None when it never got that far.*
 - `def default_runner(module, timeout)` - *Run one tier the way the runbook documents it, so the gate measures the real command.*
 - `def run_tier(module, runner, attempts, retry_delay)` - *Measure one tier, or None when its output carried no summary. A green run over the ceiling is*
@@ -922,7 +925,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `541` lines (`29083` bytes)
+**Size**: `546` lines (`29466` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -934,7 +937,7 @@
 - `def _palette_words(palette)`
 - `def _logo_model_prompt(name)`
 - `def _social_model_prompt(name)`
-- `def generate_model_brand(project_root, name, kind, force, parts, seed_offset)` - *Render the requested parts with the online image model (ADR-239/240/241).*
+- `def generate_model_brand(project_root, name, force, parts, seed_offset)` - *Render the requested parts with the online image model (ADR-239/240/241).*
 - `def _download(url, output, attempts)`
 - `def _throttle()`
 - `def fetch_artwork(project_root, name, description)` - *Generate and store this project's hero image; retries transient model failures.*
@@ -943,7 +946,7 @@
 - `def _wrap_words(text, max_chars, max_lines)`
 - `def _lockup(title, max_lines)`
 - `def _logo_html(name, art)`
-- `def _chips_html(tags, palette)`
+- `def _chips_html(tags)`
 - `def _social_html(name, art, description, kind, tags)`
 - `def compose_brand(project_root, name, description, tags, kind)` - *Render the final 512px logo and 1280x640 social card over the generated artwork.*
 - `def crop_letterboxed_social(project_root, name, zoom, axis)` - *Crop a model card's dark letterbox bands by scaling it inside the 1280x640 frame.*
@@ -1021,7 +1024,7 @@
 ### [`scripts/project_media.py`](scripts/project_media.py)
 > *Project brand and screenshot media pipeline (ADR-235).*
 
-**Size**: `911` lines (`40582` bytes)
+**Size**: `914` lines (`40660` bytes)
 
 **Classes:**
 - `class _QuietHandler` - *Serve one capture directory without writing request logs.*
@@ -1033,8 +1036,8 @@
 - `def _atomic_bytes(path, data)`
 - `def _head(root)`
 - `def _description(root, name)`
-- `def _palette(name, kind)`
-- `def _logo_svg(name, kind)`
+- `def _palette(name)`
+- `def _logo_svg(name)`
 - `def _social_svg(name, kind, description, repo_url, tags)`
 - `def _browser()`
 - `def served_html(source)` - *Yield an HTTP URL for an HTML page, or its file URL for any other asset.*
@@ -1045,6 +1048,7 @@
 - `def _validate_svg(path, title)`
 - `def _review_record(reviewer, method, notes, score)`
 - `def load_media(root)`
+- `def dossier_logo_is_placeholder(manifest)` - *True when a dossier media manifest still points at the generated fallback card.*
 - `def media_blockers(root, dossier)` - *Assets that still need a review before a new project may be published.*
 - `def save_media(root, data)`
 - `def _asset(path, commit, status)`
@@ -1200,7 +1204,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `514` lines (`21037` bytes)
+**Size**: `518` lines (`21247` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1361,7 +1365,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1202` lines (`57184` bytes)
+**Size**: `1211` lines (`57313` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1607,7 +1611,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `10850` lines (`602515` bytes)
+**Size**: `10970` lines (`609258` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2190,6 +2194,7 @@
   - Method `.test_style_findings_are_off_without_declared_theme_paths()`
 - `class TestProjectsStayOutOfKitState` - *AIKit's map, gates and sweeps never read a project's files (ADR-119).*
   - Method `.test_codebase_scan_and_sweeps_prune_projects_and_bulk_trees()`
+  - Method `.test_generated_bulk_directories_are_pruned_by_every_walker()`
   - Method `.test_git_ignores_projects()`
 - `class TestSubagentDelegation` - *`aikit delegate`: bounded OpenCode sub-agent runs (ADR-126, ADR-128).*
   - Method `.setUp()`
@@ -2274,6 +2279,7 @@
   - Method `.test_a_red_tier_is_not_retried()`
   - Method `.test_both_tiers_inside_budget_pass_and_report_the_average()`
   - Method `.test_a_failing_tier_fails_the_gate_whatever_its_speed()`
+  - Method `.test_a_failing_tier_prints_the_failing_test_name()`
   - Method `.test_unparseable_tier_output_fails_instead_of_reporting_zero()`
   - Method `.test_every_test_module_in_the_repository_has_a_budget()`
   - Method `.test_budget_errors_is_silent_when_every_tier_fits()`
@@ -2336,6 +2342,9 @@
   - Method `.test_every_catalog_project_has_a_unique_palette_and_artwork()`
   - Method `.test_ai_art_prompts_and_monograms_are_project_specific()`
   - Method `.test_model_brand_requires_an_environment_key()`
+  - Method `.test_model_brand_reports_the_assets_it_wrote()`
+  - Method `.test_model_brand_keeps_approved_assets_without_force()`
+  - Method `.test_generate_brand_does_not_fetch_artwork_twice()`
   - Method `.test_the_asset_disclosure_is_specific_and_honest()`
   - Method `.test_html_capture_is_served_over_http()`
   - Method `.test_media_blockers_are_empty_without_a_manifest()`
@@ -2364,10 +2373,12 @@
   - Method `.test_runs_stop_resume_and_create_independent_histories()`
   - Method `.test_raising_the_stop_reopens_a_completed_run()`
   - Method `.test_update_settings_reopens_a_completed_run_with_a_pending_review()`
+  - Method `.test_live_completion_total_wins_over_the_stored_count()`
   - Method `.test_a_later_fix_refreshes_the_history_entry_too()`
   - Method `.test_schema_one_migrates_to_an_independent_first_run()`
   - Method `.test_only_fixable_unrepaired_findings_block_the_next_stage()`
   - Method `.test_an_unreviewed_stage_blocks_progress_and_completion()`
+  - Method `.test_finalize_review_reads_the_reloaded_history_entry()`
   - Method `.test_an_unlimited_run_completes_at_the_end_of_history()`
   - Method `.test_reviewing_an_unlimited_partial_window_does_not_complete_run()`
   - Method `.test_an_unlimited_run_completes_when_prior_windows_cover_history()`

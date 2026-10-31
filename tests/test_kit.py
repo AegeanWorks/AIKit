@@ -3460,6 +3460,8 @@ class TestSecretHygieneScanner(unittest.TestCase):
             'secret = "${VAULT_SECRET}"',  # aikit:allow-secret
             'key = "placeholder"',
             'hard_coded = "short"',
+            'const key = callKey(input.sessionID, input.callID)',
+            'const key = makeKey()',
         ]
         for line in safe:
             with self.subTest(line=line):
@@ -5439,12 +5441,11 @@ class TestProjectRegistry(unittest.TestCase):
         folder = self.make_licensed_project()
         (folder / "pyproject.toml").write_text("[project]\nname = 'vault'\n", encoding="utf-8")
         (folder / "package.json").write_text("{}", encoding="utf-8")
-        project = find_project("vault", self.kit)
         chosen = ["aikit", "licensing", "python", "security"]
-        self.assertEqual(publish_topics(project.path, chosen), chosen)
-        self.assertEqual(publish_topics(project.path, ["aikit"]), ["aikit"])
+        self.assertEqual(publish_topics(chosen), chosen)
+        self.assertEqual(publish_topics(["aikit"]), ["aikit"])
         with self.assertRaises(ProjectError):
-            publish_topics(project.path, ["Bad Tag"])
+            publish_topics(["Bad Tag"])
 
     def test_ai_topic_choice_is_validated_and_never_auto_filled(self):
         from scripts.project_topics import validate_choice
@@ -7274,6 +7275,24 @@ class TestProjectsStayOutOfKitState(unittest.TestCase):
         self.assertEqual([p.name for p in find_python_files(kit)], ["tool.py"])
         self.assertEqual([p.name for p in sweep_files(kit, "*.tmp_*")], ["s.json.tmp_1_2"])
 
+    def test_generated_bulk_directories_are_pruned_by_every_walker(self):
+        # The 35-second audit came from three walkers disagreeing about generated trees; pin the
+        # shared core so a new folder cannot be added to only one of them (ADR-300).
+        from scripts import disruption_recovery, proof_gate
+        from scripts.update_knowledge_base import IGNORE_DIRS
+
+        required = {"node_modules", "__pycache__", ".venv", "venv", "env", "build", "dist",
+                    "target", ".next", ".nuxt", ".cache", ".vite",
+                    ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox"}
+        policies = {
+            "sweep": set(disruption_recovery.SWEEP_PRUNED_DIRS),
+            "knowledge": set(IGNORE_DIRS),
+            "proof copy": {name for name in proof_gate.COPY_IGNORE_PATTERNS if "*" not in name},
+        }
+        for walker, policy in policies.items():
+            with self.subTest(walker=walker):
+                self.assertTrue(required <= policy, f"{walker} misses {sorted(required - policy)}")
+
     def test_git_ignores_projects(self):
         lines = (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines()
         self.assertIn("projects/", lines)
@@ -8207,6 +8226,20 @@ class TestTestTierBudgetGate(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("failed", out.lower())
 
+    def test_a_failing_tier_prints_the_failing_test_name(self):
+        # The gate is Phase 4's documented way to run the tiers, so on failure it must show the
+        # failing test itself instead of sending the operator to a second, identical run.
+        traceback = ("FAIL: test_widget (tests.test_kit.TestWidget.test_widget)\n"
+                     "Traceback (most recent call last):\n"
+                     "  File \"tests/test_kit.py\", line 1, in test_widget\n"
+                     "    self.assertEqual(1, 2)\n"
+                     "AssertionError: 1 != 2\n\n"
+                     "Ran 10 tests in 0.010s\n\nFAILED (failures=1)\n")
+        code, out = self.gate({self.UNIT: (1, traceback), self.INTEG: self.ok(45, 1.0)})
+        self.assertEqual(code, 1)
+        self.assertIn("test_widget", out)
+        self.assertIn("AssertionError", out)
+
     def test_unparseable_tier_output_fails_instead_of_reporting_zero(self):
         code, _ = self.gate({self.UNIT: (0, "collection exploded"), self.INTEG: self.ok(45, 1.0)})
         self.assertEqual(code, 1)
@@ -8857,6 +8890,65 @@ class TestReforgeCore(unittest.TestCase):
             with self.assertRaises(ProjectError):
                 project_artwork.generate_model_brand(root, "model-demo")
 
+    def test_model_brand_reports_the_assets_it_wrote(self):
+        # `media init` and `new` read this result; returning None made `new` replace the model
+        # assets with the local seed (ADR-298).
+        root = self.project("model-demo")
+        (root / "assets").mkdir(exist_ok=True)
+
+        def fake_download(url, target):
+            Path(target).parent.mkdir(parents=True, exist_ok=True)
+            Path(target).write_bytes(b"\xff\xd8\xff\xe0fake")
+
+        with mock.patch.object(project_artwork, "_download_url", side_effect=fake_download), \
+             mock.patch.object(project_artwork, "crop_letterboxed_social",
+                               return_value={"social": str(root / "assets" / "social-preview.png")}):
+            result = project_artwork.generate_model_brand(root, "model-demo", force=True)
+        self.assertTrue(result["created"])
+        self.assertEqual(result["assets"], ["logo", "social_preview"])
+        self.assertIn("manifest", result)
+        self.assertEqual(project_media.load_media(root)["assets"]["logo"]["status"],
+                         "pending_review")
+
+    def test_model_brand_keeps_approved_assets_without_force(self):
+        # The local brand generator and the model generator must agree on `force`; without it an
+        # approved logo was overwritten and marked pending again (ADR-298).
+        root = self.project("model-demo")
+        (root / "assets").mkdir(exist_ok=True)
+        project_media.save_media(root, {
+            "schema": project_media.MEDIA_SCHEMA,
+            "name": "model-demo",
+            "assets": {"logo": {"path": "assets/logo.jpg", "status": "approved",
+                                "commit": "abc", "generated_at": "2026-01-01T00:00:00",
+                                "review": {"decision": "approve"}}},
+            "screenshots": [],
+        })
+        calls = []
+        with mock.patch.object(project_artwork, "_download_url",
+                               side_effect=lambda *args: calls.append(args)):
+            result = project_artwork.generate_model_brand(
+                root, "model-demo", force=False, parts=("logo",))
+        self.assertEqual(calls, [], "an approved logo was regenerated without --force")
+        self.assertTrue(result.get("skipped"))
+        self.assertEqual(project_media.load_media(root)["assets"]["logo"]["status"], "approved")
+
+    def test_generate_brand_does_not_fetch_artwork_twice(self):
+        calls = []
+        with mock.patch.object(project_artwork, "fetch_artwork",
+                               side_effect=lambda root, name, description: calls.append(name)), \
+             mock.patch.object(project_artwork, "compose_brand", return_value={"logo": "x"}):
+            existing = self.root()
+            art = existing / project_artwork.ART_REL
+            art.parent.mkdir(parents=True, exist_ok=True)
+            art.write_bytes(b"art")
+            project_artwork.generate_brand(existing, "fetch-demo", description="d",
+                                           refresh_art=False)
+            self.assertEqual(calls, [], "existing artwork was fetched again on a no-refresh run")
+            missing = self.root()
+            project_artwork.generate_brand(missing, "fetch-demo", description="d",
+                                           refresh_art=False)
+        self.assertEqual(calls, ["fetch-demo"], "missing artwork must be fetched exactly once")
+
     def test_the_asset_disclosure_is_specific_and_honest(self):
         text = project_media.ASSET_DISCLOSURE
         self.assertIn("AI-generated", text)
@@ -9280,6 +9372,14 @@ class TestReforgeCore(unittest.TestCase):
         self.assertEqual(reopened["status"], "active")
         self.assertEqual(load_state(root)["active_run"], "run-1")
 
+    def test_live_completion_total_wins_over_the_stored_count(self):
+        from reforge.state import completion_total
+
+        run = {"stop": None, "total_commits": 9}
+        self.assertEqual(completion_total(run, 4), 4)
+        self.assertEqual(completion_total(run), 9)
+        self.assertIsNone(completion_total({}))
+
     def test_a_later_fix_refreshes_the_history_entry_too(self):
         # `last_audit` and its history entry are separate objects after a reload, so a fix that
         # updated one left `report` showing the pre-repair stage.
@@ -9351,6 +9451,26 @@ class TestReforgeCore(unittest.TestCase):
         finalize_review(root, state, run)
         self.assertEqual(run["status"], "completed")
         self.assertIsNone(state["active_run"])
+
+    def test_finalize_review_reads_the_reloaded_history_entry(self):
+        # A separate invocation reloads state, where `last_audit` and its history entry are two
+        # objects; the history copy is what `review_is_ready` reads (ADR-297).
+        from reforge.state import finalize_review
+
+        root = self.root()
+        state = new_state()
+        run = create_run(state, 2, 1, 3)
+        entry = {"run": "run-1", "stage": 1, "window": 3, "commits": [], "new_commits": ["a"],
+                 "prior_commits": [], "findings": [], "repairs": [], "counts": {}, "tests": {},
+                 "review": {"status": "unreviewed", "packet": "stage-1.md"},
+                 "gates": {}, "timestamp": "2026-10-28T00:00:00"}
+        record_stage(root, state, run, entry)
+        reloaded = load_state(root)
+        reloaded_run = reloaded["runs"][0]
+        reloaded_run["last_audit"]["review"]["status"] = "reviewed"
+        finalize_review(root, reloaded, reloaded_run)
+        self.assertEqual(reloaded_run["status"], "completed")
+        self.assertIsNone(load_state(root)["active_run"])
 
     def test_an_unlimited_run_completes_at_the_end_of_history(self):
         from reforge.state import create_run, new_state, record_stage

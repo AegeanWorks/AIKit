@@ -38,6 +38,15 @@ BINOP_MUTATIONS = {"+": "-", "-": "+"}
 
 Runner = Callable[[Sequence[str], Path, float], Tuple[int, str]]
 
+# The generated and dependency trees no mutation run may copy. Kept beside the copy so the audit
+# and knowledge walkers can be pinned to the same core set by a unit test (ADR-300).
+COPY_IGNORE_PATTERNS = (
+    ".git", ".hg", ".svn", "projects", "references", "scratch", ".idea-catcher",
+    "node_modules", "__pycache__", "*.pyc", "*.pyo",
+    ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox",
+    ".venv", "venv", "env", "build", "dist", "target", ".next", ".nuxt", ".cache", ".vite",
+)
+
 
 class ProofError(ValueError):
     """The proof could not be set up; the exit code is 2."""
@@ -204,12 +213,7 @@ def apply_mutation(text: str, mutant: Dict[str, object]) -> str:
 
 def _copy_repo(repo: Path, destination: Path) -> None:
     """Copy the working tree without Git metadata, project checkouts, or generated bulk."""
-    ignore = shutil.ignore_patterns(
-        ".git", ".hg", ".svn", "projects", "references", "scratch", ".idea-catcher",
-        "node_modules", "__pycache__", "*.pyc", "*.pyo",
-        ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox",
-        ".venv", "venv", "env", "build", "dist", "target", ".next", ".nuxt", ".cache", ".vite",
-    )
+    ignore = shutil.ignore_patterns(*COPY_IGNORE_PATTERNS)
     try:
         shutil.copytree(repo, destination, ignore=ignore)
     except OSError as exc:

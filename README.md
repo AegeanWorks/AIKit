@@ -88,6 +88,9 @@ portable_agent_kit/
 ├── .cursorrules                  <- Cursor IDE instructions
 ├── .windsurfrules                <- Codeium Windsurf IDE instructions
 ├── .clinerules                   <- Cline / Roo Code IDE instructions
+├── .entire/
+│   ├── .gitignore
+│   └── settings.json             <- Entire settings
 ├── .github/
 │   ├── copilot-instructions.md   <- GitHub Copilot instructions
 │   └── workflows/
@@ -115,7 +118,9 @@ portable_agent_kit/
 │   │   └── opencode_worker.md    <- OpenCode subagent spec for free models
 │   └── task_ledger.json          <- Disruption ledger for power-loss resilience (WAL)
 ├── .opencode/
-│   └── agents/                   <- OpenCode subagent profiles (architect, coder, ...)
+│   ├── agents/                   <- OpenCode subagent profiles (architect, coder, ...)
+│   └── plugins/
+│       └── entire.ts             <- Entire session plugin (generated)
 ├── opencode.jsonc                <- OpenCode provider, model & permission config
 ├── scripts/
 │   ├── sync_principles.py        <- Generates 8 Tier 1 files from GUIDELINES.md
@@ -189,7 +194,7 @@ python aikit.py guideline my-app "money is integer cents" --source user  # proje
 python aikit.py publish my-app [--owner ORG] [--license auto]  # repo, description, recorded AI topics
 python aikit.py license my-app [--suggest|--set game|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science)
 ```
-A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` needs a 10-350 character README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. Before a commit `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` (opt-in `.aikit/ui.json`) bounds surfaces and proofs; `finish` needs `--reviewed` (ADR-160..166). `fix` adopts a detected UI project when it has a test command: it writes a conservative `.aikit/ui.json`, marks `ui_required`, and never invents a proof when no test command exists. A game project can declare a headless mechanics contract in `.aikit/project.json` (`mechanics.core` paths and `mechanics.test`); `check` validates it and runs it as a gate, so the same mechanics are testable by an agent and callable by the UI. `check`/`fix`/`publish` run a project's commands unsandboxed: attach trusted repositories.
+A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` needs a 10-350 character README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. Before a commit `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` (opt-in `.aikit/ui.json`) bounds surfaces and proofs; `finish` needs `--reviewed` (ADR-160..166). `fix` adopts a detected UI project when it has a test command and never invents a proof when none exists. A game project can declare a headless mechanics contract in `.aikit/project.json` (`mechanics.core`, `mechanics.test`); `check` runs it as a gate. `check`/`fix`/`publish` run a project's commands unsandboxed: attach trusted repositories.
 
 ## 🔁 Aegean Reforge: Host Review & Safe Repair
 
@@ -279,8 +284,8 @@ terminal `Blocked`, which refuses later review or status changes. `ideas` hides 
 
 `ui-id` stores `has_ui`, `ui_kind` and `ui_evidence`. `topics --brief` gives an AI the evidence;
 `--from-file` records its tags and `--apply` publishes them, capped at 20. `media init --art` uses
-the online image model with `POLLINATIONS_API_KEY`; `review/apply/audit` require a named reviewer and
-shots.
+the online image model with `POLLINATIONS_API_KEY`; approved logos survive unless `--force` is
+given, and `review/apply/audit` need a named reviewer and shots.
 
 ## 📥 Alternative: Copy AIKit Into an Existing Project
 

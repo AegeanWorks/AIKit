@@ -164,7 +164,7 @@ def test_command_topic(test_command: Optional[str]) -> Optional[str]:
     return None
 
 
-def publish_topics(project_root: Path, recorded: List[str]) -> List[str]:
+def publish_topics(recorded: List[str]) -> List[str]:
     """The AI-chosen topics `publish` sets, validated; AIKit adds no tag on its own (ADR-236)."""
     return normalize_topics(list(recorded))
 
@@ -263,7 +263,7 @@ def cmd_new(args: argparse.Namespace) -> int:
         if project_artwork.model_key():
             try:
                 media = project_artwork.generate_model_brand(
-                    root, args.name, kind=kind, force=True)
+                    root, args.name, force=True)
                 print("     AI-generated logo and social banner created "
                       "(uncommitted; vision review required before applying).")
             except (ProjectError, OSError, ValueError) as exc:
@@ -288,7 +288,7 @@ def cmd_new(args: argparse.Namespace) -> int:
             [*INTEGRATION_TOPICS, *license_topics(license_kind),
              *(args.topic or [])][:MAX_TOPICS])
         code, report = publish_project(root, args.name, public=getattr(args, "public", False),
-                                       topics=publish_topics(root, first_topics))
+                                       topics=publish_topics(first_topics))
         print(report, file=sys.stdout if code == 0 else sys.stderr)
         if code != 0:
             print(f"[WARN] Project created locally at {root}, but GitHub publication failed.", file=sys.stderr)
@@ -744,8 +744,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     # `new` records the topics; a project.json from before ADR-199 has none (ADR-200).
     config = load_config(project.path)
     code, report = publish_project(project.path, project.name, public=args.public,
-                                   topics=publish_topics(project.path,
-                                                         config.get("topics") or ["aikit"]),
+                                   topics=publish_topics(config.get("topics") or ["aikit"]),
                                    owner=getattr(args, "owner", None), description=description)
     print(report, file=sys.stdout if code == 0 else sys.stderr)
     if code == 0:
@@ -1069,8 +1068,7 @@ def cmd_media(args: argparse.Namespace) -> int:
         if getattr(args, "art", False) and project_artwork.model_key():
             ui = project_ui.ui_payload(project.path)
             result = project_artwork.generate_model_brand(
-                project.path, project.name, kind=str(ui.get("kind") or "library"),
-                force=args.force)
+                project.path, project.name, force=args.force)
         elif getattr(args, "art", False):
             description = extract_readme_description(project.path) or ""
             config = load_config(project.path)
@@ -1099,10 +1097,15 @@ def cmd_media(args: argparse.Namespace) -> int:
         print(json.dumps({"ok": True, "result": result}, indent=2))
         return 0
     if action == "init":
-        assets = result.get("assets") or (["artwork", "logo", "social_preview"]
-                                          if result.get("artwork") else [])
-        print(f"[OK] Media candidates for '{project.name}': {', '.join(assets)} "
-              f"(has_ui={result.get('has_ui')}, kind={result.get('kind')}); review before applying.")
+        if result.get("skipped"):
+            print(f"[OK] '{project.name}' already has approved brand assets; nothing regenerated "
+                  "(use --force to replace).")
+        else:
+            assets = result.get("assets") or (["artwork", "logo", "social_preview"]
+                                              if result.get("artwork") else [])
+            print(f"[OK] Media candidates for '{project.name}': {', '.join(assets)} "
+                  f"(has_ui={result.get('has_ui')}, kind={result.get('kind')}); "
+                  "review before applying.")
     elif action == "status":
         print(f"Media for '{project.name}' (has_ui={result['has_ui']}):")
         for key, asset in result["assets"].items():

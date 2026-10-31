@@ -115,11 +115,11 @@ def _description(root: Path, name: str) -> str:
     return text
 
 
-def _palette(name: str, kind: str) -> Tuple[str, str, str, str]:
+def _palette(name: str) -> Tuple[str, str, str, str]:
     return brand_spec(name)["palette"]
 
 
-def _logo_svg(name: str, kind: str) -> str:
+def _logo_svg(name: str) -> str:
     return brand_logo_svg(name)
 
 
@@ -342,6 +342,11 @@ def load_media(root: Path) -> Dict[str, object]:
     return data
 
 
+def dossier_logo_is_placeholder(manifest: object) -> bool:
+    """True when a dossier media manifest still points at the generated fallback card."""
+    return isinstance(manifest, dict) and bool((manifest.get("logo") or {}).get("generated"))
+
+
 def media_blockers(root: Path, dossier: Optional[Path] = None) -> List[str]:
     """Assets that still need a review before a new project may be published."""
     if not media_path(root).is_file():
@@ -361,10 +366,10 @@ def media_blockers(root: Path, dossier: Optional[Path] = None) -> List[str]:
     if manifest_path.is_file():
         try:
             d_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if isinstance(d_manifest, dict) and (d_manifest.get("logo") or {}).get("generated"):
-                blockers.append("dossier logo is a fallback placeholder card")
         except (OSError, ValueError):  # hygiene: allow unreadable dossier manifest is ignored
-            pass
+            d_manifest = None
+        if dossier_logo_is_placeholder(d_manifest):
+            blockers.append("dossier logo is a fallback placeholder card")
     return blockers
 
 
@@ -397,7 +402,7 @@ def seed_media_assets(project_root: Path, name: str, force: bool = False,
     logo = LOGO_REL
     social = SOCIAL_REL
     if force or not (root / logo).is_file():
-        _atomic_text(root / logo, _logo_svg(name, kind))
+        _atomic_text(root / logo, _logo_svg(name))
     if force or not (root / social).is_file():
         try:
             topics = load_config(root).get("topics") or []
@@ -428,7 +433,7 @@ def seed_media_assets(project_root: Path, name: str, force: bool = False,
         "repo": repository_name(name),
         "has_ui": bool(ui.get("has_ui")),
         "ui_kind": kind,
-        "palette": list(_palette(name, kind)),
+        "palette": list(_palette(name)),
         "motif": brand_spec(name)["motif"],
         "layout": brand_spec(name)["layout"],
         "assets": assets,
@@ -866,10 +871,8 @@ def audit_media(project_root: Path, dossier: Optional[Path] = None) -> Dict[str,
             dossier_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             problems.append(f"{manifest_path}: dossier manifest is not valid JSON")
-        if isinstance(dossier_manifest, dict):
-            logo_entry = dossier_manifest.get("logo") or {}
-            if logo_entry.get("generated"):
-                problems.append(f"{manifest_path}: dossier logo is a fallback placeholder card (authentic artwork required)")
+        if dossier_logo_is_placeholder(dossier_manifest):
+            problems.append(f"{manifest_path}: dossier logo is a fallback placeholder card (authentic artwork required)")
     readme = root / "README.md"
     readme_text = readme.read_text(encoding="utf-8") if readme.is_file() else ""
     social_path = str((assets.get("social_preview") or {}).get("path") or "")

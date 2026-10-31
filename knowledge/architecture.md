@@ -31,7 +31,8 @@ project/reference checkouts, dependency folders and generated caches (ADR-296).
 Each post-commit gate carries its own bound: the tiers gate gets room for all three tiers plus the
 retry allowance, and every single-script gate keeps `GATE_TIMEOUT_SECONDS`. A tier that overruns the
 `check_test_budgets.py` hang detector is reported as `[FAIL] <tier>: did not finish within Ns` with
-its own Why/Fix and exit 1, never as a raised `TimeoutExpired` (ADR-293).
+its own Why/Fix and exit 1, never as a raised `TimeoutExpired` (ADR-293). A red tier also prints a
+bounded tail of its own output, so the failing test is named by the gate itself (ADR-299).
 
 ## 🧭 Projects: AIKit as the Workspace
 AIKit is the folder a person opens in an AI host; the software it builds lives in `projects/<name>/`, each its own git repository with its memory in `.aikit/`. See [ADR-119](decisions.md).
