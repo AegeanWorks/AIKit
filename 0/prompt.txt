@@ -1,0 +1,1 @@
+Add start on windows startup setting. As fast as possible it should be also web browser too. It should handle gbs of files easily. What else do you propose?
