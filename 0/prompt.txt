@@ -1,0 +1,1 @@
+Create a new project via AIKit. You choose. We are going to test it's UI principles.
