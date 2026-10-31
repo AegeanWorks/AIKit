@@ -1,0 +1,1 @@
+Our AIKit's principles should be enough to apply every project. Also each project should be able to have their guidelines specified by human or AI  under the lower tier of these principles.
