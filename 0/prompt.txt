@@ -1,0 +1,1 @@
+Continue with Voidfarer project. Work on the UI in the left side. Also improve in game mechanics ; improve QoL, add settings.
