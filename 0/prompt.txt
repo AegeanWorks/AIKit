@@ -1,0 +1,21 @@
+https://ai.google.dev/gemini-api/docs?hl=tr I want you to be able use Gemini and OpenCode API. Only use proper free agents. REDACTED 
+
+<pasted_content id="ca29">
+curl "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent" \
+  -H 'Content-Type: application/json' \
+  -H 'X-goog-api-key: REDACTED' \
+  -X POST \
+  -d '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Explain how AI works in a few words"
+          }
+        ]
+      }
+    ]
+  }'
+</pasted_content id="ca29">
+
+ Also I have access to Gemini Flash 3.8 https://aistudio.google.com/docs. Also each project should have it's own git.
