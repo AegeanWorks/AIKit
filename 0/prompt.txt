@@ -1,0 +1,1 @@
+nalyze the first principle ; strenghts and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary.
