@@ -1,0 +1,1 @@
+let's continue working on modelduck, our goal is not to evalute performances of the ais in the first place, goal is to modify settings to find optimal settings for tasks ; it is for using the most optimised settings for a model.
