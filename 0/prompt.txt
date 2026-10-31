@@ -1,0 +1,1 @@
+so let's change the verify and add some random numerators etc in both so we need both for verifying and older things won't work. also check everything in the aikit's last push, for bugs, fixes, improvements and implementations.
