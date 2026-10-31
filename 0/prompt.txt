@@ -1,0 +1,1 @@
+context size ; 128, 256, 512, 1024, 2048, 4096 ; keep kv cache like that, c on and off, use mmap on and off, batch size 128, 256, 512, 1024, 2048, 4096, threads 1, 2,4, 8; checkpointing off, 64, 128, 256, 512, 1024, 2048 max 4 8 16 32 ; how much would this take for stage 1
