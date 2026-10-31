@@ -1,0 +1,178 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "worker",
+  "model": "opencode/deepseek-v4.1-flash-free",
+  "commands": {
+    "resume": {
+      "description": "Resume active task or check disruption recovery status",
+      "template": "python scripts/disruption_recovery.py --resume"
+    },
+    "audit": {
+      "description": "Run comprehensive environment and disruption recovery audit",
+      "template": "python scripts/disruption_recovery.py --audit"
+    },
+    "check": {
+      "description": "Run project Phase 4 quality gate verification",
+      "template": "python aikit.py check $1"
+    },
+    "status": {
+      "description": "Show status of registered workspace projects",
+      "template": "python aikit.py list"
+    }
+  },
+  "providers": {
+    "ollama": {
+      "name": "Ollama (Local Free)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:latest": {
+          "name": "Qwen 2.5 Coder (Local)"
+        },
+        "deepseek-r1:latest": {
+          "name": "DeepSeek R1 (Local)"
+        }
+      }
+    },
+    "openrouter": {
+      "name": "OpenRouter (Free Models)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "env": [
+        "OPENROUTER_API_KEY"
+      ],
+      "settings": {
+        "baseURL": "https://openrouter.ai/api/v1"
+      },
+      "models": {
+        "deepseek/deepseek-r1:free": {
+          "name": "DeepSeek R1 (Free)"
+        },
+        "meta-llama/llama-3.3-70b-instruct:free": {
+          "name": "Llama 3.3 70B (Free)"
+        },
+        "qwen/qwen-2.5-coder-32b-instruct:free": {
+          "name": "Qwen 2.5 Coder 32B (Free)"
+        }
+      }
+    },
+    "gemini": {
+      "name": "Google Gemini API (free tier)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "env": [
+        "GEMINI_API_KEY"
+      ],
+      "settings": {
+        "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai"
+      },
+      "models": {
+        "gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash (free tier)"
+        },
+        "gemini-3.5-flash-lite": {
+          "name": "Gemini 3.5 Flash-Lite (free tier)"
+        }
+      }
+    },
+    "lmstudio": {
+      "name": "LM Studio (Local Free)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:1234/v1"
+      }
+    }
+  },
+  "permissions": [
+    {
+      "action": "edit",
+      "resource": ".agents/task_ledger.json",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push*",
+      "effect": "ask"
+    },
+    {
+      "action": "shell",
+      "resource": "git push --force*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push -f*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push --mirror*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push --delete*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * --force*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * -f*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * --mirror*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * --delete*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * +*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git push * :*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git reset --hard*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git clean*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git add .",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git add -A*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "git add --all*",
+      "effect": "deny"
+    },
+    {
+      "action": "shell",
+      "resource": "rm -rf *",
+      "effect": "deny"
+    }
+  ]
+}

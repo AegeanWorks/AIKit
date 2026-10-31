@@ -1,0 +1,24 @@
+# Project Domain Invariants (Tier 1B)
+<!--
+AIKit Domain Invariants Template (PRINCIPLE-001, PRINCIPLE-017)
+INSTRUCTIONS:
+1. Copy this file to '.agents/rules/domain.md' in your project.
+2. Customize the rules below with your project-specific domain constraints.
+3. Keep it under 1,200 characters (~300 tokens).
+4. Run 'python scripts/sync_principles.py' to inject these rules across all IDE prompt files.
+5. One AIKit project's own rules: its .aikit/guidelines.md.
+-->
+
+## 🛠️ Stack & Runtime Constraints
+- **Language / Runtime**: Python 3.11+ / Node.js 20+
+- **Primary Framework**: FastAPI / React 19
+- **Storage / Database**: SQLite (WAL mode) / PostgreSQL
+
+## 🏛️ Domain Architectural Invariants
+- **Layering**: Strictly decouple Business Domain from Presentation and External Adapters (PRINCIPLE-009).
+- **Type Annotations**: Mandatory type hints on all public interfaces and DTOs; zero `Any` casting.
+- **Concurrency**: Asynchronous non-blocking I/O only; zero synchronous blocking operations on the event loop.
+
+## 🧪 Verification & Tooling
+- **Test Command**: `pytest tests/ -v` (must execute in <2s with 100% pass gate).
+- **Linter / Formatter**: `ruff check .` (zero warnings before commit).

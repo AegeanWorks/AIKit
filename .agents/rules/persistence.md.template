@@ -1,0 +1,38 @@
+# Persistence Contract (Adopter Template)
+
+Copy this contract into a project's own documentation. It describes a reusable pattern; it is not
+an AIKit knowledge-base document.
+
+## Version Matrix
+
+| Stored version | Action |
+|---|---|
+| absent | Refuse as "not this project's state", or accept it only through a documented legacy migration |
+| older | Migrate, or refuse with a clear Why/Fix when no migration exists |
+| equal | Load |
+| newer | Refuse; never quarantine, overwrite, or silently fall back to an older `.bak` |
+
+A version mismatch is incompatibility, not corruption. Leave the file byte-identical.
+
+## Write Order
+
+1. Check that at least 10 MB are free.
+2. Write a temporary file in the same directory; flush and fsync it.
+3. Rotate the current valid file to `<name>.bak`.
+4. Replace the primary with `os.replace`, retried up to five times.
+5. Fsync the directory (a no-op on Windows).
+6. On failure, delete the temporary file and raise an error carrying Why and Fix; never report a
+   successful save when the replace did not land.
+
+## Load Order
+
+1. Parse the file. Invalid UTF-8 or JSON is corruption: quarantine it and try `.bak`.
+2. Validate the version before normalizing or migrating anything.
+3. Migrate in memory. A read-only command (`status`, `resume`, `audit`) never rewrites a valid
+   state file; a version refusal leaves it byte-identical.
+4. Recover from `.bak` only when its own version is supported.
+
+## Adapter Boundary
+
+Keep `to_payload()` and `from_payload()` in the project's domain layer. The atomic-write,
+backup, quarantine, version-check and migration machinery is the reusable part.

@@ -1,0 +1,64 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Operational dogfooding run log (PRINCIPLE-015 Rule 7 declares this path; it is a
+# transient run artifact and the one deliberate write outside SANDBOX_ROOT)
+.agents/dogfood_last_run.log
+
+# Disruption recovery quarantine artifacts
+*.corrupt_*
+*.tmp*
+*.bak
+*.lock
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Credential surfaces (PRINCIPLE-019 Rule 2: ignore-list baseline).
+# Protection added after a leak is protection that already failed.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+credentials
+credentials.*
+secrets.*
+*.tfvars
+.aws/
+.gcloud/
+.azure/
+
+# The projects AIKit builds: each is its own git repository with its own .aikit/ memory (ADR-119)
+projects/
+
+# Idea Catcher's private register: the tool ships in idea_catcher/, the found ideas never
+# leave this machine and are never published (ADR-252).
+/.idea-catcher/
+
+# Other projects' code kept here for reference only: never uploaded, never mapped (ADR-201).
+references/
+
+# Project databases belong inside their project folder, never at the AIKit root.
+/lattice.db
+/lattice.db-wal
+/lattice.db-shm
+
+# Transient workspace scratch and build artifacts
+scratch/
+.vite/
+
+# Reforge's own audit state at the AIKit root: a tool state folder, not AIKit memory (ADR-253).
+/.aikit/

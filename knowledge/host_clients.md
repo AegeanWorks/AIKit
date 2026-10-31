@@ -1,0 +1,108 @@
+# Agent Host Clients & Multi-Environment Portability 🌐
+
+> **Authority**: Governed by **PRINCIPLE-009 R7** (Pluggable Host Architecture) and **PRINCIPLE-017 R2** (Automated Cross-IDE Target Synchronization). This document defines the host client integration architecture, operational parity contracts, and onboarding protocols for driving AIKit across diverse agent harnesses (Antigravity, Claude, OpenCode, Cursor, Copilot, and future agent platforms).
+
+---
+
+## 🎯 Architecture & Zero-Vendor-Lock-In Invariant
+
+AIKit's gates and ledger need only a shell and Python. All operational logic, life-cycle gates, disruption recovery ledgers, and test suites are implemented in pure standard-library Python scripts (`scripts/`). No kit capability requires proprietary IDE APIs or vendor-specific platforms.
+
+What differs between hosts is only which instruction file each loads automatically and whether it can read a skill file; the table below says which.
+
+---
+
+## 🖥️ Supported Host Client Environments
+
+| Host Client / IDE | Primary Entrypoint | Skill / Capability Projection | Subagent Execution Method |
+|---|---|---|---|
+| **Google Antigravity IDE** | `AGENTS.md` / `GEMINI.md` / `.agents/rules/principles.md` | Built-in skill discovery via `.agents/skills/aikit/SKILL.md` | Headless execution via `.agents/agents/opencode_worker.md` or `python aikit.py delegate` |
+| **Anthropic Claude Code** | `CLAUDE.md` (Tier 1 capsules) | Native skill discovery via `.claude/skills/aikit/SKILL.md` | Native sub-agents in `.claude/agents/` (Agent tool); `python aikit.py delegate <role>` for OpenCode |
+| **OpenCode CLI** | `opencode.jsonc` & `.opencode/agents/` | Native slash commands (`/resume`, `/audit`, `/check`, `/status`) | Native headless process tree with closed stdin |
+| **Cursor IDE** | `.cursorrules` (Tier 1 capsules) | Runbook in `.agents/skills/aikit/SKILL.md` | Terminal execution of `python aikit.py` |
+| **GitHub Copilot / VS Code** | `.github/copilot-instructions.md` | Instruction projection in `.github/copilot-instructions.md` | Terminal execution of `scripts/` suite |
+| **Codeium Windsurf** | `.windsurfrules` (Tier 1 capsules) | Runbook in `.agents/skills/aikit/SKILL.md` | Terminal execution of `python aikit.py` |
+| **Cline / Roo Code** | `.clinerules` (Tier 1 capsules) | Runbook in `.agents/skills/aikit/SKILL.md` | Terminal execution of `python aikit.py` |
+
+### Git Delivery Policy Parity
+
+A host's standing instructions are part of its instruction surface, and hosts differ on git: some let the agent commit verified work, while a host such as Kilo forbids commits, pushes and pull requests the user did not explicitly request. Before a commit or push decision the agent reads that policy (PRINCIPLE-018 R1). A host with an explicit-request restriction makes commit delivery unauthorized: milestone work is recorded as a `[milestone N/M]` checkpoint and reported uncommitted (PRINCIPLE-006 R1), and a push needs its own request. A host without that restriction keeps automatic milestone commits and adaptive pushes. The difference is resolved by the principles, never by editing a generated Tier 1 file (PRINCIPLE-017 R2).
+
+---
+
+## 🔄 Cross-Client State & Disruption Parity
+
+Regardless of which host client initiates, advances, or completes a task, workspace state is unified through a single Write-Ahead Logging (WAL) state file:
+
+```
+           ┌──────────────────────┐
+           │   Antigravity IDE    │
+           └──────────┬───────────┘
+                      │
+           ┌──────────▼───────────┐
+           │     Claude Code      ├──────►  python scripts/disruption_recovery.py
+           └──────────┬───────────┘                     │
+                      │                                 ▼
+           ┌──────────▼───────────┐         .agents/task_ledger.json
+           │ Windsurf / Cursor    │         (Single Source of Truth)
+           └──────────┬───────────┘
+                      │
+           ┌──────────▼───────────┐
+           │  Future Host Client  │
+           └──────────────────────┘
+```
+
+### Session Hand-Off Between Hosts
+- A task started in **Antigravity** (e.g. `[1/5] Architectural Planning`) is written atomically to `.agents/task_ledger.json` with an advisory lock.
+- If the developer switches to **Claude Code**, **Cursor**, **Windsurf**, or **Cline** in a terminal, running `python scripts/disruption_recovery.py --resume` or `python aikit.py resume <project>` reports the active task, reads the exact plan and recommended resumption phase, and continues without repeating completed work.
+- If a crash, network loss, or context compaction occurs, running `--resume` in any client recovers the active state.
+
+---
+
+## 🛠️ Claude Integration Protocol
+
+When using **Claude Code** (Claude Desktop chat and the Anthropic Console neither load `CLAUDE.md` nor run commands, so they cannot operate AIKit):
+
+1. **Automatic Instruction Loading**: Claude Code loads `CLAUDE.md` on startup. `CLAUDE.md` is generated by `scripts/sync_principles.py` and contains all 20 Tier 1 core principle capsules.
+2. **Native Skill Discovery**: Claude Code automatically discovers project skills in `.claude/skills/aikit/SKILL.md`, exposing the operational runbook and commands.
+3. **Native Sub-Agents**: Claude Code loads the six AIKit roles from `.claude/agents/`, generated by `scripts/sync_principles.py` from `.opencode/agents/<role>.md` with the tools and model in `CLAUDE_AGENT_ROLES`: `explorer` and `architect` can only read, `worker` cannot run commands, cheap models (haiku) take searching and drafting. `.claude/settings.json` denies `Edit(**/task_ledger.json)`, which binds the lead agent and every sub-agent (ADR-131).
+4. **Operational Commands**: Claude executes kit operations via bash/terminal tool calls:
+   - Cold start / resumption: `python scripts/disruption_recovery.py --resume`
+   - Change track classification: `python scripts/disruption_recovery.py --track`
+   - Plan checkpointing: `python scripts/disruption_recovery.py --checkpoint <id> --phase-num <1-5> --desc "<plan>"`
+   - Project operations: `python aikit.py status <name>`, `check <name>`, `checkpoint <name>`, etc.
+   - Pre-commit verification: every PRINCIPLE-018 R3 gate: `python -m unittest discover tests`, `python scripts/sync_principles.py --check`, `python scripts/update_knowledge_base.py --check`, `python scripts/check_reachability.py`, `python scripts/check_secrets.py` and `python scripts/dogfood.py`.
+
+---
+
+## 🤖 Safe Subagent Delegation Engine (`python aikit.py delegate`)
+
+Under **PRINCIPLE-008 R1/R6**, **PRINCIPLE-011 R5**, and **PRINCIPLE-012 R8**, parent orchestrators can safely delegate token-heavy tasks to subagents via `aikit`:
+
+```bash
+python aikit.py delegate <role> "<task_prompt>" [--file <target>] [--project <name>] [--model <model>] [--format {text,json}]
+```
+
+### Free Models Only
+`aikit delegate` refuses a `--model` that `is_free_model` does not accept: OpenCode `-free`, OpenRouter `:free`, local Ollama or LM Studio, or a free-tier Gemini model listed in `opencode.jsonc` (provider `gemini`, key from `GEMINI_API_KEY`). The text report keeps only the sub-agent's answer (ADR-132).
+
+### Mechanical Safety Invariants
+1. **Ledger Check**: `scripts/subagent_delegate.py` compares both task ledgers (`.agents/task_ledger.json` and `<project>/.aikit/task_ledger.json`) before and after the run and exits 1 when either changed. It never writes the ledger back: a parallel session may have checkpointed meanwhile, and restoring a snapshot erased that work (ADR-128). The sub-agents' OpenCode permissions already deny ledger edits.
+2. **Non-Interactive Closed Stdin**: Subagents run with `stdin=subprocess.DEVNULL` to guarantee execution never blocks on terminal prompts.
+3. **Execution Timeout**: Enforces explicit subprocess timeout bounds (`--timeout 120`) to eliminate runaway loops.
+4. **Structured JSON Output**: Supports `--format json` emitting typed result payloads (`status`, `agent`, `exit_code`, `duration_seconds`, `output`, `ledger_shield`).
+
+---
+
+## 🚀 4-Step Onboarding Protocol for Future Host Clients
+
+When integrating a new AI agent service or client environment:
+
+1. **Step 1: Declare Instruction Target in `scripts/sync_principles.py`**:
+   Add the client's conventional instruction filename to `TIER1_TARGETS` (e.g., `".windsurfrules"` or `".clinerules"`).
+2. **Step 2: Verify Context Budget Gate**:
+   Run `python scripts/sync_principles.py --check` to ensure the generated file strictly fits the 1,750-token Tier 1 ceiling.
+3. **Step 3: Map Native Skill & Tool Capabilities**:
+   If the client supports custom skills, commands, or subagents, expose `.agents/skills/aikit/SKILL.md` or create a thin adapter following the client's declarative format.
+4. **Step 4: Verify Single Ledger Adherence**:
+   Confirm the new client interacts with task state solely through `python scripts/disruption_recovery.py` and never writes directly to `.agents/task_ledger.json`.
