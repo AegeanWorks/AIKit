@@ -1,0 +1,224 @@
+Base directory for this skill: c:\Users\Yunus-Emre\Desktop\portable_agent_kit\.claude\skills\aikit
+
+# AIKit Operational Runbook (Universal Host Integration)
+
+This operational runbook provides the unified command matrix for driving AIKit across all supported agent host clients (Antigravity, Claude, OpenCode, Cursor, Copilot, Windsurf, Cline) under **PRINCIPLE-009 R7** (Pluggable Host Architecture) and **PRINCIPLE-017 R2** (Cross-IDE Synchronization).
+
+---
+
+## 🌐 Host Client Operation Matrix
+
+- **Antigravity**: Native chat harness. Discovers this skill via `.agents/skills/aikit/SKILL.md` and rule files in `.agents/rules/`.
+- **Claude (Code CLI / Desktop)**: Reads `CLAUDE.md` automatically on startup. Discovers this skill natively via `.claude/skills/aikit/SKILL.md`. Executes kit commands directly via terminal tool calls.
+- **OpenCode**: Runs headless subagent profiles (`architect`, `coder`, `tester`, etc.) via `opencode run --standalone` and slash commands via `opencode.jsonc`.
+- **Cursor / VS Code / Windsurf / Cline**: Loads `.cursorrules`, `.github/copilot-instructions.md`, `.windsurfrules`, `.clinerules`. Runs terminal commands.
+- **State SSOT**: All clients interact with workspace state strictly through `python scripts/disruption_recovery.py` and `.agents/task_ledger.json` (a project's: `.aikit/task_ledger.json`).
+
+---
+
+## 🧱 Projects: Building Software Other Than AIKit (PRINCIPLE-011 R8)
+The user's software lives in its own project, never in AIKit's tree:
+```bash
+python aikit.py list                 # which projects exist
+python aikit.py new <name> --description "<10-350 chars>" [--topic <t>]... [--kind software|game|science]  # own repo + .aikit memory; auto-detects UI, generates model logo/social candidates (POLLINATIONS_API_KEY) or local fallback, writes media pending; --publish refuses until logo/social are reviewed and applied (ADR-243)
+python aikit.py attach <path>        # an existing folder: adds .aikit/ memory and an AIKit Integrated badge under its README title (uncommitted)
+python aikit.py status <name>        # its task, changes, latest decision and its gates
+python aikit.py check <name>         # its Phase 4: tests, stack gates, hygiene, guidelines, secret scan; exit 0 to commit; never pushes, add --push only when push delivery is authorized (PRINCIPLE-018 R4)
+python aikit.py guideline <name> "<rule>" --source user   # a project rule, below the principles
+python aikit.py publish <name> [--public] [--owner <org>] [--license auto]  # its own GitHub repo with the README description, the recorded AI-chosen topics and an AI-chosen license; needs a 10-350 char README paragraph; only when the user asks
+python aikit.py license <name> [--suggest [--json]|--set software|game|science|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science); --restrict, only when the user asks, makes later versions All Rights Reserved from HEAD (earlier releases keep their license), drops COMMERCIAL.md, blocks publish --public, and allows check --push or publish only to a repository gh reports private (ADR-214)
+python aikit.py topics <name> --brief --json   # bounded evidence for an AI to choose tags; no tag chosen automatically
+python aikit.py topics <name> --from-file <json> [--apply]  # record the AI's choice; apply only with --apply (ADR-236)
+python aikit.py topics <name> --review [--json]  # audit current/recorded tags without choosing
+python aikit.py ui-id <name> [--set auto|yes|no] [--kind <k>]  # durable has_ui/ui_kind evidence (ADR-233)
+python aikit.py media init --art <name>  # IMAGE MODEL: POLLINATIONS_API_KEY env only; gen.pollinations.ai free flux model renders title+category, then the square is reframed to 1280x640; never commit the key (ADR-239, ADR-241)
+python aikit.py fix <name>           # self-heals memory, adopts UI, cleans temp buffers, syncs codebase map
+python aikit.py checkpoint <name>    # disruption checkpoint on the project ledger; --agent <host>:<session> names you
+python aikit.py resume <name>        # disruption resume on the project
+python aikit.py complete <name>      # mark project task complete; another agent's task needs --take-over
+python scripts/disruption_recovery.py --suspend "<reason>" --workspace projects/<name>  # pause a task, keep it resumable
+python scripts/disruption_recovery.py --resume-task <task_id> --workspace projects/<name>  # reactivate a paused or superseded task (ADR-219)
+python aikit.py clean <name>         # clean dangling project buffers
+python aikit.py reforge start <name> --start 3 --step 3 --stop 15  # independent run; per-project lock
+python aikit.py reforge audit <name>   # write the next window's review packet (commit:path:line)
+python aikit.py reforge fix <name> --findings answer.json  # validate, repair, verify
+python aikit.py reforge run <name> --findings answer.json --push  # audit, repair, verify, push
+python aikit.py reforge run <name> --rules  # deterministic rule pass, no host review
+python aikit.py reforge settings|stop|resume|runs|status|report <name>  # manage runs (ADR-232, ADR-249)
+python reforge.py <path> --help        # same engine against any repo, no project registry (ADR-248)
+python aikit.py idea-catcher status     # shipped tool over the private .idea-catcher/ register (ADR-246, ADR-252)
+python aikit.py idea-catcher validate   # targets, ideas, dossiers and generated matrix; render --check
+python aikit.py idea-catcher render --check  # fail when MATRIX.md is stale
+python aikit.py idea-catcher sync --repo <path> --project <target>  # register delivered IDEA-NNN references and refresh MATRIX.md
+```
+- Reforge in one paragraph: window N is `start + step*(N-1)`, capped by `stop`; a stage inspects only the lines its own commits add and attributes each finding to the commit that introduced it. Five Python rules repair mechanically (`bare-except`, `mutable-default`, `shell-true`, `verify-false`, `unsafe-yaml-load`), each with a generated regression test; a line marked `hygiene: allow <reason>` is honoured, not reported; every other Python rule, every text check and every host finding is reported for a human, or applied only through a validated replacement. A red test or gate restores the exact bytes, and `--commit`/`--push` stage only reviewed paths plus `.aikit/reforge.json`, never forcing (in a project that file is committed memory; at AIKit's own root `.aikit/` is git-ignored tool state, so only reviewed paths are committed). Reforge may repair beside unrelated uncommitted work: those paths are snapshotted, never staged, and a commit is refused only when a finding's own target file was already dirty (`--allow-dirty` overrides). Python files use the opt-in AST detectors (`--rules`) and every other changed text file uses `reforge/textdetect.py`, so only binary files print as `[SKIP] ... not analysed` instead of passing silently. `audit`/`run` write each new commit's own hunks, oldest to newest, to `.aikit/reforge.reviews/` with credential spans redacted; a later hunk may correct an earlier one, so findings must quote the current file. No model is called and no subagent starts. The host agent reads that packet and returns `path`, `line`, `severity`, `kind`, `message`, `evidence`, optional `commit`/`hunk`, optional `reviewed_hunks` coverage and an optional exact `fix`; `fix --findings answer.json` validates the answer against the stage (path, line, commit, hunk, current evidence, exact-once replacement, stage overlap, Python parse) and applies it. Each project has its own resolved lock and state, so projects audit in parallel while one project refuses a second run. Every run also appends `reforge:<run-id>` checkpoints to the repo's AIKit ledger without touching `active_task`, so `--resume` shows it; a plain checkout without a ledger is audited anyway. `reforge/` + `reforge.py` are the only source; the standalone repository is archived (ADR-263, ADR-266).
+- Request names no single project: ask which one, or the name of a new one, before writing code.
+- Before writing code in a project, read its guidelines (`status` or `resume` prints them): its own rules, which add to the principles and never override one (PRINCIPLE-000 R6). When the user states a lasting rule for the project, record it with `aikit guideline`.
+- A UI project is adopted by `fix` when it has a test command: it writes `.aikit/ui.json`, sets `ui_required`, and runs the project test command as its fast proof; without a test command it reports the gap instead of inventing one. A game/project may declare `mechanics.core` (existing paths) and `mechanics.test` in `.aikit/project.json`; `check` validates it and adds the mechanics command as a gate, so an agent and the UI exercise the same headless core.
+- In the steps below, project work replaces the repository with the project: use the cockpit subcommands above, or add `--workspace <project path>` to every `disruption_recovery.py` command, write ADRs in `<project>/.aikit/decisions.md`, stage and commit inside the project, and run `python aikit.py check <name>` as Phase 4. `aikit fix <name>` self-heals project memory and cleans temporary buffers. AIKit's other gates are for changes to AIKit only.
+- The project check runs the built-in hygiene scan of its source and static assets: mark a deliberate finding `hygiene: allow <reason>` on its own line or the line directly above it. After the check passes, record the checklist outcome (`checklists: passed`, or the failed or skipped item IDs) in the task's latest checkpoint description before the commit (PRINCIPLE-001 R8, PRINCIPLE-011 R8).
+
+---
+
+## 🤝 Delegating to Sub-Agents (PRINCIPLE-008 R6, PRINCIPLE-012 R8)
+- **Claude Code**: hand bounded work to the project sub-agents in `.claude/agents/` through the Agent tool: `explorer` (searches, haiku), `worker` (docs and boilerplate, haiku), `architect` (read-only design), `reviewer` (audits, runs read-only gates), `tester` and `coder` (sonnet). Brief each with the milestone, the files it may change and the commands that verify it; run Phase 4 on what comes back.
+- **Other hosts**: `python aikit.py delegate <role> "<brief>" [--project <name>]` runs the same role through OpenCode, on free models only: `architect` and `reviewer` on Gemini 3.8 Flash (needs `GEMINI_API_KEY` in the environment), the rest on OpenCode `-free` models (no key). A paid `--model` is refused (ADR-132).
+- Roles have one text, `.opencode/agents/<role>.md`; `python scripts/sync_principles.py` regenerates the Claude copies. No agent can Edit or Write a task ledger (`.claude/settings.json`).
+
+## 🧭 Phase 1: Orientation & Cold-Start Recovery
+
+### 1. Resume Interrupted Tasks
+Run on session startup, cold starts, or after a context compaction:
+```bash
+python scripts/disruption_recovery.py --resume
+```
+- If an interrupted task is found, resume from its recommended phase.
+- If uncommitted files or orphaned buffers exist, inspect them before proceeding.
+
+### 2. Disruption Recovery Audit
+Inspect the entire repository status, active task, and dangling temporary files:
+```bash
+python scripts/disruption_recovery.py --audit
+```
+
+### 3. Change Track Classification
+Determine whether proposed edits require formal checklists:
+```bash
+python scripts/disruption_recovery.py --track
+```
+- **Track A**: Zero edits / read-only investigation.
+- **Track B**: Documentation, comments, and non-rule markdown. Requires Post-Flight checklist and secret scan.
+- **Track C**: Code, rules, workflows, or schemas. Full lifecycle verification required.
+
+---
+
+## 📋 Phase 2: Checkpointing & Planning (Track C Gate)
+
+### 1. Pre-Flight Checklist
+Review before making any code modifications on Track C tasks:
+- Freshness: Read target files in slices before writing (PRINCIPLE-003 R1).
+- Call Sites: Grep all symbol references across the repository before refactoring (PRINCIPLE-003 R2).
+- Zero Undeclared Deps: Only use standard-library modules or explicitly declared dependencies (PRINCIPLE-003 R3).
+- Platform Parity: Use `pathlib.Path` and avoid shell-specific builtins (PRINCIPLE-003 R4).
+
+### 2. Record Micro-Milestones
+Checkpoint plan with explicit impact assessment (`--why`, `--benefits`, `--risks`, `--mitigation`):
+```bash
+python scripts/disruption_recovery.py --checkpoint <task_id> --phase-num 2 --desc "[1/M] Planning and architectural design" --why "<motivation>" --benefits "<gains>" --risks "contract: ...; dependency: ...; concurrency: ...; state: ..." --mitigation "<strategy>"
+```
+- Bound milestone count to $M \le 6$ (PRINCIPLE-008 R3).
+- Name yourself on every `--checkpoint`, `--complete` and `--reset`: `--agent <host>:<session>` (e.g. `kilo:2`) unless `AIKIT_AGENT` is set or you are Claude Code. A task another agent owns is refused (exit 1); continue it only with `--take-over` once that agent has stopped, and tell the user (PRINCIPLE-006 R7).
+
+---
+
+## 🛠️ Phase 3: Implementation & Synchronization
+
+### 1. Synchronize Principles & IDE Instructions
+After modifying `GUIDELINES.md` or `.agents/rules/domain.md`, update all 8 host client instruction files and README:
+```bash
+python scripts/sync_principles.py
+```
+- Verify zero budget violations (<1,750 tokens per target):
+```bash
+python scripts/sync_principles.py --check
+```
+
+### 2. Synchronize AST Codebase Map & Knowledge Base
+After creating or refactoring symbols:
+```bash
+python scripts/update_knowledge_base.py
+```
+- Verify link integrity and codebase map freshness:
+```bash
+python scripts/update_knowledge_base.py --check
+```
+
+### 3. Subagent Delegation via OpenCode (PRINCIPLE-012 R8)
+Delegate bulk token-heavy work to free or local subagents using headless non-interactive mode:
+```bash
+# High-speed grep and symbol exploration
+opencode run --standalone --format json --agent explorer "<query>"
+
+# Architecture & deep reasoning (SWE-bench 49.2%)
+opencode run --standalone --format json --agent architect "<prompt>"
+
+# High-fidelity code refactoring (SWE-bench 39.8%)
+opencode run --standalone --format json --agent coder --file <target> "<prompt>"
+
+# Automated test creation and regression verification
+opencode run --standalone --format json --agent tester --file <test_file> "<prompt>"
+
+# Documentation, link and claim-fidelity audit
+opencode run --standalone --format json --agent reviewer "<audit_prompt>"
+
+# Offline / Air-gapped code generation via local Ollama
+opencode run --standalone --format json --agent coder --model ollama/qwen2.5-coder:latest --auto "<prompt>"
+```
+*(Subagents MUST NOT write to the ledger; only the root orchestrator writes checkpoints).*
+
+---
+
+## 🔒 Phase 4: Verification Gate Shield (Pre-Commit Delivery Triad)
+
+Before committing any Track B or Track C changes, ALL gates must pass:
+
+### 1. Test Suite Verification (100% Pass Required)
+```bash
+# Both tiers plus their per-test budgets (unit <=20ms, integration <=500ms)
+python scripts/check_test_budgets.py
+
+# Either tier on its own, when a failure needs isolating
+python -m unittest tests.test_kit
+python -m unittest tests.test_integration
+```
+
+### 2. Read-Only Quality Gates
+```bash
+# Rule and budget freshness check
+python scripts/sync_principles.py --check
+
+# AST and knowledge base check
+python scripts/update_knowledge_base.py --check
+
+# Pinned license/catalog drift check
+python scripts/sync_licenses.py --check
+
+# Secret and credential scan
+python scripts/check_secrets.py --all
+
+# Invariant reachability shield
+python scripts/check_reachability.py
+
+# Universal operational dogfooding runner
+python scripts/dogfood.py
+```
+
+---
+
+## 🚀 Phase 5: Delivery & Git Operations
+
+> **Authorization gate**: run Phase 5 only when PRINCIPLE-018 R1 authorizes the commit or push; when it does not, stop after Phase 4 and report the uncommitted files.
+
+### 1. Mark Task Completed
+```bash
+python scripts/disruption_recovery.py --complete <task_id>
+```
+
+### 2. Purge Dangling Temp Files
+```bash
+python scripts/disruption_recovery.py --clean
+```
+
+### 3. Conventional Commit Validation
+```bash
+python scripts/disruption_recovery.py --validate-commit "<type>(<scope>): <subject>"
+```
+
+### 4. Explicit Staging & Non-Destructive Recoil
+```bash
+# Stage modified files explicitly by name (NEVER git add .)
+git add <file1> <file2> ...
+
+# Commit
+git commit -m "<type>(<scope>): <subject>"
+```
