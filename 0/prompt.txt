@@ -1,0 +1,1 @@
+let's create some one sentence prompts. after finding 1 and 2 tuning parameters let's run these prompts on those. also add off resoning and on reasoning, prompt repeat add too
