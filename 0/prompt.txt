@@ -1,0 +1,37 @@
+<pasted_content id="c5bb">
+"#14 --json on status/resume, copying the aikit ui verify pattern. One ADR, ~120 README chars.
+#6 handoff packet — schema v2 + migration, data_models.md, ADR. The infrastructure is already built.
+aikit graph <project> — project-scoped, inside check_project_hygiene.py's AST pass, EXTRACTED/INFERRED tags, exit 0/1/2 with a reason field. Justified by neurocore's 312 KB map, not by AIKit's own 824 symbols.
+aikit review <project> on top of it, then stop and see whether 3 and 4 earn their tax before touching anything else." "Worth doing
+
+#14 --json — real gap. --porcelain is just git status --porcelain, not structured output; the only JSON today is aikit_cli.py:548-559 and subagent_delegate.py:152. That precedent is the pattern to copy. Cheapest genuine win on the list.
+#10 graph / #9 review / #18 testgaps, project-scoped. check_project_hygiene.py is already a 669-line project-scope AST analyzer with the hygiene: allow <reason> escape convention — extend it rather than adding modules. Keep graphify's EXTRACTED/INFERRED tagging; it's the one idea that stops an inferred call being treated as fact. Drop Leiden and the 3/4 exit codes.
+#6 handoff packet — infrastructure is already there: LEDGER_SCHEMA_VERSION = 1, migrate_ledger_schema(), DEFAULT_MAX_CHECKPOINTS = 20. Needs a version bump to 2, a knowledge/data_models.md entry (P-016 R5), and an ADR. Note the ai-memory field names are invented — design them from AIKit's own resume path instead.
+#16 redaction — check_secrets.py already scans the ledger; hindsight's 45-pattern list is a concrete reference. Low risk.
+Lower value than claimed
+
+#3 aikit audit — .github/workflows/ci.yml already is the aggregate audit: budgets, both tiers, discover, sync --check, ukb --check, the CLI contract loop, check_secrets --all, check_reachability, dogfood, pristine-tree. tests/test_kit.py asserts README↔CI command parity. A new audit command becomes a fourth copy of that list and a new drift surface. The only novel part is the config scan + hash snapshot. Right move: a thin runner that reads the gate list from one place, or nothing.
+#1 skill lint — the parity half is already generated at sync_principles.py:284 and tested at tests/test_kit.py:273. The population is one SKILL.md in two copies, and aikit new seeds no skills into projects. If you do it, follow the Agent Skills spec that scientific-agent-skills validates against rather than inventing a schema.
+#2 install manifest — ownership is already encoded: GENERATED_MARKERS + is_generated_target(), and P-017 R2 states sync "never overwrites a file it did not generate." aikit fix <name> is already doctor/repair. The gap is only hash-level staleness detection.
+#11 delegate telemetry — subagent_delegate.py:152 already emits {status, agent, exit_code, duration_seconds, output, ledger_ship}. answer_text() extracts only text parts from OpenCode's stream, so "usage/tokens when available" will realistically never be available. Scope it honestly to duration + exit + role, or skip.
+#12 host hooks — correctly hedged as non-mandatory, but P-009 R7 is blunt: core execution must be "completely decoupled from any single proprietary IDE." A hook lands in 1 of 8 hosts, is invisible to check_reachability.py, and duplicates logic that must stay in scripts/ anyway.
+#15 rewind — not analogous. Claude Code's /rewind restores conversation snapshots; AIKit checkpoints are ledger records. resume --since-checkpoint is a fine idea, but it isn't this idea. 5. Two precision errors in the "don't copy" list
+The conclusions are right, the mechanisms cited are not:
+
+shortcut: vs P-007 R3 — R3's prohibition is lexical: TODO, FIXME, XXX, HACK, bare pass bodies, unnamed # type: ignore. A shortcut: marker would sail straight through update_knowledge_base.py. The real conflict is P-007 R3's intent plus P-000 R5 (gaming a gate is itself a violation) — which matters, because "rename the marker" is a tempting and wrong fix.
+Licensing — AIKit is AGPL-3.0 (confirmed) and the advice to reimplement rather than copy is right. But the write-up says "all five repos are permissively licensed (MIT/Apache-2.0)," and context-mode is ELv2, which is not an OSI license at all. The second pasted list gets this right; the first doesn't . 3. The structural error: wrong scope
+aikit.py is not a harness CLI. aikit_cli.py:93 describes it as "Create and manage the projects AIKit builds," and every verb except delegate takes a project name: new, attach, list, status, resume, checkpoint, complete, clean, guideline, check, fix, publish, ui. Bolting on eight bare harness verbs (audit, context, graph, review, cost, recall, testgaps, doctor) breaks that grammar.
+
+Worse, the proposal aims the analysis tools at the wrong tree. Measured:
+
+Tree	Python files	Lines	Map size
+AIKit itself	19	8,394	78 KB
+projects/neurocore	219	63,756	312 KB
+projects/voidfarer	58	25,057	—
+projects/nomoreclutter	41	11,135	—
+git grep over 8,394 lines is instant, so a code graph over AIKit's own 824 symbols buys nothing. A 312 KB flat symbol catalog (~78k tokens) for neurocore is genuinely unusable in context — that is exactly the problem a queryable graph solves. #10 graph, #9 review and #18 testgaps belong at project scope (aikit graph <name>), reusing the --workspace plumbing that already exists, which also restores the CLI grammar.
+
+The same reframing fixes #4. AIKit's Tier-1 footprint is already audited and well-governed at 1,287 tokens. The unmeasured context is knowledge/decisions.md at 386 KB and project maps at 312 KB. A context report that measures the governed 15% and ignores the rest is theatre — and because dsh-context's real subject is the runtime window (tool schemas, tool results, message history), a static file scan cannot reproduce its value at all." Verify and analyze these again extensively. Then produce proposal list /goal with proper strenght, weakness, limitation, potential consequence
+</pasted_content id="c5bb">
+
+ But let's first finish aikits current work.
