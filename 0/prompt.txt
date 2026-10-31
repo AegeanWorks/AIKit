@@ -1,0 +1,1 @@
+Not aegean-e license but Aegean License it should be.Also let's search open source licenses and see how we can strenghten our written licenses. nO AGPL 3, Also should we integrate this license-folder into aikit too?
