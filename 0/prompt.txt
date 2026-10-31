@@ -1,0 +1,124 @@
+"
+
+<pasted_content id="c5bb">
+## Implementation candidates (20 total)
+
+### P0 — highest value, lowest risk
+
+1. **Skill contract lint** — `scripts/check_skills.py`: required frontmatter, `name` matches directory, description/token budget, dangerous patterns (`rm -rf`, `curl | sh`, `eval`), referenced scripts exist, `.agents/skills` ↔ `.claude/skills` parity. *(scientific-agent-skills, ECC AgentShield; S)*
+2. **Install manifest + `aikit doctor` / `repair` / `uninstall`** — `.agents/install_manifest.json` with owner, source template, hash, generation command; doctor reports missing/modified/stale/foreign; uninstall removes only owned files, with `--dry-run`. *(ECC install-state ownership; M)*
+3. **Harness audit (`aikit audit`)** — aggregate existing gates (`sync --check`, map check, secrets, reachability, ledger, README, test budgets) plus AgentShield-style scanning of rules, skills, hooks, MCP config, permissions, and agent files; store a hash snapshot for drift. Use a failure checklist, **not** a 1–100 score. *(ruflo MetaHarness, ECC AgentShield; S)*
+
+### P1 — core capability gaps
+
+4. **Context footprint (`aikit context`)** — per-host composition of Tier-1 files, domain rules, skills, knowledge, codebase map, README; token estimates via the existing `chars // 4` (`sync_principles.py:47`); `--json`, `--history N` via `git show`; compaction events sourced from ledger checkpoints. *(dsh-context, claude-howto; S–M)*
+5. **Findings + coverage contract** — `.agents/findings.json` with exactly `confirmed` / `needs_validation` / `rejected`; confirmed needs a complete source trace and bounded observed result; `needs_validation` carries no severity; `.agents/audit_coverage.json` lists every auditable unit and status; reruns additive; report derived from records; enforce “verifier ≠ finder”; severity requires impact; defense-in-depth gaps are hardening notes; execute target code only in the existing dogfood jail. *(security-audit-skill, hindsight; S–M)*
+6. **Bounded handoff packet** — extend checkpoints with a ~2 KB typed block: `state`, `failed_approaches`, `open_questions`, `next_action`, `evidence`; optionally owner + claim-once for project work. *(ai-memory; S–M)*
+7. **Reuse ladder rule** — need-to-exist → already in repo → stdlib → platform feature → declared dependency → one line → minimum that works; never cut validation, security, error handling, or accessibility. Requires an ADR and capsule-budget condensation. *(ponytail; XS)*
+8. **“Think in code” rule** — above a file-count threshold, write a script that prints only the aggregate instead of reading raw files into context. *(context-mode; XS)*
+
+### P2 — extend and harden
+
+9. **Blast-radius review (`aikit review`)** — from changed symbols, compute reverse dependencies, affected tests, untouched importers, and missing-test findings; each finding states what the code does, what breaks, the fix, and the cost of skipping. *(ponytail, graphify; M)*
+10. **Explained-edge code graph (`aikit graph query/path/explain`)** — `knowledge/codebase_graph.json` with module/class/function nodes and `imports`/`inherits`/`calls` edges tagged `EXTRACTED` or `INFERRED`; BFS path, scoped query, ambiguous names refused with candidates; documented exit codes 3/4; one-line “query before grep” rule, not a hook; skip Leiden/communities. *(graphify; M–L)*
+11. **Delegate telemetry + `aikit cost`** — append `.agents/delegate_runs.jsonl` with role, model, duration, exit, and usage/tokens when available; summarize cost and feed empirical rows into `knowledge/model_benchmarks.md`. *(ponytail band, ruflo cost tracker; S)*
+12. **Host hooks** — PostToolUse secret scan, PreToolUse protection for `GUIDELINES.md`/ledger, Stop freshness check; must degrade gracefully across the 8 hosts and never become a mandatory gate. *(claude-howto, graphify always-on; S–M)*
+13. **Advisor (`aikit advise "<task>"`)** — extend `sync_principles.py --involved` to match skills, scripts, and ADR keywords, not just paths/commands. *(ECC `consult`; S)*
+14. **`--json` output** — add to `status` and the audit command for CI. *(ai-memory `status --json`, ECC; XS)*
+15. **Read-only checkpoint rewind** — `resume --since-checkpoint` showing the diff/commit since a checkpoint; no destructive reset. *(claude-howto checkpoints; S)*
+16. **Secret/PII redaction mode** — broader pattern list plus `--redact` for checkpoint text and delegate output, reusing `check_secrets.py`. *(hindsight memory defense, ai-memory sanitization; S)*
+17. **Derived-index rebuild guarantee** — explicit `aikit index rebuild` / rule that map, graph, and any index are always regenerable from source; never hand-edited. *(ai-memory markdown-truth + derived index; XS–S)*
+
+### P3 — do only if the first tiers prove useful
+
+18. **Test-gap report (`aikit testgaps`)** — AST public symbols not referenced by tests; advisory only, with the known name-matching false positives. *(ruflo testgen; M)*
+19. **Append-only event log + `aikit recall`** — `.agents/events.jsonl` indexed into stdlib SQLite FTS5/BM25 for post-compaction recall of errors and decisions; rebuildable. *(context-mode; M)*
+20. **Project mental-model brief** — bounded `.aikit/brief.md` auto-regenerated at checkpoints: architecture, conventions, in-flight work, settled decisions, so cold start does not re-derive them. *(hindsight mental models, ai-memory pages; S–M)*
+
+## Considered but not recommended
+
+- **Ponytail `shortcut:` debt ledger** — conflicts with P-007 R3 (“no TODO or stub”).
+- **Ruflo swarms, vector memory, HNSW, federation, multi-provider routing** — needs services, embeddings, crypto; violates stdlib-only scope.
+- **Ruflo 1–100 readiness score** — invites gaming a gate (P-000); use a failure checklist.
+- **dsh-context dashboard/browser/sidebar UI** — AIKit is CLI-first; only the metrics model transfers.
+- **claude-howto’s breadth (plugins, MCP templates, full feature catalog)** — already covered or out of scope.
+- **Scientific Agent Skills’ 177 skills** — domain-specific and context-expensive; adopt validation/provenance only.
+- **ECC’s 71 agents / 311 skills / 97 commands** — violates P-001/P-012; take AgentShield, install-state, doctor/repair, `consult` only.
+- **ECC continuous learning / instincts with confidence** — needs LLM scoring; not deterministic.
+- **ECC selective per-language rule packs** — optional only; fights the 1,600-token Tier-1 budget.
+- **Per-skill test suites run by dogfood** — optional; raises dogfood cost and runtime.
+- **context-mode MCP server, sandbox tools, FTS5 product** — ELv2 (not OSI); ideas only, do not copy code.
+- **ai-memory server, teams, cross-machine sync, decay, “dream”, vectors** — needs a Rust binary/service; only handoff and derived-index discipline transfer.
+- **Hindsight retain/recall/reflect, banks, RRF/cross-encoder, memory defense pipeline** — needs LLM/Postgres; only evidence/standing-answer ideas transfer.
+- **Cloudflare’s full six-phase multi-agent harness** — too heavy; take the coverage ledger, verdict schema, and verifier separation.
+- **Graphify Leiden community detection** — optional dependency; skip.
+- **Graphify query-first enforcement as a hook** — prefer a one-line rule to avoid host-specific fragility.
+- **ai-memory supersede-not-delete / version chain** — already satisfied by AIKit’s append-only ADR register.
+</pasted_content id="c5bb">
+
+ 
+
+<pasted_content id="c5bb">
+I reviewed all five repos plus AIKit's actual implementation (not just its README). AIKit already covers a lot — Tier-1 token budgeting, AST symbol map + import-cycle graph, disruption ledger, secret scan, reachability, dogfood, commit verification, project registry. The useful ideas are the ones that turn **instructions into observable, deterministic CLI output** without adding dependencies.
+
+## Verdict
+
+Five candidates fit AIKit's zero-dependency, stdlib-only, CLI-first design. Two are cheap aggregators over gates AIKit already has; one is the big differentiator; two are smaller extensions.
+
+| # | Idea | Source | AIKit gap today | Fit | Effort |
+|---|---|---|---|---|---|
+| 1 | `aikit context` — per-host context footprint & trend | dsh-context, claude-howto | `estimate_tokens` exists (`scripts/sync_principles.py:47`) but only audits Tier-1; no composition, no history, no skill/knowledge accounting | High | S–M |
+| 2 | `aikit audit` — harness readiness + config security + drift snapshot | ruflo MetaHarness | Gates exist but are separate commands; `.claude/settings.json:1` only denies ledger edits; no snapshot/regression detection | High | S |
+| 3 | `aikit graph query/path/explain` — explained-edge code graph | graphify | `knowledge/codebase_map.md` is a flat symbol catalog; `update_knowledge_base.py:547` builds only an import graph for cycle detection | High | M–L |
+| 4 | `aikit review` — blast-radius review of uncommitted work | ponytail, graphify | P-003 R2 says "grep call sites" as a rule; no command produces reverse deps, affected tests, or untouched-file impact | High | M |
+| 5 | Reuse ladder as a principle/capsule rule | ponytail | P-009/P-012 cover lean code but not "does this need to exist → already in repo → stdlib → platform" ordering | High | XS (doc only) |
+| 6 | Delegate telemetry + `aikit cost` | ponytail band, ruflo cost-tracker | `subagent_delegate.py:129` measures time only; `model_benchmarks.md` is static, not empirical | Medium | S |
+| 7 | Host hooks for secret/freshness enforcement | claude-howto, graphify always-on | No hooks installed at all | Medium | S–M |
+| 8 | `aikit testgaps` — symbols not referenced by tests | ruflo testgen | `check_reachability.py` checks wiring, not behavior coverage | Medium | M |
+
+## Top four in detail
+
+**1. `aikit context` (dsh-context is the strongest conceptual match)**
+dsh-context's whole thesis — show *what the agent is carrying*, split by composition, and how it changed — is missing from AIKit even though AIKit has the exact budget arithmetic. Build `scripts/context_report.py`:
+- Enumerate always-on surfaces: the 8 Tier-1 files, `.agents/rules/domain.md`, each `SKILL.md`, `knowledge/*.md`, `README.md`.
+- Classify into rules / domain / skills / knowledge / codebase-map; report tokens via the existing `chars // 4` calibration (`sync_principles.py:47`).
+- Compare against `TARGET_TOKEN_BUDGET = 1600` and the 22.5k README ceiling.
+- `--json` with stable codes, and `--history N` re-reading files at the last N commits via `git show` for a trend. No compaction UI needed — AIKit's "compaction event" is the ledger checkpoint.
+This is a natural extension of P-001/P-017, not a new subsystem.
+
+**2. `aikit audit` (ruflo MetaHarness)**
+Almost free: aggregate `sync_principles --check`, `update_knowledge_base --check`, `check_secrets --all`, `check_reachability`, ledger validity, README parity, test-budget pass/fail, and host-file parity into one report with one exit code. Then add what ruflo calls "scan tool configs": check `.claude/settings.json`, `opencode.jsonc`, and each host rule file for dangerous permissions (e.g. `bypassPermissions`, editing a ledger) and for unresolved placeholders. Store a hash snapshot in `.agents/` so drift between runs is visible.
+Caution: treat it as a **checklist with failures**, not a 1–100 score — P-001 R8 says report only failed items, and a score invites gaming a gate (P-000).
+
+**3. `aikit graph` (graphify)**
+This is the highest-value but largest piece. AIKit already parses Python with `ast`; extend the extractor to emit `knowledge/codebase_graph.json`:
+- Nodes: module, class, function/method (reuse the symbol logic).
+- Edges: `imports`, `inherits`, `calls` (name-resolved), each tagged `EXTRACTED` or `INFERRED` — graphify's confidence tag is the key idea, because it prevents an inferred call from being treated as fact.
+- Commands: `graph path A B` (BFS), `graph explain X`, `graph query "<keywords>"` (scoped subgraph). Refuse ambiguous names with candidates and distinct exit codes (graphify uses 3/4), matching AIKit's 0/1/2 contract by treating 3/4 as documented operational results.
+- Adopt graphify's "query before grep" nudge as one line in the skill/rules, not a hook.
+Skip communities/Leiden — that needs optional deps and AIKit's zero-dependency rule wins.
+
+**4. `aikit review` (ponytail's rebuilt review)**
+Ponytail's real innovation isn't "write less"; it's that the review reads the code the change *touches*, not just the diff, and each finding states what the code does, what breaks, the fix, and the cost of skipping. AIKit's P-003 R2 demands a call-site check but gives no artifact. Once #3 exists, `aikit review --uncommitted` can deterministically report: changed symbols → reverse dependencies (importers/callers) → tests referencing them → untouched files whose behavior changes → findings missing a covering test. That is a genuine operationalization of P-003 R2 and P-014, and it complements `verify_commit.py` (which verifies the commit alone, not its blast radius).
+
+**5. Reuse ladder (cheapest win)**
+Add Ponytail's ordering to P-009 or P-012 capsule text: need-to-exist → already in this repo → stdlib → platform feature → declared dependency → one line → minimum that works, with trust-boundary validation/security never cut. But capsule edits cost budget: `sync_principles.py --check` will force you to condense existing narrative. Do this only alongside a principle revision + ADR, since it is a Track C rule change.
+
+## What not to copy
+
+- **Ponytail's `shortcut:` debt ledger** — conflicts directly with P-007 R3 ("no TODO or stub"). Reframing it as a tracked deferral register would legitimize exactly what AIKit forbids. Skip unless you deliberately relax P-007.
+- **Ruflo swarms / vector memory / federation** — requires external services, embeddings, and crypto; violates stdlib-only and would dwarf AIKit's scope.
+- **dsh-context's dashboard/browser UI** — AIKit is a CLI; only its *metrics model* transfers, not its surfaces.
+- **claude-howto's breadth** — AIKit already has the checkpoint, subagent, secret-scan, and CLI pieces; the one transferable mechanism is checkpoint rewind, and even that is safer as a read-only `resume --since-checkpoint` diff than a destructive reset.
+
+## Suggested sequence
+
+1. `aikit audit` (S, aggregates existing gates) and `aikit context` (S–M) — both immediately useful and low-risk.
+2. Reuse ladder as a P-012 amendment with an ADR (XS, but budget-constrained).
+3. `aikit graph` (M–L), then `aikit review` (M) on top of it.
+4. Delegate telemetry (S), then host hooks (S–M) and test-gap reporting (M) only if the first four prove useful.
+
+Implementation notes: all five repos are permissively licensed (MIT/Apache-2.0) while AIKit is AGPL-3.0 — reimplement the mechanisms rather than copying code, and cite the source repo in the ADR. New subcommands belong in `scripts/aikit_cli.py:92` (parser) with logic in a new module, and any new artifact must be added to the `update_knowledge_base.py --check` freshness gate so it cannot silently rot.
+</pasted_content id="c5bb">
+
+" Analyze these suggestions to AIKit ; Verify, weaknesses, implementations, potential improvements, potential consequences ;"Search these repos and AIKit itself. https://github.com/Graphify-Labs/graphify https://github.com/DietrichGebert/ponytail https://github.com/luongnv89/claude-howto https://github.com/ruvnet/ruflo https://github.com/bowenliang123/dsh-context See if there is anything we can implement to AIKit?" "https://github.com/mksglu/context-mode  https://github.com/akitaonrails/ai-memory https://github.com/K-Dense-AI/scientific-agent-skills https://github.com/vectorize-io/hindsight https://github.com/cloudflare/security-audit-skill https://github.com/affaan-m/ECC Also these"
