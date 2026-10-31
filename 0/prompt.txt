@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>baoofkqt9</task-id>
+<tool-use-id>toolu_014BDYCgBHzBmTsUnMYtztTz</tool-use-id>
+<output-file>C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\850bdc47-c6a3-4534-b9ad-a9ec7887fb01\tasks\baoofkqt9.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for low CPU load, then run timing gates" completed (exit code 0)</summary>
+</task-notification>
