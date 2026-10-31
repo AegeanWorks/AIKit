@@ -1,0 +1,1 @@
+ok let's drop checkpointing but let's add that setting for tuning in that section ; f add 1 2 4 6 8 10 12 then ( if possible), if flash is off do your suggestion ; keep e, keep mmap, start context with 2048 4096 8192 16384 then. how about this?
