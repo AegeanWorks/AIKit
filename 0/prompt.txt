@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bn4hrgf23</task-id>
+<tool-use-id>toolu_01FZk5wV2qLhqzqjo8qedgtQ</tool-use-id>
+<output-file>C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\240bc3b7-3e44-44db-8447-49ccc2b11849\tasks\bn4hrgf23.output</output-file>
+<status>completed</status>
+<summary>Background command "Fix wording; run checks on three repos" completed (exit code 0)</summary>
+</task-notification>
