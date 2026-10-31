@@ -1,0 +1,118 @@
+Some suggestion has been made by other AI to AIKit "
+
+<pasted_content id="f2b2">
+Report: what AIKit should change
+P1 — Scaffold bugs that every new project hits
+1. The ADR template is parsed as a real entry. aikit new writes a commented-out ### ADR-001: <decision in one line> into .aikit/decisions.md. The register counts it, so the project's first real ADR fails the guidelines gate with ADR-001 duplicates or precedes ADR-001 — a message that reads like a bug in your own file. Every new project hits this the first time it records a decision. Fix: make the template ID ADR-NNN in the scaffold (one line in project_registry.py).
+
+2. The scaffolded .gitignore has no bytecode rules. For a Python project, running the test suite dirties the tree, and ui begin then refuses with The tree is not clean: tempo/__pycache__/.... The agent's own Phase 4 locks it out of the UI guard. Fix: emit __pycache__/ + *.py[cod] (and the node/go equivalents) per detected stack.
+
+3. A missing git identity degrades to a warning. aikit new printed [WARN] initial commit not made as its first line, then [OK] Created project. Everything downstream — ui begin, ui init tracking, delivery readiness — then fails with messages about contracts not being tracked, which don't point back to the cause. Fix: exit non-zero with a Why:/Fix:, or set a repo-local identity fallback.
+
+P2 — UI guard design
+4. ui init disables the style lint silently. It scaffolds theme_paths: [], and ui_proof.style_findings returns nothing when that list is empty. A green ui verify on a brand-new contract therefore proves nothing about style drift, and looks identical to a real pass. Fix: refuse to scaffold without a theme path, or have verify state style lint: off (no theme_paths) on every run.
+
+5. ui init --paths web/** still emits React protected patterns — src/**/*.test.*, src/**/__tests__/** — into a project with no src/. Dead patterns in a hand-written contract invite the reader to trust protection that matches nothing.
+
+6. ui allow takes a pattern and nothing else. No reason, no reviewer, no ADR reference — just a string appended to allowed_removals. I deleted a real control, and two allow lines turned a refusal into a clean pass. What actually caught it was tempo's own dogfood gate asserting the served page still carries every control. So: require --reason on allow and surface those reasons at finish, and consider making finish run the project's dogfood gate rather than only the fast proof.
+
+7. verify --json isn't machine-readable. It interleaves human [FAIL] lines with pretty-printed JSON on the same stream; my first parser read zero findings from eight real failures and reported false passes. For a flag whose stated purpose is CI, emit exactly one JSON document on stdout and send human lines to stderr.
+
+P3 — Lint and gate accuracy
+8. The font and colour rules are asymmetric. Colour patterns match literals; font patterns match the property. Verified:
+
+
+allowed  color: var(--tempo-ink);
+FLAGGED  font-size: var(--tempo-readout-size);
+A fully tokenised font declaration is a finding. The only way to pass is to move all typography into the theme file, which split my .readout rule across two files — layout in one, type in the other. Fix: flag font properties only when the value contains no var(.
+
+9. The README tree gate only inspects tracked files. The real project passed it while its sources were untracked; the committed jail copy failed with three omissions. Drift accumulates invisibly and then blocks the first commit. Fix: include untracked source files, or warn on them.
+
+10. hygiene: allow must sit on the finding's own line. The scan flagged a Popen whose wait(timeout=...) lives in its RAII teardown. Placing the justification above the call didn't count, so I had to restructure a multi-line call into a shorter one purely to fit a comment. Fix: accept the marker on the statement's first line or the line before it.
+
+P4 — Principle level
+11. PRINCIPLE-015 R1 is unsatisfiable for a zero-dependency project. It requires a web app to be "loaded in a headless browser" with a root container that has rendered children. PRINCIPLE-011 R1 allows only declared dependencies, and the standard library ships no browser engine. Not a formal conflict — a project could declare a dependency — but as written R1 has no path for one that doesn't. I had to invent the alternative: a parsed inventory proof plus an assertion that the served page carries every control the script renders into. That alternative belongs in R1 explicitly.
+
+What held up
+Worth saying plainly: the guard's core did its job. 8/8 verify probes and 11/11 lifecycle probes behaved exactly as specified — scope, protected paths, diff budget, snapshot loss, fast-proof failure, contract tampering, moved baseline, and the --reviewed requirement. abort restored web/ and deliberately left an unrelated README.md edit alone, warning instead of discarding. The stable ui.* finding codes are the right design; they just need a clean channel to travel on.
+
+The ranking above is my own judgement — the evidence is in the session, and 1, 2, 4 and 7 are the cheap ones I'd do first. Want this as a shareable page, or should I start implementing them in AIKit?
+</pasted_content id="f2b2">
+
+" Here is the suggestions. Analyze them ; verify them, strenghts, weaknesses, potential improvements and consequences. It has analyzed these repos : "
+
+<pasted_content id="f2b2">
+Report: what AIKit should change
+P1 — Scaffold bugs that every new project hits
+1. The ADR template is parsed as a real entry. aikit new writes a commented-out ### ADR-001: <decision in one line> into .aikit/decisions.md. The register counts it, so the project's first real ADR fails the guidelines gate with ADR-001 duplicates or precedes ADR-001 — a message that reads like a bug in your own file. Every new project hits this the first time it records a decision. Fix: make the template ID ADR-NNN in the scaffold (one line in project_registry.py).
+
+2. The scaffolded .gitignore has no bytecode rules. For a Python project, running the test suite dirties the tree, and ui begin then refuses with The tree is not clean: tempo/__pycache__/.... The agent's own Phase 4 locks it out of the UI guard. Fix: emit __pycache__/ + *.py[cod] (and the node/go equivalents) per detected stack.
+
+3. A missing git identity degrades to a warning. aikit new printed [WARN] initial commit not made as its first line, then [OK] Created project. Everything downstream — ui begin, ui init tracking, delivery readiness — then fails with messages about contracts not being tracked, which don't point back to the cause. Fix: exit non-zero with a Why:/Fix:, or set a repo-local identity fallback.
+
+P2 — UI guard design
+4. ui init disables the style lint silently. It scaffolds theme_paths: [], and ui_proof.style_findings returns nothing when that list is empty. A green ui verify on a brand-new contract therefore proves nothing about style drift, and looks identical to a real pass. Fix: refuse to scaffold without a theme path, or have verify state style lint: off (no theme_paths) on every run.
+
+5. ui init --paths web/** still emits React protected patterns — src/**/*.test.*, src/**/__tests__/** — into a project with no src/. Dead patterns in a hand-written contract invite the reader to trust protection that matches nothing.
+
+6. ui allow takes a pattern and nothing else. No reason, no reviewer, no ADR reference — just a string appended to allowed_removals. I deleted a real control, and two allow lines turned a refusal into a clean pass. What actually caught it was tempo's own dogfood gate asserting the served page still carries every control. So: require --reason on allow and surface those reasons at finish, and consider making finish run the project's dogfood gate rather than only the fast proof.
+
+7. verify --json isn't machine-readable. It interleaves human [FAIL] lines with pretty-printed JSON on the same stream; my first parser read zero findings from eight real failures and reported false passes. For a flag whose stated purpose is CI, emit exactly one JSON document on stdout and send human lines to stderr.
+
+P3 — Lint and gate accuracy
+8. The font and colour rules are asymmetric. Colour patterns match literals; font patterns match the property. Verified:
+
+
+allowed  color: var(--tempo-ink);
+FLAGGED  font-size: var(--tempo-readout-size);
+A fully tokenised font declaration is a finding. The only way to pass is to move all typography into the theme file, which split my .readout rule across two files — layout in one, type in the other. Fix: flag font properties only when the value contains no var(.
+
+9. The README tree gate only inspects tracked files. The real project passed it while its sources were untracked; the committed jail copy failed with three omissions. Drift accumulates invisibly and then blocks the first commit. Fix: include untracked source files, or warn on them.
+
+10. hygiene: allow must sit on the finding's own line. The scan flagged a Popen whose wait(timeout=...) lives in its RAII teardown. Placing the justification above the call didn't count, so I had to restructure a multi-line call into a shorter one purely to fit a comment. Fix: accept the marker on the statement's first line or the line before it.
+
+P4 — Principle level
+11. PRINCIPLE-015 R1 is unsatisfiable for a zero-dependency project. It requires a web app to be "loaded in a headless browser" with a root container that has rendered children. PRINCIPLE-011 R1 allows only declared dependencies, and the standard library ships no browser engine. Not a formal conflict — a project could declare a dependency — but as written R1 has no path for one that doesn't. I had to invent the alternative: a parsed inventory proof plus an assertion that the served page carries every control the script renders into. That alternative belongs in R1 explicitly.
+
+What held up
+Worth saying plainly: the guard's core did its job. 8/8 verify probes and 11/11 lifecycle probes behaved exactly as specified — scope, protected paths, diff budget, snapshot loss, fast-proof failure, contract tampering, moved baseline, and the --reviewed requirement. abort restored web/ and deliberately left an unrelated README.md edit alone, warning instead of discarding. The stable ui.* finding codes are the right design; they just need a clean channel to travel on.
+
+The ranking above is my own judgement — the evidence is in the session, and 1, 2, 4 and 7 are the cheap ones I'd do first. Want this as a shareable page, or should I start implementing them in AIKit?
+</pasted_content id="f2b2">
+
+" Report: what AIKit should change
+P1 — Scaffold bugs that every new project hits
+1. The ADR template is parsed as a real entry. aikit new writes a commented-out ### ADR-001: <decision in one line> into .aikit/decisions.md. The register counts it, so the project's first real ADR fails the guidelines gate with ADR-001 duplicates or precedes ADR-001 — a message that reads like a bug in your own file. Every new project hits this the first time it records a decision. Fix: make the template ID ADR-NNN in the scaffold (one line in project_registry.py).
+
+2. The scaffolded .gitignore has no bytecode rules. For a Python project, running the test suite dirties the tree, and ui begin then refuses with The tree is not clean: tempo/__pycache__/.... The agent's own Phase 4 locks it out of the UI guard. Fix: emit __pycache__/ + *.py[cod] (and the node/go equivalents) per detected stack.
+
+3. A missing git identity degrades to a warning. aikit new printed [WARN] initial commit not made as its first line, then [OK] Created project. Everything downstream — ui begin, ui init tracking, delivery readiness — then fails with messages about contracts not being tracked, which don't point back to the cause. Fix: exit non-zero with a Why:/Fix:, or set a repo-local identity fallback.
+
+P2 — UI guard design
+4. ui init disables the style lint silently. It scaffolds theme_paths: [], and ui_proof.style_findings returns nothing when that list is empty. A green ui verify on a brand-new contract therefore proves nothing about style drift, and looks identical to a real pass. Fix: refuse to scaffold without a theme path, or have verify state style lint: off (no theme_paths) on every run.
+
+5. ui init --paths web/** still emits React protected patterns — src/**/*.test.*, src/**/__tests__/** — into a project with no src/. Dead patterns in a hand-written contract invite the reader to trust protection that matches nothing.
+
+6. ui allow takes a pattern and nothing else. No reason, no reviewer, no ADR reference — just a string appended to allowed_removals. I deleted a real control, and two allow lines turned a refusal into a clean pass. What actually caught it was tempo's own dogfood gate asserting the served page still carries every control. So: require --reason on allow and surface those reasons at finish, and consider making finish run the project's dogfood gate rather than only the fast proof.
+
+7. verify --json isn't machine-readable. It interleaves human [FAIL] lines with pretty-printed JSON on the same stream; my first parser read zero findings from eight real failures and reported false passes. For a flag whose stated purpose is CI, emit exactly one JSON document on stdout and send human lines to stderr.
+
+P3 — Lint and gate accuracy
+8. The font and colour rules are asymmetric. Colour patterns match literals; font patterns match the property. Verified:
+
+
+allowed  color: var(--tempo-ink);
+FLAGGED  font-size: var(--tempo-readout-size);
+A fully tokenised font declaration is a finding. The only way to pass is to move all typography into the theme file, which split my .readout rule across two files — layout in one, type in the other. Fix: flag font properties only when the value contains no var(.
+
+9. The README tree gate only inspects tracked files. The real project passed it while its sources were untracked; the committed jail copy failed with three omissions. Drift accumulates invisibly and then blocks the first commit. Fix: include untracked source files, or warn on them.
+
+10. hygiene: allow must sit on the finding's own line. The scan flagged a Popen whose wait(timeout=...) lives in its RAII teardown. Placing the justification above the call didn't count, so I had to restructure a multi-line call into a shorter one purely to fit a comment. Fix: accept the marker on the statement's first line or the line before it.
+
+P4 — Principle level
+11. PRINCIPLE-015 R1 is unsatisfiable for a zero-dependency project. It requires a web app to be "loaded in a headless browser" with a root container that has rendered children. PRINCIPLE-011 R1 allows only declared dependencies, and the standard library ships no browser engine. Not a formal conflict — a project could declare a dependency — but as written R1 has no path for one that doesn't. I had to invent the alternative: a parsed inventory proof plus an assertion that the served page carries every control the script renders into. That alternative belongs in R1 explicitly.
+
+What held up
+Worth saying plainly: the guard's core did its job. 8/8 verify probes and 11/11 lifecycle probes behaved exactly as specified — scope, protected paths, diff budget, snapshot loss, fast-proof failure, contract tampering, moved baseline, and the --reviewed requirement. abort restored web/ and deliberately left an unrelated README.md edit alone, warning instead of discarding. The stable ui.* finding codes are the right design; they just need a clean channel to travel on.
+
+The ranking above is my own judgement — the evidence is in the session, and 1, 2, 4 and 7 are the cheap ones I'd do first it has analyzed these repos https://github.com/mksglu/context-mode  https://github.com/akitaonrails/ai-memory https://github.com/K-Dense-AI/scientific-agent-skills https://github.com/vectorize-io/hindsight https://github.com/cloudflare/security-audit-skill https://github.com/affaan-m/ECC Also these Search these repos and AIKit itself. https://github.com/Graphify-Labs/graphify https://github.com/DietrichGebert/ponytail https://github.com/luongnv89/claude-howto https://github.com/ruvnet/ruflo https://github.com/bowenliang123/dsh-context
