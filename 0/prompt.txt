@@ -1,0 +1,1 @@
+improve our benchmarking, maybe we can not improve the models but we an optmize them for better usage ; add more coding tests, add more comprehension test, add more recall test, add more bug fixes, add more fact recall /goal download whatever needed, add more benchmark statistics
