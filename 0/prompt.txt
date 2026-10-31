@@ -1,0 +1,82 @@
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   - Long-running mandate: act as principal engineer on AIKit ("ultra-reliable, zero-friction foundation to build software via AI") in `C:\Users\Yunus-Emre\Desktop\portable_agent_kit`. Make every principle unambiguous ("every AI gets the same message"), fix gaps, follow AIKit's own lifecycle (checkpoints, ADR, tests, sync, gates, explicit staging, commit, push).
+   - Completed in this segment: repeated per-principle analyses (P000–P019 at least twice each, via /goal "0 till 19 twice"), review of another AI's concurrent work ("Analyze new additions after you, i have ran another ai. Extensively review it'S WORK.") and fixes ("Fix whatever you deem necessary.").
+   - Strategic request: "Analyze project as a whole... Our goal is dropping this folder in project folder and telling what we want and AIKit will do the rest. Also AIKit should not bog down the project with it's extensive inner workings and reduce code quality. In the end goal is code that is right, modular, fast, correct, bug-free, tested. Any provider can be used without hassle. Claude, Antigravity, Codex, Copilot etc.; Token usage could be distributed to the other models so that it won't consume the main provider; it would function as orchestrator."
+   - Clarification: "NO not like that, i was walking about downloading this folder and telling it the project." → AIKit is the cockpit/workspace; projects live under it.
+   - Latest: "Start. So it would create a projects folder and each project will hold it's memory righ.t" → begin milestone 1 (project concept + aikit CLI) with per-project memory.
+
+2. Key Technical Concepts:
+   - GUIDELINES.md = single SSOT (20 principles P000–P019, each: Problem, Concept, Invariant (capsule), Rules with audience tags *[Agent]*/*[Maintainer]*/*[Agent + Maintainer]*); generated Tier 1 targets (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, .agents/rules/principles.md) + README principle table between `<!-- principles:begin ... -->`/`<!-- principles:end -->` via `scripts/sync_principles.py`.
+   - Budget: TARGET_TOKEN_BUDGET=1600, MAX_DOMAIN_CHARS=1200 (Tier 1B reservation ~300 tokens); capsule growth needs paydown.
+   - Lifecycle: tracks A/B/C via `disruption_recovery.py --track`; Phase 4 gates = both test tiers, `sync_principles.py --check`, `update_knowledge_base.py --check`, `check_reachability.py`, `check_secrets.py`, `dogfood.py`.
+   - Gates added this session: cross-principle check (changed principle sections vs HEAD need ADR with `Cross-principle check:` naming `--citing` set), ADR register unique/consecutive, README audit, lazy-code gate (TODO/FIXME/XXX/HACK, stubs, unnamed suppressions), architecture gate (junk-drawer names, Protocol/ABC 1–5 methods, import cycles, subprocess without timeout, open()/Path.open() outside with, os.environ[...] reads), impact assessment required on first plan checkpoint (--why --benefits --risks with contract:/dependency:/concurrency:/state: --mitigation, exit 2), warning when Phase 3+ without assessment, audience-tag + Problem section enforced by parser, rule-number parity test, knowledge citation tests, OpenCode permission replay test.
+   - OpenCode v2.0.32 (local): config `providers`/`package`/`settings`/`env`, `permissions` array {action, resource, effect}, last matching rule wins, `*` crosses `/`, actions include edit, shell, read, browser; `opencode run --standalone --agent --format json --file`; `opencode debug agents`, `opencode models`.
+   - Delegation/orchestration concept: route roles to providers (claude -p, codex exec, gemini -p, opencode run, ollama), main model verifies via gates.
+
+3. Files and Code Sections (key, this segment):
+   - GUIDELINES.md: all principles rewritten (P006–P019 first passes ADR-077..092; second passes ADR-093..112; P009 R6/P012 R8 rewritten ADR-114). Notable rule texts: P006 R6 shared trees ("Before every commit the agent compares `git status --short`... a change it did not make ... MUST stay unstaged ... when `HEAD` moved ... re-reads every file it will commit and the ADR register"); P007 R1 warning; P016 R1 seven docs (INDEX, architecture, services, data_models, state_and_ui, decisions, codebase_map).
+   - scripts/disruption_recovery.py: `impact_errors`, `missing_impact_warning`, `RISK_DIMENSIONS`, `repo_relative` (ledger stores repo-relative paths), `report_operational_error` as `sys.excepthook` (OSError/TimeoutError → triad, exit 1), `file_lock` retries PermissionError, superseded-task record, milestone tag validation (2≤M≤6), `clean_dangling_temp_files(min_age_seconds=TEMP_STALE_SECONDS=60)`, `argv_value_errors`. ROOT_DIR = Path(__file__).resolve().parent.parent.
+   - scripts/update_knowledge_base.py: `CORE_DOCS` back to 7 (comment: AIKit extra docs optional, ADR-117); `parse_source` shared cache; `audit_lazy_code`, `_is_stub`, `audit_architecture` (incl. P010/P011 checks), `check_readme`/`audit_readme`/`quick_reference_errors`, `audit_adr_register`, `find_python_files` now os.walk pruning IGNORE_DIRS relative to root (fixes absolute-path exclusion bug):
+     ```python
+     py_files: List[Path] = []
+     for dirpath, dirnames, filenames in os.walk(root):
+         dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
+         py_files += [Path(dirpath) / name for name in filenames if name.endswith(".py")]
+     return sorted(py_files)
+     ```
+   - scripts/sync_principles.py: `principle_sections`, `citing_principles` (`--citing ID`), `changed_principles`, `cross_check_errors`, `git_head_text`, README table generation, Problem + audience-tag validation, domain-too-long triad (`[DOMAIN RULES TOO LONG]`), phase pattern `r"^##(?!#)\s*([^\n]*Phase\s*(\d+)[:\s]*([^\n]*))"` with re.M (ADR-118).
+   - scripts/check_secrets.py: fail-closed gaps, `redact(line,start,end)` (first 4 chars + `***`).
+   - scripts/dogfood.py: gates run concurrently in pool `min(len(gates), os.cpu_count() or 1)`, `budget_ms = 200`.
+   - opencode.jsonc permissions (global): deny edit `.agents/task_ledger.json`, shell `git push*`, `git reset --hard*`, `git clean*`, `git add .`, `git add -A*`, `git add --all*`, `rm -rf *`.
+   - .opencode/agents/{architect,explorer,reviewer,coder,tester,worker}.md: permissions = edit `*` deny, then own areas (coder scripts/**,tests/**; tester tests/**; reviewer knowledge/**,README.md; worker *.md; architect/explorer none), then protected deny (.agents/**, GUIDELINES.md, AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, opencode.jsonc, .opencode/**, knowledge/decisions.md), then shell denies (git add/commit/push/reset/clean/checkout/restore/rebase/stash, rm, del, Remove-Item). Generated by scratch `fix_oc_perms.py`.
+   - knowledge/: architecture.md rewritten (describes AIKit, constants by name); services.md, state_and_ui.md, data_models.md (ledger schema table, status values in_progress/completed/abandoned/superseded), INDEX.md fixed; host_clients.md corrected; principles_audit_ledger.md banner "Status: snapshot, not an evaluation (ADR-117)", "Predicted cross-LLM behavior (not measured)"; model_benchmarks.md Source column `unverified`; decisions.md ADRs up to ADR-118 (next = ADR-119).
+   - .agents/skills/aikit/SKILL.md: Track B = full Phase 4; gate heading "before every commit, Track B or Track C".
+   - tests/test_kit.py: shared `TestRewrittenPrincipleWording` REWRITTEN table (P008–P019, P000 with skip_words), TestArchitectureGate, TestPrinciple007Tooling, TestSecretBaselineAndRuleSchema, TestChaosCoverage, TestSuiteHygiene, TestKnowledgeCitations (LIVING incl. host_clients/model_benchmarks; CITATIONS_ONLY skill/agent/ledger; CORE_DOCS parity; ledger labels; benchmark sources), TestRuleNumberParity, TestPythonFileDiscovery, TestOpenCodePermissionBoundaries, TestGeneratedReadmeTable, phase-heading test `test_only_level_two_headings_set_the_phase`.
+   - Scratchpad helpers (C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\07a11155-9f67-48dd-9986-2d892e5f4e3f\scratchpad\): gates.sh (runs all gates, checks unit<1.0s integ<5.0s, exits 1 on any failure, prints "ALL GATES GREEN"), commit.sh (`commit.sh <task_id> "<msg>"`: --complete, --validate-commit, stages explicit file list incl. knowledge/INDEX/services/state_and_ui, refuses if unstaged changes remain, commits, pushes).
+
+4. Errors and fixes:
+   - Heredoc (`<<'PYEOF'`) repeatedly mangled backslash escapes (`\n`, `\\`, `\r`, `\1`) → always write Python/shell scripts with the Write tool into scratchpad and run them; use Edit tool for code with escapes.
+   - Duplicate ADR IDs from concurrent session → ADR register gate (ADR-069); my duplicate ADR-101 removed; always read next ADR ID from register.
+   - Cross-principle gate failures when my ADR line omitted principles → compute `--citing` before writing ADR lines.
+   - Capsule over Tier 1B budget → shorten capsules; pinned mechanism phrases must remain ("advisory locking", "os.replace", "fsync", "100% test pass gate", `scripts/dogfood.py` needed by `--involved`).
+   - Unit tier exceeded 1s (1.009s, commit 0aa51d0) → find_python_files prune, lock wait shorter, per-test fsync stub; gates.sh now enforces tier budgets.
+   - Banned word false positive ("mentally" in "incrementally") → whole-word matching in shared test; `HEAD~1` contains `~` → used `HEAD^`.
+   - Wrong assumptions retracted after verification: OpenCode schema/flags/models valid (local CLI authoritative); "shell" is valid OpenCode v2 action.
+   - P014 R2 weakening: replacing label pins recorded in ADRs naming tests (ADR-087, ADR-114).
+
+5. Problem Solving:
+   - All 20 principles have ≥2 passes; review of concurrent AI's work completed and fixed (ADR-116–118).
+   - Strategic analysis findings (verified by simulations): drop-in subfolder fails (generated files land in aikit/, gates scan AIKit); cockpit model with `projects/myapp/` inside AIKit: AIKit map absorbs project files (codebase map stale), AIKit tests fail (test_codebase_map_freshness_gate, dogfood), test command runs AIKit's 271 tests not project's, `--track` classifies project files as AIKit Track C. Other findings: GUIDELINES ~100KB (~25k tokens, ~130 MUSTs), 104/127 commits governance, 32% of unit-test lines pin wording, delegation OpenCode-only with unverified data and no token accounting, 1,323-line disruption_recovery.py with hand-rolled argv parsing, ledger committed, concurrent-session collisions.
+   - Proposed roadmap: (1) project concept + `aikit` CLI (new/attach/check/status/resume/delegate), AIKit gates exclude projects/; (2) project's own gates per stack from config; (3) delegate router + token accounting; (4) split rules into product/workflow/kit-maintenance layers, mechanism tests; (5) end-to-end acceptance test.
+
+6. All user messages:
+   - "nalyze the fourth principle ; strenghts and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary." (and variants for "4. principle", "4th principle")
+   - "Analyze the 5th principle ; ..." (same text; multiple times)
+   - "Analyze the 0th principle ; ..." (same text; three times)
+   - "Analyze the 6th principle ; ..." ; "Analyze the 7th principle ; ..."
+   - /goal "Please apply provided prompt to principles from starting 8 till 19 twice : "Analyze the principle ; strenghts and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary.""
+   - /goal same for "1 till 19 twice" (interrupted) then "0 till 19 twice".
+   - "Analyze new additions after you, i have ran another ai. Extensively review it'S WORK."
+   - "Fix whatever you deem necessary."
+   - "Analyze project as a whole. What is right, what should be changed, what can be different, what should be added, what should be removed. Our goal is dropiing this folder in project folder and telling what we want and AIKit will do the rest. Also AIKit should not bog down the project with it's extensive inner workings and reduce code quality. In the end goal is code that is right, modular, fast, correct, bug-free, tested. Any provider can be used without hassle. Claude, Antigravity, Codex, Copilot etc. ; Token usage could be distributed to the other models so that it won't consume the main provider ; it would function as orchestrator." (repeated twice in one message)
+   - Mid-turn: "NO not like that, i was walking about downloading this folder and telling it the project."
+   - "Start. So it would create a projects folder and each project will hold it's memory righ.t"
+   - Standing constraints: commit attribution "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"; explicit staging only (never `git add .`/`-A`); no force push; user email only for identification.
+
+7. Pending Tasks:
+   - Implement roadmap milestone 1: project concept + `aikit` CLI: create `projects/` folder; each project holds its own memory (its own ledger, decisions/ADRs, codebase map, config with detected stack and test/lint/build commands); AIKit's own gates/map/track must exclude `projects/`; `aikit new <name>` / `attach <path>` / `check` / `status` / `resume` (delegate comes in milestone 3).
+   - Later milestones (proposed, not yet approved individually): project-specific gates per stack; delegate router with provider config and token accounting; split GUIDELINES into product/workflow/kit-maintenance layers; end-to-end acceptance test.
+
+8. Current Work:
+   Immediately before the summary request I delivered the whole-project analysis (cockpit model) and asked "Step 1 is what makes 'download, open, describe the project' actually work. Shall I start with it?" The user replied: "Start. So it would create a projects folder and each project will hold it's memory righ.t". Repository state: HEAD 25d7305 ("fix(sync): [milestone 3/3] phase headings are exactly two hashes"), clean, pushed; gates green (unit 0.78s, integration 3.92s); next ADR ID = ADR-119. Simulation evidence: with `projects/myapp/` inside AIKit, `find_python_files(ROOT_DIR)` included `projects\myapp\src\calc.py` and tests; AIKit `--check` reported map stale; AIKit tests failing: test_codebase_map_freshness_gate, test_dogfood_run_passes_every_track; `--track` showed "Track C  projects/myapp/src/calc.py".
+
+9. Optional Next Step:
+   Confirm to the user: yes — `projects/<name>/` per project, each with its own memory (e.g. `projects/<name>/.aikit/` holding ledger, decisions, codebase map, project config), its own git repo, ignored by AIKit's git; AIKit's own tooling excludes `projects/`. Then start milestone 1 following the lifecycle: `--checkpoint` Phase 1/2 with full impact assessment, plan milestones (e.g. [1/3] exclude `projects/` from AIKit's map/track/gates + gitignore `projects/`; [2/3] `aikit.py` CLI with `new`/`attach`/`status`/`resume` creating per-project memory and detecting stack commands; [3/3] `check` running the project's own test command + secret scan, tests, README/docs, ADR-119+). User's words: "Start. So it would create a projects folder and each project will hold it's memory righ.t"
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: C:\Users\Yunus-Emre\.claude\projects\c--Users-Yunus-Emre-Desktop-portable-agent-kit\07a11155-9f67-48dd-9986-2d892e5f4e3f.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+The messages after this summary are the most recent messages from before compaction, kept verbatim. The summary was written without seeing them, so something it says has not happened yet may already have happened in them.
