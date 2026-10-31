@@ -1,0 +1,10 @@
+Do this, "4. Choose the context size from real long inputs. The longest test question is only about 1,300 tokens, so every context size from 2,048 to 16,384 scores the same. The Coder ended up with 16,384, which costs memory without any measured benefit. Either add a few genuinely long recall questions (8k and 16k tokens) so the choice reflects them, or treat context size as a memory budget ("largest that fits in free RAM/VRAM") rather than a quality setting." "5. Make the stage dependencies explicit. If a Device re-run moves a model from GPU to CPU, the Quality, Speed and later results were measured on the GPU. The app should mark those parts "measured on another device" (the same way it marks an older test suite), and the Device button could offer to re-run what depends on it. Also, check that the GPU actually starts before a tune begins, so a broken driver fails in one second rather than after the first full round." "7. Show a real time estimate. The current "≈ 9.3 h (upper bound)" assumes 3 s per answer, which is far off on your GPU (often around 0.2 s). Use the measured time per answer and the questions still left to show, per model, "about 25 min left"." "
+
+<pasted_content id="ded0">
+9. Two loose ends:
+
+The tune:gate baseline still doesn't exist, so nothing catches a tuning regression.
+One timing-sensitive test fails occasionally, as it did once today.
+</pasted_content id="ded0">
+
+"
