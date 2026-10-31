@@ -1,0 +1,1 @@
+If we integrate AIKit to another project it should have AIKit Integrated thingy. Then analyze every change since last push. Fix if there is anything to fix, gap or improvement. Then push. Also Gemini API has been deleted. So it is ok. Also we do noot References files under that folder in github.
