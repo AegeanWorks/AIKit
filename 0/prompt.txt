@@ -1,0 +1,1 @@
+Verify every change since last push and analyze them, if there is something to fix, fix then push.
