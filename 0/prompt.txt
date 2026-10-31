@@ -1,0 +1,1 @@
+Let's look at py files in this folder. Maybe there is things unnecessary. Also we should continue looking for gaps, fixes, improvements and implementations in our licenses.
