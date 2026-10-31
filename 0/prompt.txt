@@ -1,0 +1,1 @@
+Ok let's analyze changes in aikit for bugs, fixes, improvements and implementations. if there is anything to fix, fix. then push.
