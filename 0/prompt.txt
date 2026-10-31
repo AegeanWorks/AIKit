@@ -1,0 +1,1 @@
+Make sure every change in our current licenses will be implemented in our other repos with proper license. Do we have this capability. Also change that step.
