@@ -1,0 +1,22 @@
+<pasted_content id="bc75">
+Deneme.
+Hi.
+Merhaba! Size nasıl yardımcı olabilirim?
+
+31.7 t/s
+Continue working on Voidfarer project
+Let me look for the Voidfarer project in the workspace.
+
+ripgrep execution failed
+Transport error (GET https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-pc-windows-msvc.zip)
+
+
+
+Permission required
+List workspace root entries
+Get-ChildItem -LiteralPath . -Force | Select-Object Name, Mode
+
+Manage Auto-Approve Rules
+Get-ChildItem
+Select-Object
+</pasted_content id="bc75">
