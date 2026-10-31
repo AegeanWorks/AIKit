@@ -1,0 +1,1 @@
+Now i want you to add starting new project thing add GNU Affero General Public License v3.0  license to it, add proper description with proper lenght and also tags. Also we should add these projects readme built with aikit or aikit integrated thingy that will redirect to aikit page.
