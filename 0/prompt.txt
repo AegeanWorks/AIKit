@@ -1,0 +1,1 @@
+Stage 1 : 1024, 2048, 4096, 8192, 16384 ; B keep the same ; c on and off ; d on and off ; batch size 64, 128, 256, 512, 1024, 2048 ; threads 1,2,4,8 if possible with cpu make it 12 (if it supports 16 so that we wont kill the pc) checkpointing off 128 256 512 1024 2048 vs 4 8 16 32? any suggestions based on literature?
