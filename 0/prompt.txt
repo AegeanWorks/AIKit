@@ -1,0 +1,1 @@
+maybe let's add first run for model to see where it runs fast then do tuning on it?
