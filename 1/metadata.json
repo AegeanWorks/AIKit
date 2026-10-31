@@ -1,0 +1,74 @@
+{
+  "cli_version": "0.12.3-nightly.202610310614.54b6a5cac",
+  "checkpoint_id": "01M6A152W1YZP9CN0B4KS7V1RQ",
+  "session_id": "ab3ed68b-6efd-4ab4-bc35-e36ba274d5ac",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-31T22:26:46.6010526Z",
+  "branch": "fix/repo-review-followups",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    "README.md",
+    "reforge/state.py",
+    "scripts/check_secrets.py",
+    "tests/test_kit.py"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "d1f1580a1005",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "redaction": {
+    "replacements": 0,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 0,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-review-2026-10-31T21:58:37.3824338Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "review"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "d1f1580a1005",
+      "timestamp": "2026-10-31T21:58:37.3824338Z",
+      "native": {
+        "command": "/review"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/review",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "kind": "agent_review",
+  "review_skills": [
+    "/review"
+  ],
+  "review_prompt": "/review\n\nReview profile: general\n\nTask: Review this change for correctness, regressions, API design, missing tests, maintainability, and user-facing behavior changes. Return only real, actionable defects with concrete evidence and an exact code pointer. No praise, summaries, speculation, style preferences, or nice-to-have refactors.\n\nOutput format:\n- Start with one verdict line: approve / approve with nits / request changes, plus a short reason.\n- Then list actionable findings only. Each finding MUST be a separate top-level Markdown bullet starting with [high], [medium], or [low].\n- Include an exact file:line pointer in each finding when possible, plus the bug, impact, and fix in one concise paragraph.\n- Do not combine multiple defects in one bullet or paragraph. Do not emit severity-heading paragraphs like \"**[HIGH] ...**\" without a leading bullet.\n- If there are no actionable findings, output only the verdict line.\n- Keep the report compact: quote only the minimal relevant snippet (a few lines) per finding. Never paste whole files, full diffs, or large logs, and skip decorative formatting like tables or ASCII art — it wastes effort and is not rendered.\n\nFocus on correctness, security (secret hygiene, injection, path traversal), and adherence to the repository principles in AGENTS.md/GUIDELINES.md. Report concrete file:line findings with severity.\n\nScope: review the commits unique to this branch vs refs/remotes/origin/main, plus any uncommitted changes in the working tree. Ignore code outside this scope."
+}
