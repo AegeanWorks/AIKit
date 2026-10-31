@@ -1,0 +1,1 @@
+add more tests from online ai tests. also add find optimal for quality, best overall, best coding, optimum token creation without causing too much loss etc. in ui. it should hive preset settings after that benchmarks, while bencmark is running it should give
