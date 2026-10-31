@@ -1,0 +1,1 @@
+Continue analysing our licenses for fixes, gaps, implementations ; then analyze repo as a whole. Also look at other licenses for strenghtening, improving and implementations.
