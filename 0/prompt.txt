@@ -1,0 +1,34 @@
+<pasted_content id="bc75">
+kullanım şartlarının güncel sürümünü (v1) kabul etmeniz gerekiyor - metni GET /v1/terms/text ile okuyup POST /v1/terms/accept {"version": 1} ile onaylayın
+{
+  "name": "APIError",
+  "data": {
+    "message": "kullanım şartlarının güncel sürümünü (v1) kabul etmeniz gerekiyor - metni GET /v1/terms/text ile okuyup POST /v1/terms/accept {\"version\": 1} ile onaylayın",
+    "statusCode": 403,
+    "isRetryable": false,
+    "responseHeaders": {
+      "access-control-expose-headers": "X-Request-ID,X-Evren-Credits-Held,X-Evren-Credits-Remaining,X-Evren-Routed-Model,X-Evren-Media-Id,X-Evren-Quota-Weight,X-Evren-Routing-Reason,Retry-After,X-RateLimit-Limit-Tokens,X-RateLimit-Remaining-Tokens,X-RateLimit-Reset,X-RateLimit-Limit-Requests,X-RateLimit-Remaining-Requests,X-Evren-Daily-Limit-Tokens,X-Evren-Daily-Remaining-Tokens,X-Evren-Daily-Reset",
+      "cache-control": "no-store, no-cache, must-revalidate",
+      "content-length": "294",
+      "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' ws: wss: https:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self';",
+      "content-type": "application/json",
+      "date": "Sun, 18 Oct 2026 21:29:03 GMT",
+      "permissions-policy": "camera=(), microphone=(self), geolocation=(), payment=(), usb=()",
+      "pragma": "no-cache",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "x-request-id": "8fce63c2-046a-48a6-aa37-29cfa57c8d33",
+      "x-xss-protection": "1; mode=block"
+    },
+    "responseBody": "{\"error\":{\"message\":\"kullanım şartlarının güncel sürümünü (v1) kabul etmeniz gerekiyor - metni GET /v1/terms/text ile okuyup POST /v1/terms/accept {\\\"version\\\": 1} ile onaylayın\",\"type\":\"permission_error\",\"param\":null,\"code\":\"terms_not_accepted\",\"evren\":{\"required_terms_version\":1}}}",
+    "metadata": {
+      "url": "https://evren-llmapi.ssyz.org.tr/v1/chat/completions"
+    }
+  }
+}
+</pasted_content id="bc75">
+
+kilo
