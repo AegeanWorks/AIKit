@@ -1,0 +1,1 @@
+Goal was to make sure AIKit build itself properly to make sure it can build other projects proprely with guidelines. End goal was to create a kit that is capable, self-checking, self-fixing with guidelines appyling to project too project creator.
