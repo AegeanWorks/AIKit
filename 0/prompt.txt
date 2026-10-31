@@ -1,0 +1,1 @@
+run questions in parallel. but do not select prompts for tasks. make sure all of those prompts tried on all our benchmarks
