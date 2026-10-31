@@ -1,0 +1,10 @@
+"
+
+<pasted_content id="e533">
+The FAQ and README link to it. The order form now has the licensee acknowledge receiving it; that's an acknowledgment, not a consent, which keeps it separate from consent as the KVKK Board expects. template privacy prints it. The notice describes the processing but can't settle two compliance questions:
+
+Registry (VERBİS): whether AegeanWorks must register depends on headcount and turnover, and the exemption rules changed in 2025.
+Transfers abroad: if a transfer relies on a standard contract, the Authority must be notified within five business days of signing.
+</pasted_content id="e533">
+
+" what do you think? also analyze every change since last push ; look for fixes, bugs, gaps, implementations. Fix those then push.
