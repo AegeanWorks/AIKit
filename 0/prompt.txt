@@ -1,0 +1,65 @@
+are these true 
+
+<pasted_content id="ca29">
+Claim	Verdict	Evidence
+Tier 1 enumeration is stale	TRUE	PRINCIPLE-001 R1 and PRINCIPLE-017 R2 enumerate six files (GUIDELINES.md:36, :307), while TIER1_TARGETS has eight, adding .windsurfrules and .clinerules (scripts/sync_principles.py:318-329). P001 R1 is internally inconsistent: “exactly the files listed” followed by six of eight.
+P002 R5 conflicts with P018 R3	TRUE	P002 R5 permits an informed pre-Phase-4 commit/push (GUIDELINES.md:71); P018 R3 says “MUST NOT commit until all three hold” with no exception (:322). Neither rule cites the other, so P000 R6 cannot resolve it; the agent must stop and ask.
+P013 R7 chaos coverage is name-only	TRUE	TestChaosCoverage regex-matches test names only (tests/test_kit.py:1104-1120). The disk-full test only checks check_disk_headroom() (:2958-2963); it does not drive a failed write and assert the triad.
+P009 R5 private-attribute ban is ungated	TRUE	Neither architecture nor hygiene gates check Assign/Attribute targets ending in _private. ADR-082 explicitly leaves this rule ungated (knowledge/decisions.md:1112).
+Project gates omit several lifecycle checks	TRUE	No project gate runs dogfood, reachability, test-hygiene, persistence-version, coverage, install, or web-security checks (scripts/project_gates.py:116-153; scripts/project_reachability.py is hardcoded to AIKit).
+Project dogfood is never invoked	TRUE	project_gates.py imports only supervised from dogfood, never run_dogfood; even a project with its own runner is ignored.
+Reachability is AIKit-only	TRUE	PROD_DIR = ROOT_DIR / "scripts" and ROOT_ENTRYPOINTS = ("aikit.py",) (scripts/check_reachability.py:34-37); no --workspace.
+No project persistence gate	TRUE	project_gates.py has no state/version check; a project can pass with unversioned, unrefusing persistence.
+publish pushes with a dirty tree	TRUE	project_publish.py:190-191 only adds a note; :195-204 pushes HEAD regardless.
+Silent-except gate is too narrow	TRUE	It flags only broad Exception/BaseException: pass (check_project_hygiene.py:198-207); except OSError: pass passes, and tests explicitly assert that (tests/test_kit.py:4076-4078). Silent return/continue/break bodies are also unflagged.
+README command parity is too narrow	TRUE	audit_readme validates only python scripts/<name>.py and python -m unittest tests.<module> (update_knowledge_base.py:448, :720-731); python aikit.py ... is unchecked.
+Map function count is mislabeled	TRUE	The total counts only top-level functions (update_knowledge_base.py:202-208, :268, :282), while the label says “Functions / Methods”; methods are listed separately.
+Properties are rendered as methods	TRUE	Every direct FunctionDef in a class is treated as a method (:189-196); Primordia’s World.length property is printed as Method .length() (projects/primordia/.aikit/codebase_map.md:249).
+atomic_write_json retries all OSErrors	TRUE	(PermissionError, OSError) is effectively just OSError; five total attempts, including ENOSPC/EROFS (disruption_recovery.py:300-310).
+load_ledger quarantines on OSError	TRUE	Permission/sharing failures enter the same handler as malformed JSON and call _quarantine_ledger() (disruption_recovery.py:348-358). Nuance: if path.exists() itself returns false, the branch is skipped.
+Corrected
+1. Time budgets — PARTLY TRUE
+The structural enforcement claim is correct: TestTierBudgetDiscipline explicitly says a wall-clock assertion would be flaky and checks only no-spawn/no-sleep and integration timeouts (tests/test_integration.py:673-718).
+
+However, my live measurements were unit 1.337s and integration 8.914s, while historical ADRs record 0.88–0.94s and ~4.6s (knowledge/decisions.md:1441-1482). So:
+
+There is no wall-clock gate, confirmed.
+On this machine, the current suite exceeded both limits.
+It is not universally true that the suite always breaches them.
+The rule still needs a decision: real calibrated timing, or amend P010 R6/P014 R3 to a structural budget.
+
+2. P000 R7 word ban — PARTLY TRUE
+Tests do enforce the hedge list on PRINCIPLE-000 and rewritten principles (tests/test_kit.py:1218-1227, :1706-1715). The actual gap is narrower: checklists are outside the enforced slices, and they use “relevant”, “concise”, and “dense” (GUIDELINES.md:359-381). Whether that is a violation depends on R7’s scope (“Every rule added or changed”), so the correct finding is “scope/coverage gap,” not “no enforcement.”
+
+3. P014 R4 pristine tree — TRUE with a correction
+The test tier does not run a post-suite git status. But CI does run git status --porcelain after the full verification sequence (.github/workflows/ci.yml:104-113). The gap is specifically that the local test tier does not enforce it; it is not wholly unenforced.
+
+4. Project gate list — PARTLY TRUE
+My “only four gates” statement was too narrow. Project gates also run detected ruff/mypy, Node lint/typecheck/build, and go vet when the project configures them (project_gates.py:65-92). The confirmed gap remains: no dogfood, reachability, test-hygiene, persistence, coverage, install, or web-security gate.
+
+5. Complexity metrics — PARTLY TRUE
+Line counts are exact:
+
+sync_all: 185 lines
+run_disruption_audit: 95 lines
+audit_architecture: 65 lines
+cmd_check: 56 lines
+Under a McCabe-style metric, the exact counts are 45, 30, 37, 21 — not “~49, 29, 37, 20.” The hotspot conclusion is valid; the numbers should use the stated formula.
+
+6. files_affected — PARTLY TRUE
+“Never populated” is too strong. The Python API supports files_affected (disruption_recovery.py:588, :608) and tests exercise it. The real gaps:
+
+no CLI --files option,
+aikit checkpoint cannot populate it,
+every current .agents/task_ledger.json entry has [],
+phase/milestone sequence is not validated.
+Revised priority
+Resolve the P002 R5 / P018 R3 conflict. This is a genuine rule collision, not wording.
+Fix the Tier 1 enumeration. Six vs eight is confirmed and easy to correct.
+Decide the time-budget contract. Keep structural or enforce real timing; the current prose and test disagree.
+Extend project gates to dogfood, reachability, test hygiene, persistence, install/build, and web security — or explicitly scope those principles to AIKit.
+Widen silent-except and README-command parity. Both are small, high-yield gates confirmed by the subagents.
+Fix map semantics. Separate functions/properties/methods and correct the “Functions / Methods” total.
+Add behavioral chaos tests for disk-full and failed-replace paths; stop relying on test-name regexes.
+The core conclusion survives verification: AIKit’s prose is stronger than its enforcement, and several universal rules are still discipline-only. The corrections make the finding more precise, not weaker
+</pasted_content id="ca29">
