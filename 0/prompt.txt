@@ -1,0 +1,1 @@
+Verify changes since last commit and analyze them. If there is something to fix, fix.
