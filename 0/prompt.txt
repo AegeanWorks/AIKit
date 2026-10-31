@@ -1,0 +1,1 @@
+"Drop clear losers early. Stop testing a clearly worse value after about 12 questions and spend the questions on close calls. This speeds up the system-prompt step most, the slowest part." Maybe we can do this on prompt part only? %25 of Items, then continue with rest? What do you say?
