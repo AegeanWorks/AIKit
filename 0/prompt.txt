@@ -1,0 +1,1 @@
+is there a way to do this faster? do not do them differently, just put the tuned model with prompt to our test one by one.
