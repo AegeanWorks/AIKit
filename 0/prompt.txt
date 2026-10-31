@@ -1,0 +1,83 @@
+<pasted_content id="bc75">
+Interesting CyberPulse/VoidFarer have source changes (user working). We only touched maps. Fine. Chronos/Primordia maps modified only. Pebble map untracked.
+
+Need record verification checkpoint and complete.
+
+Need final response: summarize what applied, verification, what remains (time budget, silent-except, project gates, README parity, chaos tests). Mention no commit. Wait user said "start working" not commit; no commit. Mention maps updated in projects; CyberPulse/VoidFarer source changes untouched.
+
+Need be clear:
+
+Resolved P002/P018 conflict by naming P002 R5 exception.
+De-enumerated Tier1 from P001 R1/P017 R2; constant is sole source.
+Map now distinguishes top-level functions/class methods and properties; property rendered Property .length; totals split.
+ADR-143.
+Regenerated maps: AIKit + 5 projects. VoidFarer README drift remains (map/test file missing from tree); did not touch because user work.
+Tests: 362 pass in 11.8s; dogfood 5/5; sync/update/reachability/secrets pass.
+Uncommitted. Next batch: time budget, silent-except, project gates, README parity, chaos behavior.
+Need maybe note "The 11.8s full suite vs 5s integration budget remains unresolved; that's next." The full suite 11.8 includes both tiers; integration remained ~9s. We didn't fix. Mention.
+
+Need maybe note "Project maps are uncommitted/untracked in respective repos." Good.
+
+Let's final concise.
+
+Applied the first verified alignment batch.
+
+Changed
+Resolved the P002 R5 / P018 R3 conflict. P018 R3 now names the informed override as its only exception, so the rules no longer contradict each other.
+Removed the stale Tier 1 enumeration. P001 R1 and P017 R2 now point only to TIER1_TARGETS in sync_principles.py; the constant is the single list.
+Fixed codebase-map semantics. The map now reports:
+Total Top-Level Functions
+Total Class Methods
+Property .name for @property/cached_property, without call parentheses.
+Added ADR-143 and a red-green test for property/method classification and map totals.
+Regenerated maps for AIKit, Chronos, CyberPulse, Pebble, Primordia, and VoidFarer.
+Verification
+python -m unittest discover tests: 362 passed
+sync_principles.py --check: passed, including cross-principle ADR check
+update_knowledge_base.py --check: passed
+check_reachability.py: passed
+check_secrets.py --staged: passed
+dogfood.py: 5/5 tracks passed
+Primordia’s map now shows Property .length, and the totals are split correctly.
+
+Remaining
+Time budget: the rule says unit <1s / integration <5s but no wall-clock gate exists; the current full run took 11.8s. This needs a real decision, not another silent exception.
+Silent-except gate: still only flags broad Exception: pass, not narrow OSError: pass.
+Project gates: still no dogfood, reachability, test-hygiene, persistence, install, or web-security gate.
+README command parity: python aikit.py ... commands are still unvalidated.
+Chaos coverage: still name-based rather than behavioral.
+Project source files were not edited. Existing CyberPulse/VoidFarer work was untouched; their regenerated maps are uncommitted/untracked in those repositories.
+
+60 t/s
+
+Modified
+6 files
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Type a message, @ to mention files... (
+Ctrl
+Shift
+A
+ to type)
+</pasted_content id="bc75">
