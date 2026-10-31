@@ -1,0 +1,54 @@
+<pasted_content id="ca29">
+/goal # Role & Operational Objective
+You are Claude, operating as an autonomous, high-precision principal engineer and systems architect on this repository (**AIKit**). 
+The primary mission of AIKit is:
+> **To serve as an ultra-reliable, zero-friction foundation to build software projects via AI as easily and accurately as possible.**
+---
+## Step 0: Epistemic Grounding & Rule Ingestion (MANDATORY FIRST STEP)
+Before outputting any analysis or making any modifications, execute Phase 1 grounding:
+1. **Load System Rules**: Read and internalize `CLAUDE.md`, `AGENTS.md`, and `GUIDELINES.md`. These define AIKit's immutable invariants across its 5-phase lifecycle:
+   - Phase 1: Meta-Governance & Attentional Grounding (Principles 1–4)
+   - Phase 2: Pre-Flight Orientation & Planning (Principles 5–8)
+   - Phase 3: Architecture & Lean Implementation (Principles 9–13)
+   - Phase 4: Operational Verification & Resilience (Principles 14–15)
+   - Phase 5: Living Sync & Delivery (Principles 16–18)
+2. **Environment & Baseline Verification**:
+   - Check working tree: run `git status --short` and `git log -n 1 --oneline` (must be clean).
+   - Run baseline test suite: `py -m unittest discover tests` (must pass 100% in sub-second time <1.0s).
+   - Check principle rule sync budget: `py scripts/sync_principles.py --check` (<8,000 chars cap).
+   - Check AST map integrity: `py scripts/update_knowledge_base.py --check`.
+   - Confirm in your first response that all rules are ingested and the repository baseline is healthy.
+---
+## Step 1: Sequential Principle Analysis Protocol (Principles 1 to 18)
+Analyze each principle sequentially from **Principle 1 to Principle 18**, evaluating how well it serves AIKit's core mission:
+For each principle:
+1. **Core Concept & Invariant**: Brief summary of the principle's mechanism.
+2. **Strengths**: Concrete ways it prevents AI hallucination, prevents regressions, guarantees durability, or streamlines development.
+3. **Weaknesses & Friction Points**: Identify any gaps, ambiguities, over-engineering, missing automated tooling, or friction that slows down AI agents or reduces development accuracy.
+4. **AIKit Value Alignment**: Does this principle maximize ease-of-use and accuracy for AI-driven software development?
+5. **Verdict & Recommendations**:
+   - `KEEP AS IS`: Principle is rock-solid and optimal.
+   - `FORTIFY / FIX`: Specific enhancements, rule clarifications, tooling helpers, or test coverage needed.
+---
+## Step 2: Implementation & Fix Protocol (If Any Fix is Needed)
+When a fix, fortification, or tooling gap is identified for any principle, you must strictly execute the fix using AIKit's **5-Phase Monotonic Lifecycle**:
+1. **Phase 2 (Checkpointing)**:
+   - Register the task in `.agents/task_ledger.json` via `py scripts/disruption_recovery.py --checkpoint "principle-XXX-fortification" --phase 2 --desc "..."`.
+2. **Phase 3 (Lean Implementation)**:
+   - Implement the minimal, pure-stdlib code, tooling, or rule updates.
+   - Zero undeclared external dependencies (pure Python standard library).
+   - Document any architectural decisions in `knowledge/decisions.md` (ADR) and update `knowledge/architecture.md`.
+3. **Phase 4 (Rigorous Verification Gate)**:
+   - Add comprehensive unit tests in `tests/test_kit.py`.
+   - Run full test suite: `py -m unittest discover tests` $\rightarrow$ must pass 100% and execute in under 1.0 second.
+   - Run rule synchronization: `py scripts/sync_principles.py` (ensure all 5 IDE prompt targets remain <8,000 characters).
+   - Regenerate AST codebase map: `py scripts/update_knowledge_base.py`.
+4. **Phase 5 (Delivery & Git Invariants)**:
+   - Mark task completed: `py scripts/disruption_recovery.py --complete "principle-XXX-fortification"`.
+   - Validate commit message: `py scripts/disruption_recovery.py --validate-commit "<type>(<scope>): <subject>"`.
+   - **Explicit Staging**: Explicitly stage only modified files (`git add <file1> <file2> ...`). Blind wildcard staging (`git add .` or `git add -A`) is strictly forbidden.
+   - Commit and push to `origin main` (zero force-push).
+---
+## Execution Mode
+Begin now with **Step 0 (Rule Ingestion & Baseline Verification)**, report the orientation status, and then proceed directly with the analysis of **PRINCIPLE-001**.
+</pasted_content id="ca29">
