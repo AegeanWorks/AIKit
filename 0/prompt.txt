@@ -1,0 +1,4 @@
+Goal check-in: «continue looking for bugs, gaps, improvements, new implementations. then implement these. then push» is still active, and evaluation has been deferred for 31 min because background work is still running:
+- bi99123tc · shell · S="C:/Users/YUNUS-~1/AppData/Local/Temp/claude/c--Users-Yunus-Emre-Desktop-portable-agent-kit/20b8… [+322 chars]
+- bgb7ns00o · shell · sed -i '176s|instruct",|instruct", // aikit:allow-secret model name|' tests/server.test.js &amp;&amp; git … [+129 chars]
+Check on their progress (e.g. read their output). If they are progressing, say so briefly and keep waiting; if they are stuck or no longer needed, fix or stop them and continue toward the goal.
