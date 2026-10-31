@@ -1,0 +1,1 @@
+Add server start button ; also add photo browser file.
