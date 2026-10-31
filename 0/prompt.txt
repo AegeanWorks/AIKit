@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b06u9oxs3</task-id>
+<tool-use-id>toolu_01Bq9AS7YTo9shzgAs6CvKVK</tool-use-id>
+<status>stopped</status>
+<summary>Background shell command didn't finish before the previous session ended</summary>
+<note>No completion record was found for it in the previous session. It may have been stopped (via the UI, Monitor timeout, or agent teardown — these leave no transcript marker), or it may have been running when the previous Claude Code process exited. Check the output file for partial results before assuming it completed.</note>
+</task-notification>
