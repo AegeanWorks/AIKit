@@ -1,0 +1,2 @@
+"Should new --publish run the same checks that publish does?" I do not know what do you say? "Should OpenCode's explorer and architect lose shell access, to be truly read-only?
+ What do you say? The README has 22 characters of room left under its 22,500 limit, so the next README addition will need some condensing first. You can condense as long as there is no loss of information or potential to be analyzed differently by other AI's.
