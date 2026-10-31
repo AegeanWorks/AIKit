@@ -1,0 +1,1 @@
+! python aikit.py publish modelduck --owner AegeanWorks --license keep
