@@ -315,6 +315,40 @@ def run_complete(run: Dict[str, object], window: int,
     return window >= total_commits or audited_count >= total_commits
 
 
+def completion_total(run: Dict[str, object], live: Optional[int] = None) -> Optional[int]:
+    """The repository commit count that closes an unlimited run: live first, then the stored one.
+
+    A bounded run ignores both because `run_complete` answers from its stop.
+    """
+    if isinstance(live, int):
+        return live
+    stored = run.get("total_commits")
+    return int(stored) if isinstance(stored, int) else None
+
+
+def settle_run(run: Dict[str, object], state: Dict[str, object],
+               total_commits: Optional[int] = None, *, reopen: bool = False) -> bool:
+    """The one completed/active transition, shared by every entry point.
+
+    A run settles as completed only when its window is done and every retained stage is reviewed.
+    A review or settings change may also reopen a completed run that no longer meets that bar
+    (`reopen=True`); recording a stage never does. Returns whether the status changed.
+    """
+    finished = run_complete(run, int(run.get("window") or 0), total_commits) and review_is_ready(run)
+    if finished and run.get("status") != "completed":
+        run["status"] = "completed"
+        run["updated"] = _now()
+        if state.get("active_run") == run["id"]:
+            state["active_run"] = None
+        return True
+    if reopen and not finished and run.get("status") == "completed":
+        run["status"] = "active"
+        run["updated"] = _now()
+        state["active_run"] = run["id"]
+        return True
+    return False
+
+
 def pending_reviews(run: Dict[str, object]) -> List[Dict[str, object]]:
     """Every retained stage whose review object explicitly says it is not reviewed.
 
@@ -349,17 +383,9 @@ def review_is_ready(run: Dict[str, object]) -> bool:
 def finalize_review(root: Path, state: Dict[str, object],
                     run: Dict[str, object],
                     total_commits: Optional[int] = None) -> Dict[str, object]:
-    """Complete a run at its stop once every retained stage has been reviewed."""
-    if total_commits is None:
-        stored_total = run.get("total_commits")
-        total_commits = int(stored_total) if isinstance(stored_total, int) else None
-    if not review_is_ready(run) or not run_complete(
-            run, int(run.get("window") or 0), total_commits):
-        return run
-    run["status"] = "completed"
-    run["updated"] = _now()
-    if state.get("active_run") == run["id"]:
-        state["active_run"] = None
+    """Settle the run after a review and persist its mirror in one write."""
+    sync_last_audit(run)
+    settle_run(run, state, total_commits)
     state["last_run"] = run["id"]
     _mirror(state, run)
     save_state(root, state)
@@ -389,17 +415,7 @@ def record_review(root: Path, state: Dict[str, object], run: Dict[str, object],
     for entry in matches:
         entry["review"] = review
     run["updated"] = _now()
-    if total_commits is None:
-        stored_total = run.get("total_commits")
-        total_commits = int(stored_total) if isinstance(stored_total, int) else None
-    if run_complete(run, int(run.get("window") or 0), total_commits) and review_is_ready(run):
-        run["status"] = "completed"
-        if state.get("active_run") == run["id"]:
-            state["active_run"] = None
-    elif run.get("status") == "completed":
-        # A completed run that still has another unreviewed stage is reopened, not accepted.
-        run["status"] = "active"
-        state["active_run"] = run["id"]
+    settle_run(run, state, total_commits, reopen=True)
     state["last_run"] = run["id"]
     _mirror(state, run)
     save_state(root, state)
@@ -409,7 +425,7 @@ def record_review(root: Path, state: Dict[str, object], run: Dict[str, object],
 def record_stage(root: Path, state: Dict[str, object], run: Dict[str, object],
                  entry: Dict[str, object],
                  total_commits: Optional[int] = None) -> Dict[str, object]:
-    """Advance one run, remember its audited SHAs, and finish it when its stop is reached."""
+    """Advance one run, remember its audited SHAs, and settle it when the window is done."""
     run["stage"] = entry["stage"]
     run["window"] = entry["window"]
     audited = list(run.get("audited_commits") or [])
@@ -423,14 +439,7 @@ def record_stage(root: Path, state: Dict[str, object], run: Dict[str, object],
     history.append(entry)
     run["history"] = history[-MAX_HISTORY:]
     run["updated"] = _now()
-    if run_complete(run, int(entry["window"]), total_commits) and review_is_ready(run):
-        run["status"] = "completed"
-        if state.get("active_run") == run["id"]:
-            state["active_run"] = None
-    elif run_complete(run, int(entry["window"]), total_commits):
-        # The window is finished, but the host has not answered its packet yet.
-        run["status"] = "active"
-        state["active_run"] = run["id"]
+    settle_run(run, state, total_commits)
     state["last_run"] = run["id"]
     _mirror(state, run)
     save_state(root, state)
@@ -515,23 +524,8 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
     run["step"] = new_step
     run["stop"] = new_stop
     run["updated"] = _now()
-    reached_stop = isinstance(new_stop, int) and int(run.get("window") or 0) >= new_stop
-    reached_end = run_complete(
-        run,
-        int(run.get("window") or 0),
-        int(run["total_commits"]) if isinstance(run.get("total_commits"), int) else None,
-    )
-    if run.get("status") == "active" and (reached_stop or reached_end) and review_is_ready(run):
-        run["status"] = "completed"
-        if state.get("active_run") == run["id"]:
-            state["active_run"] = None
-    elif run.get("status") == "completed" and not (
-            review_is_ready(run) and (reached_stop or reached_end)):
-        # Raising the stop reopens the run: that is the recovery `plan_next_stage` recommends.
-        # A completed run that still holds an unreviewed stage is reopened for the same reason,
-        # even when the window already reached its stop.
-        run["status"] = "active"
-        state["active_run"] = run["id"]
+    if run.get("status") in ("active", "completed"):
+        settle_run(run, state, reopen=True)
     _mirror(state, run)
     save_state(root, state)
     return run

@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from scripts.project_brand import brand_spec
-from scripts.project_media import capture_html, load_media, save_media
+from scripts.project_media import capture_html, load_media, media_path, save_media
 from scripts.project_publish import extract_readme_description
 from scripts.project_registry import ProjectError, repository_name
 
@@ -184,7 +184,7 @@ def _social_model_prompt(name: str) -> str:
     )
 
 
-def generate_model_brand(project_root: Path, name: str, kind: str = "library",
+def generate_model_brand(project_root: Path, name: str,
                          force: bool = False, parts: Sequence[str] = ("logo", "social"),
                          seed_offset: int = 0) -> Dict[str, object]:
     """Render the requested parts with the online image model (ADR-239/240/241)."""
@@ -194,9 +194,12 @@ def generate_model_brand(project_root: Path, name: str, kind: str = "library",
     seed = int(hashlib.sha256(name.encode("utf-8")).hexdigest()[:6], 16) + seed_offset
     logo = root / "assets" / "logo.jpg"
     social = root / "assets" / "social-preview.jpg"
-    stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
     data = load_media(root)
     assets = dict(data.get("assets") or {})
+    if not force and (assets.get("logo") or {}).get("status") == "approved":
+        # Same contract as `generate_brand`: an approved identity survives a plain re-run (ADR-298).
+        return {"skipped": True, "reason": "approved assets already exist"}
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
     if "logo" in parts:
         query = urllib.parse.urlencode({"model": model, "width": 1024, "height": 1024,
                                         "seed": seed, "nologo": "true"})
@@ -223,7 +226,10 @@ def generate_model_brand(project_root: Path, name: str, kind: str = "library",
         # the model's text. The crop is reviewed like any other asset.
         cropped = crop_letterboxed_social(root, name, 1.0, "y")
         social = Path(cropped["social"])
-    return {"logo": str(logo), "social": str(social), "model": model,
+    return {"path": str(root), "created": True, "manifest": str(media_path(root)),
+            "assets": sorted(assets), "has_ui": bool(data.get("has_ui")),
+            "kind": str(data.get("ui_kind") or "library"), "model": model,
+            "logo": str(logo), "social": str(social),
             "logo_size": (1024, 1024), "social_size": (1280, 640), "parts": list(parts)}
 
 
@@ -359,7 +365,7 @@ body{{background:{palette[0]};font-family:'Segoe UI',Arial,sans-serif}}
 <div class="name">{name_html}</div></body></html>'''
 
 
-def _chips_html(tags: Sequence[str], palette: Sequence[str]) -> str:
+def _chips_html(tags: Sequence[str]) -> str:
     generic = {"aikit", "aegeanworks", "software", "source-available"}
     selected = [tag for tag in tags if str(tag) not in generic][:3]
     if not selected:
@@ -387,7 +393,7 @@ def _social_html(name: str, art: Path, description: str, kind: str,
     tagline = html.escape(description or f"{title} — an AegeanWorks project.")
     uri = art.resolve().as_uri()
     repo_url = f"github.com/AegeanWorks/{repository_name(name)}"
-    chips = _chips_html(tags or (kind, "aegeanworks", "software"), palette)
+    chips = _chips_html(tags or (kind, "aegeanworks", "software"))
     accent, accent2 = palette[2], palette[3]
     if layout == "center":
         center = f'''<div class="center-art" style="background-image:url('{uri}')"></div>
@@ -522,7 +528,6 @@ def generate_brand(project_root: Path, name: str, description: str = "",
     if refresh_art or not (root / ART_REL).is_file():
         fetch_artwork(root, name, description)
     tagline = str(spec.get("tagline") or "") or description
-    fetch_artwork(root, name, description)
     composed = compose_brand(root, name, tagline, tags, kind)
     data["assets"] = {
         "logo": {"path": LOGO_PNG_REL.as_posix(), "status": "pending_review", "commit": "",

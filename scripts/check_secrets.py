@@ -180,9 +180,11 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
         match = ASSIGNMENT_RE.search(line)
         if match:
             name, value = match.group(1), match.group(2)
-            if value.startswith(("$", "{", "%", "<")) or "os.getenv" in line or "os.environ" in line:
-                continue  # an indirection, not a literal
-            if len(value) >= 20 and shannon_entropy(value) >= 3.8:
+            expression = any(char in value for char in "()[]")
+            if value.startswith(("$", "{", "%", "<")) or expression \
+                    or "os.getenv" in line or "os.environ" in line:
+                pass  # an indirection or call result, not a literal; still check bare literals
+            elif len(value) >= 20 and shannon_entropy(value) >= 3.8:
                 findings.append((label, lineno, f"high-entropy value for {name}",
                                  redact(line, match.start(2), match.end(2))))
                 continue

@@ -3198,3 +3198,35 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: The pipeline passes the live `commit_count(root)` only for runs without an integer stop; bounded runs keep using their stop and do not spawn Git for completion. `review_stage()` does the same before recording a review. `update_settings()` now reopens a completed run unless every retained stage is reviewed and either the stop or the end of history is reached.
 - **Consequences**: A legacy unlimited run completes after its final review instead of staying active forever, bounded runs keep their existing fast path, and changing settings cannot quietly bless an unreviewed stage. The extra Git read happens only for unlimited runs, where completion already depends on history size.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (the completion fact is grounded in the repository), PRINCIPLE-008 (bounded lifecycle), PRINCIPLE-014 (regression tests for both completion and review readiness) and PRINCIPLE-018 (reviewable delivery); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-298: Brand generation honors force, fetches artwork once, and reports its result
+- **Date**: 2026-10-31
+- **Status**: Accepted
+- **Context**: `generate_model_brand` accepted `force` and `kind` but read neither, so an approved logo was replaced and marked `pending_review` by a plain `media init --art`. It also returned `None`, which made `new` treat a successful model render as a failure and re-run the local seed, orphaning the model assets. `generate_brand` fetched artwork a second time unconditionally after its guarded fetch, doubling model requests even with `refresh_art=False`.
+- **Decision**: Both brand paths now return early with `{"skipped": True, ...}` when the existing logo is approved and `force` is false. The unconditional second `fetch_artwork` call is removed. `generate_model_brand` returns the same caller-shaped record as `seed_media_assets` (`path`, `created`, `manifest`, `assets`, `has_ui`, `kind`), and `media init` prints an explicit skip message. The unused `kind` parameter is removed and its two CLI call sites updated.
+- **Consequences**: A re-run without `--force` preserves the reviewed identity on both paths; a fresh run makes one model request per missing asset; `new` keeps the model-generated assets instead of silently replacing them with local SVGs. Tests cover the approved-skip path, zero/one artwork fetches, and the return contract.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (the result reflects what was written), PRINCIPLE-010 (no duplicate network work), PRINCIPLE-011 (a skip is reported, not silent) and PRINCIPLE-014 (three failing-first tests); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-299: The tier budget gate prints the failing tier's own output
+- **Date**: 2026-10-31
+- **Status**: Accepted
+- **Context**: `check_test_budgets.py` captures each tier's combined output but used it only for the `Ran N tests` summary. On a red tier it printed `the tier failed` and sent the operator to run the identical tier by hand, which is why CI still carries separate verbose unit and integration steps. A probe with an injected failing runner showed the failing test name never reached the gate output.
+- **Decision**: `TierResult` carries a bounded `failure_tail` (last 25 non-empty lines) populated only for a non-zero tier, and `run_check` prints it between separators under the `[FAIL]` line. Green and over-budget runs are unchanged; the timeout path keeps its existing message.
+- **Consequences**: The Phase 4 command alone now names the failing test and shows its assertion, so a second full suite run is no longer required to diagnose a failure. CI trimming can be evaluated separately; this ADR does not change the workflow or any test contract.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-010 (bounded output), PRINCIPLE-011 (actionable Why/Fix) and PRINCIPLE-014 (a new failing-first test pins the name); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-300: One generated-directory core is pinned across every walker
+- **Date**: 2026-10-31
+- **Status**: Accepted
+- **Context**: ADR-295 fixed the 35-second audit by pruning bulk trees in `SWEEP_PRUNED_DIRS`, but the same policy lives in `update_knowledge_base.IGNORE_DIRS` and `proof_gate`'s copy ignore list. A generated directory added to one walker and not the others silently reintroduces the slow or over-broad scan.
+- **Decision**: `IGNORE_DIRS` gains the generated cache set (`target`, `.next`, `.nuxt`, `.cache`, `.vite`, `.ruff_cache`, `.mypy_cache`, `.tox`, `.nox`), `proof_gate` exposes its patterns as `COPY_IGNORE_PATTERNS`, and a unit test asserts that the shared core is present in all three policies. The lists stay local to each standalone script; the test, not a runtime import, is the coupling.
+- **Consequences**: A future generated directory must be added to all three policies or the unit tier fails by name. Standing-alone execution of each script is unchanged, and the audit, knowledge map and mutation copy now agree on what is bulk.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-009 (one policy, explicit boundaries), PRINCIPLE-010 (no accidental bulk walks) and PRINCIPLE-014 (a drift test); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-301: The entropy fallback does not treat a call result as a credential
+- **Date**: 2026-10-31
+- **Status**: Accepted
+- **Context**: the tracked, auto-generated `.opencode/plugins/entire.ts` assigns `const key = callKey(input.sessionID, input.callID)`. The assignment-shaped entropy fallback captured `callKey(input.sessionID` and flagged its mixed-case token as a high-entropy credential. The line is a function call, not a literal, and the file cannot carry a durable narrow pragma because Entire regenerates it.
+- **Decision**: `scan_text` now treats a captured value containing `(`/`)`/`[`/`]` as an expression and skips only the entropy check. Known credential patterns still run on the whole line, and the independent long-bare-literal check still runs on expression lines. A unit test pins the call-shaped false positive alongside the existing indirection cases.
+- **Consequences**: Generated call assignments no longer block the secret gate, while a real credential-shaped literal inside a call is still caught by the pattern or bare-literal detectors. This narrows one low-confidence fallback; it does not exempt a path or suppress a pattern.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-019 (a trusted gate keeps scanning generated files), PRINCIPLE-003 (the detector now models an expression rather than a literal) and PRINCIPLE-014 (a failing-first false-positive test); PRINCIPLE-000 R5 is unchanged.
