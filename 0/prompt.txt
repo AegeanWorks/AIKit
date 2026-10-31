@@ -1,0 +1,1 @@
+Analyze our coding quality on three projects, did we adhere to the principles of AIKit, do we need to add something, do we need to change someting? Analyze the principles in the projects.
