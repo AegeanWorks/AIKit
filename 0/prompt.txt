@@ -1,0 +1,13 @@
+Raise to 1750.
+"- Found an AIKit UX bug: `ui finish` with only `human review not recorded` prints “the UI change is outside its contract” plus revert/allow/abort advice (`scripts/aikit_cli.py:644`); the finding code is `ui.review-missing`, so finish should instead state that review is the only blocker.
+
+The gate is behaving as intended; the task remains open for a human review before it can be closed and delivered. 
+
+<pasted_content id="c5bb">
+Two defects found in the gates themselves, reported not fixed (P-007 R4 — outside this task's plan; both are in ADR-174):
+
+validate_ledger_version refusing older versions contradicts knowledge/data_models.md, which says only a newer version is refused in place. They've been indistinguishable because the version has only ever been 1. Any future bump that genuinely needs one must fix this first, or every existing ledger breaks.
+check_reachability.py:264 — all_literals is a set, so sum(1 for lit in all_literals if lit == key) can never exceed 1. The "a key appearing more than once has a producer" fallback is dead code, and its comment claims behaviour it doesn't have. Direction is safe (false positives, not false negatives), but it makes the gate stricter than documented.
+</pasted_content id="c5bb">
+
+" Is this true, verify and analyse.
