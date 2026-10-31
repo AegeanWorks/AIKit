@@ -1,0 +1,1 @@
+Remove agpl tags. remove older releases. Keep current ones.
