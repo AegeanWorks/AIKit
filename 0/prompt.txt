@@ -1,0 +1,1 @@
+Start working then Also people should be able to reach from local server to their photos. Also they should be able to change their passwords. Folder storage on windows should not be complex and easily understandable, they should be reachable without app too.
