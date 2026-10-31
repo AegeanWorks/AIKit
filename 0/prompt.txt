@@ -1,0 +1,82 @@
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   - Original standing protocol (pasted /goal prompt): act as principal engineer on AIKit ("ultra-reliable, zero-friction foundation to build software via AI"). Step 0: read CLAUDE.md/AGENTS.md/GUIDELINES.md, verify baseline (git status clean, `py -m unittest discover tests` <1s, `py scripts/sync_principles.py --check`, `py scripts/update_knowledge_base.py --check`). Step 1: analyze principles sequentially (core concept, strengths, weaknesses, value alignment, verdict KEEP/FORTIFY). Step 2: fix using 5-phase lifecycle: checkpoint via `disruption_recovery.py --checkpoint`, pure-stdlib implementation, ADR in knowledge/decisions.md + architecture.md, tests in tests/, run suite, sync principles, regenerate AST map, `--complete`, `--validate-commit`, explicit staging (never `git add .`/`-A`), commit and push to origin main, zero force-push.
+   - Subsequent requests: "Extensively analyze each principle one by one; see strengths and weaknesses. Fix the gaps and problems if needed."; "Any other principle suggestion…?"; /goal "Start with order." (CI → P015 runner → P014 R7 reachability → P019 secrets → budget paydown, all done); "Analyze Principle 1."; "Fix whatever you deem necessary." (repeated); then repeated per-principle requests: "Analyze the first/second/third/4. principle; strengths and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary."
+   - The most recent message asks again to analyze the **fourth principle** (P004), which was just completed in commit ebba6e6; a repeat request means a further pass using a new method.
+
+2. Key Technical Concepts:
+   - Two-tier governance: Tier 1 = 6 generated always-injected files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, .agents/rules/principles.md) from single Tier 2 SSOT GUIDELINES.md via `scripts/sync_principles.py`; Tier 1B = `.agents/rules/domain.md` (≤1,200 chars).
+   - Budget: TARGET_TOKEN_BUDGET=1500 est. tokens (chars//4, calibrated conservative vs cl100k/o200k ~4.2 chars/token) incl. Tier 1B; reservation check `[TIER 1B HEADROOM]`; WARN at 90% evaluated after blocking checks. Current room ~301 tokens (≈1 token margin) — any capsule growth needs paydown via P001 R2 deletion test.
+   - Rule-writing standard: RFC 2119 MUST/MUST NOT/MAY declared in GUIDELINES.md header; every rule tagged *[Agent]*, *[Maintainer]* or *[Agent + Maintainer]*; no hedge words (e.g., etc., relevant, proactively, essential, excessive, concise, dense, appropriate, as needed, ~, should, where possible, mentally, $\rightarrow$, zero-friction, instantly); keep rule numbers stable (cited elsewhere); cross-references tested.
+   - P001: precedence (capsules bind; GUIDELINES.md wins on conflict; user overrides only R3 reading obligation/full-load ban; cross-principle conflicts decided by the other principle, incl. P002 R5); `--involved` computes involved principles (backtick names in capsules + IDs, fallback PRINCIPLE-003).
+   - P002: tracks computed by `python scripts/disruption_recovery.py --track` (A no changes; B docs except rule/generated files, or Python with AST unchanged except docstrings; C else); phases with exact commands; Phase 4 = P018 R3 gates (1)+(2); recoil rules; checkpoint per phase (Track C), once at Phase 3 (Track B), `--complete`; R5 informed override → commit message ends `Unverified: <gates>`; ledger `.agents/task_ledger.json` is bookkeeping (BOOKKEEPING_PATHS).
+   - P003: ambiguity decided by "who faces it" (runtime program vs agent); `git grep -n -w -e <name>`; decisions.md hits exempt; dependencies declared (README prerequisites: Python 3.10+ and `git`), new deps need user approval; platform rules; MIN_PYTHON=(3,10) AST gate; no `except Exception: pass`.
+   - P004 (latest): plan = `--desc` of task's Phase 2 checkpoint; `--resume` prints plan; prune bounds active task, keeps plan; R2 defers to P002 R4; ADR deadline before next commit; schemas → data_models.md; ≤100 lines per read; progress messages ≤15 lines (deliverables exempt); output limits per P012 R3; checklist timing per P001 R8.
+   - Test tiers: unit `tests/test_kit.py` (<1s, no process spawns — enforced by module-level `setUpModule` Popen guard `_refuse_spawn`), integration `tests/test_integration.py` (<5s, timeout per spawn).
+   - CI `.github/workflows/ci.yml` exists but blocked at account level (startup_failure; private repo Actions billing) — ADR-042.
+
+3. Files and Code Sections:
+   - GUIDELINES.md — single SSOT (19 principles, Problem/Concept/Invariant/Rules, checklists, How-to). P001–P004 rewritten to unambiguous standard. Header has RFC 2119 note and audience-tag definitions.
+   - AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .github/copilot-instructions.md, .agents/rules/principles.md — generated; header:
+     ```
+     > Generated from `GUIDELINES.md` by `scripts/sync_principles.py`; do not edit.
+     > Capsules bind; `GUIDELINES.md` wins on conflict. On a contract change, failure or ambiguity, read the `### PRINCIPLE-NNN:` section of each principle `sync_principles.py --involved` lists; never the whole file unless asked.
+     ```
+     Current P004 capsule: "Living plan SSOT = Phase 2 `--desc` in `task_ledger.json`; `--resume` after compaction, anti-repetition; ADR before commit; AST-first reads <=100 lines."
+   - scripts/sync_principles.py — SSOT_MD=GUIDELINES_MD; TIER1_TARGETS; `render_tier1_target`; `audit_tier1_budget`; `estimate_tokens`; `is_generated_target` (markers "Generated from `", "(Tier 1 Invariants)"); `[PROTECTED]` overwrite guard; `[MIGRATION REQUIRED]`; README parity "all or none"; `involved_principles` + `--involved` CLI (must be first arg); MIN_PRINCIPLES=19; content-keyed `_PARSE_CACHE`; sync_all returns problem count (0=success).
+   - scripts/disruption_recovery.py — locked_ledger (now with poll_interval param), file_lock (atomic steal), fsync_dir, classify_git_status/UNMERGED_CODES, resolve_active_phase, resolve_phase_num (bare digits), `--track` (classify_change/classify_track/collect_working_changes with `-z`), BOOKKEEPING_PATHS, `--workspace`, prune_checkpoints (bounds active task; keeps plan via task_plan_checkpoint), audit `plan` + `scan_errors`, resume shows "🗺️ Plan (Phase 2 checkpoint): …", recommended resumption = recorded phase, no silent broad excepts.
+     Latest prune code:
+     ```python
+     min_inactive = min(5, len(inactive_cps))
+     active_budget = max(1, max_history - min_inactive)
+     if len(active_cps) > active_budget:
+         plan = task_plan_checkpoint(active_cps)
+         recent = active_cps[-(active_budget - (1 if plan else 0)):] if active_budget > 1 else []
+         active_cps = ([plan] if plan and plan not in recent else []) + recent
+     ```
+   - scripts/update_knowledge_base.py — MIN_PYTHON=(3,10) via `ast.parse(..., feature_version=MIN_PYTHON)`; render_signature; content-keyed `_SYMBOL_CACHE`; traceback-free `[AST GATE FAILED]` with Why/Fix; ASCII bullets.
+   - scripts/check_reachability.py (parse_module cache), scripts/check_secrets.py, scripts/dogfood.py.
+   - tests/test_kit.py — unit tier; classes incl. TestPrinciple001/002/003/004Unambiguity, TestTrackClassification, TestLifecycleToolSemantics, TestSyncWriteSafety (reads real GUIDELINES/README; no-op fsync RAII), etc. EXPECTED_PRINCIPLE_COUNT=19.
+   - tests/test_integration.py — CLI/real-process tests (dogfood, --track, --involved, AST gate CLI, git grep -e, secret scan, tier discipline).
+   - knowledge/decisions.md — ADRs up to ADR-059 (append-only). knowledge/architecture.md updated. README.md — prerequisites "Python 3.10+ … and `git`", command matrix (incl. --track, --involved, dogfood, reachability, secrets), Option B adoption flow.
+
+4. Errors and fixes:
+   - Heredoc (`<<'PYEOF'`) mangles `\\n`/backslash escapes into real newlines repeatedly → use Edit tool, Write to scratchpad file, or chr(92)+"n".
+   - `git checkout -- tests/test_kit.py` during a red check discarded uncommitted edits → reapplied; later used `git stash push <file>`/`stash pop` for red checks.
+   - Python 3.14 deferred annotations hid missing `Tuple` import (would crash on 3.10) → added import.
+   - Budget overflows → paid down via deletion test (removed duplicated capsule clauses, header path duplication, "bounded rolling ledger").
+   - Unit tier timing breaches → content caches, pure-function tests, poll_interval, fsync no-op, read real sources instead of copies, module spawn guard replacing ~1s rerun test.
+   - Test false positives (git_output(["diff"...]) as program; own regex matching itself; checklist search colliding with rule text) → narrowed detection, fragment-built names, heading-anchored search.
+   - CI startup_failure → isolated with smoke workflow to account-level block (private repo billing); documented ADR-042; user must fix billing or make repo public.
+   - Process note repeatedly admitted: only final ledger checkpoint recorded rather than per-phase checkpoints.
+
+5. Problem Solving:
+   Solved many governance defects (see concepts). Ongoing: budget margin ~1 token; CI blocked externally; YAML/JSON config not under R7 gate; other principles (5–19) still have hedge words and haven't had unambiguity passes; copied knowledge/ describes AIKit for adopters.
+
+6. All user messages:
+   - Pasted /goal prompt (Role & Operational Objective… Step 0–2… Execution Mode: begin Step 0 and proceed with PRINCIPLE-001).
+   - "Extensively analyze each principle one by one ; see strenghts and weaknesses. Fix the gaps and problems if needed. /goal"
+   - AskUserQuestion answer on test gate: "You choose."
+   - "Any other principle suggestion or is it enough with this current situation?"
+   - /goal "Start with order."
+   - "Analyze Principle 1."
+   - "Fix whatever you deem necessary." (mid-turn and again as a turn)
+   - "Analyze the first principle ; strenghts and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary." (×3 for first)
+   - Same request for "second principle" (×3), "Third principle"/"third principle" (×3), "4. principle" (×1), and now "fourth principle".
+   - Constraints: commit attribution "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"; explicit staging only; no force push; user email for identification only.
+
+7. Pending Tasks:
+   - Respond to latest request: analyze the fourth principle (P004) again — a second pass with a new method, fix what's necessary, following the same lifecycle (tests, sync, map regen, ADR-060, Phase 4 rerun, ledger checkpoint/complete, validated commit, push).
+
+8. Current Work:
+   Just completed P004 first pass, committed and pushed as ebba6e6 "feat(memory): rewrite PRINCIPLE-004 and give the plan a real home" (186 tests OK; unit ~0.70s; integration ~4.0s; all gates green; tree clean). Final report given to user. Then the user sent: "nalyze the fourth principle ; strenghts and weaknesses. It should also provide a clear guidelines so that every AI gets the same message. Rules should not give a way to interpreted differently. Fix whatever you deem necessary."
+
+9. Optional Next Step:
+   Start a second P004 pass using a method not yet applied to P004 (e.g., literal execution of the new R1/R2/R4 workflow end-to-end: record Phase 2 plan via `--checkpoint --phase-num 2 --desc "[1/2] …"`, revise plan, compact-simulate `--resume`, check ADR deadline/“architectural decision” definition against real cases, check R3's 100-line cap vs tools and P003 R1 whole-file reads, R5 vs P012 R3 numbers), fix defects, add pins, keep Tier 1B room ≥300 (currently ~301), then ADR-060, Phase 4 rerun, bookkeeping, commit with "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>", push. Begin with baseline: `git status --short`, `py -m unittest discover tests`, read `### PRINCIPLE-004:` section of GUIDELINES.md.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: C:\Users\Yunus-Emre\.claude\projects\c--Users-Yunus-Emre-Desktop-portable-agent-kit\07a11155-9f67-48dd-9986-2d892e5f4e3f.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+The messages after this summary are the most recent messages from before compaction, kept verbatim. The summary was written without seeing them, so something it says has not happened yet may already have happened in them.
