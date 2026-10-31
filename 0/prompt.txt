@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>b9n7g6xdd</task-id>
+<tool-use-id>toolu_01DBm5PH4SvkGbARZaaqzJ9a</tool-use-id>
+<output-file>C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\240bc3b7-3e44-44db-8447-49ccc2b11849\tasks\b9n7g6xdd.output</output-file>
+<status>completed</status>
+<summary>Background command "Run AIKit Phase 4 gates" completed (exit code 0)</summary>
+</task-notification>
