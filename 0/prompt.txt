@@ -1,0 +1,7 @@
+<task-notification>
+<task-id>bspa2d7n6</task-id>
+<tool-use-id>toolu_01NB2dseQ7yLgGSoYqsdfBBL</tool-use-id>
+<output-file>C:\Users\YUNUS-~1\AppData\Local\Temp\claude\c--Users-Yunus-Emre-Desktop-portable-agent-kit\07a11155-9f67-48dd-9986-2d892e5f4e3f\tasks\bspa2d7n6.output</output-file>
+<status>completed</status>
+<summary>Background command "Run all gates" completed (exit code 0)</summary>
+</task-notification>
