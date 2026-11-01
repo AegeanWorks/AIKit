@@ -78,6 +78,14 @@ def _print_failure_tail(tail: str) -> None:
     print("-" * 58)
 
 
+def _decode_stream(stream: object) -> str:
+    if stream is None:
+        return ""
+    if isinstance(stream, bytes):
+        return stream.decode("utf-8", "replace")
+    return str(stream)
+
+
 @dataclass(frozen=True)
 class TierResult:
     """One tier's measured outcome; frozen so a report cannot edit what was measured."""
@@ -125,9 +133,7 @@ def default_runner(module: str, timeout: int) -> Tuple[int, str]:
             encoding="utf-8", errors="replace", timeout=timeout,
         )
     except subprocess.TimeoutExpired as exc:
-        partial = (exc.stdout or "") + (exc.stderr or "")
-        if isinstance(partial, bytes):
-            partial = partial.decode("utf-8", "replace")
+        partial = _decode_stream(exc.stdout) + _decode_stream(exc.stderr)
         return TIMEOUT_EXIT, f"{partial}did not finish within {timeout}s\n"
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 

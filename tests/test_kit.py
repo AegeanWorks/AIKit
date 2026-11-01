@@ -8304,6 +8304,19 @@ class TestTestTierBudgetGate(unittest.TestCase):
         self.assertEqual(code, budgets.TIMEOUT_EXIT)
         self.assertIn("900", output)
 
+    def test_timeout_runner_normalizes_mixed_partial_stream_types(self):
+        from scripts import check_test_budgets as budgets
+
+        timeout = subprocess.TimeoutExpired("python", 900)
+        timeout.stdout = b"stalled test output\n"
+        timeout.stderr = "stderr tail\n"
+        with mock.patch.object(budgets.subprocess, "run", side_effect=timeout):
+            code, output = budgets.default_runner("tests.test_integration", 900)
+        self.assertEqual(code, budgets.TIMEOUT_EXIT)
+        self.assertIn("stalled test output", output)
+        self.assertIn("stderr tail", output)
+        self.assertIn("900", output)
+
 class TestChecklistWording(unittest.TestCase):
     """
     PRINCIPLE-000 R7 bans hedge words in "every rule added or changed", but the slices the

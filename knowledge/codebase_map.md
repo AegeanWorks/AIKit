@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
-- **Total Top-Level Functions**: `827`
-- **Total Class Methods**: `961`
-- **Total Source Lines**: `36483`
+- **Total Top-Level Functions**: `828`
+- **Total Class Methods**: `962`
+- **Total Source Lines**: `36502`
 
 ---
 
@@ -792,7 +792,7 @@
 ### [`scripts/check_test_budgets.py`](scripts/check_test_budgets.py)
 > *Test Tier Budget Gate (PRINCIPLE-010 Rule 6, PRINCIPLE-014 Rule 3)*
 
-**Size**: `280` lines (`11982` bytes)
+**Size**: `286` lines (`12094` bytes)
 
 **Classes:**
 - `class TierResult` - *One tier's measured outcome; frozen so a report cannot edit what was measured.*
@@ -803,6 +803,7 @@
 **Functions:**
 - `def _failure_tail(output)` - *The last bounded slice of a failed tier's output, without its trailing blank lines.*
 - `def _print_failure_tail(tail)` - *Print a bounded failure slice between rules, or nothing when the tail is empty.*
+- `def _decode_stream(stream)`
 - `def parse_tier_output(output)` - *The count and duration unittest prints, or None when it never got that far.*
 - `def default_runner(module, timeout)` - *Run one tier the way the runbook documents it, so the gate measures the real command.*
 - `def run_tier(module, runner, attempts, retry_delay)` - *Measure one tier, or None when its output carried no summary. A green run over the ceiling is*
@@ -1614,7 +1615,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11124` lines (`617685` bytes)
+**Size**: `11137` lines (`618317` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2290,6 +2291,7 @@
   - Method `.test_a_tier_that_overruns_its_bound_fails_cleanly_instead_of_raising()`
   - Method `.test_a_timed_out_tier_prints_the_test_that_stalled()`
   - Method `.test_the_real_runner_reports_a_timeout_as_output()`
+  - Method `.test_timeout_runner_normalizes_mixed_partial_stream_types()`
 - `class TestChecklistWording` - *PRINCIPLE-000 R7 bans hedge words in "every rule added or changed", but the slices the*
   - Method `.setUpClass()`
   - Method `.test_checklists_contain_no_hedge_words()`
