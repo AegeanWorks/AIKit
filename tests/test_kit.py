@@ -11423,7 +11423,7 @@ class TestDossierCatalogueSync(unittest.TestCase):
     def test_sync_entry_is_idempotent_and_updates_metadata_in_place(self):
         dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
         first = self._snapshot()
-        dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+        self.assertEqual(dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools"), [])
         self.assertEqual(self._snapshot(), first)
         changed = self._entry(description="The same tool, re-described.", topics=["aikit", "cli"])
         dossier_sync.sync_entry(self.dossier, changed, "AL", "tools")

@@ -71,6 +71,17 @@ def _write(path: Path, text: str) -> None:
     atomic_write_text(path, text, backup=False)
 
 
+def _write_if_changed(path: Path, text: str) -> bool:
+    """Write only when the bytes would differ, so a no-op sync reports nothing."""
+    try:
+        if path.is_file() and path.read_text(encoding="utf-8") == text:
+            return False
+    except OSError:
+        pass
+    _write(path, text)
+    return True
+
+
 def github_facts(name: str) -> Dict[str, object]:
     """The repository's live GitHub facts, read through the `gh` CLI publish already requires."""
     try:
@@ -172,8 +183,7 @@ def _upsert_metadata(dossier: Path, entry: Dict[str, object]) -> bool:
         repositories.append(entry)
     data["repositories"] = repositories
     data["captured_at"] = _today()
-    _write(path, _dump_json(data))
-    return True
+    return _write_if_changed(path, _dump_json(data))
 
 
 def _upsert_snapshot(dossier: Path, entry: Dict[str, object]) -> bool:
@@ -183,8 +193,7 @@ def _upsert_snapshot(dossier: Path, entry: Dict[str, object]) -> bool:
     data["profile"] = metadata.get("profile") or data.get("profile")
     data["repositories"] = metadata.get("repositories") or [entry]
     data["generated_at"] = _today()
-    _write(path, _dump_json(data))
-    return True
+    return _write_if_changed(path, _dump_json(data))
 
 
 def _upsert_license(dossier: Path, name: str, family: str) -> bool:
@@ -202,8 +211,7 @@ def _upsert_license(dossier: Path, name: str, family: str) -> bool:
         body = existing.sub(entry.rstrip("\n"), body)
     else:
         body = body.rstrip("\n") + "\n" + entry.rstrip("\n")
-    _write(path, text[:match.start(2)] + body + text[match.end(2):])
-    return True
+    return _write_if_changed(path, text[:match.start(2)] + body + text[match.end(2):])
 
 
 def _escape(value: str) -> str:
@@ -260,8 +268,7 @@ def _upsert_card(dossier: Path, entry: Dict[str, object], family: str,
         if grid < 0 or close < 0:
             return False
         text = text[:close] + "\n\n        " + _card(entry, family, category, _mark(str(entry["name"]))) + text[close:]
-    _write(path, text)
-    return True
+    return _write_if_changed(path, text)
 
 
 def _mark(name: str) -> str:
@@ -330,8 +337,7 @@ def _upsert_jsonld(dossier: Path, entry: Dict[str, object], family: str,
     text = re.sub(r"<dd data-project-count>\d+</dd>", f"<dd data-project-count>{count}</dd>", text)
     text = re.sub(r"<span data-project-count>\d+</span>",
                   f"<span data-project-count>{count}</span>", text)
-    _write(path, text)
-    return True
+    return _write_if_changed(path, text)
 
 
 def _upsert_readme(dossier: Path, entry: Dict[str, object], category: str) -> bool:
@@ -353,8 +359,7 @@ def _upsert_readme(dossier: Path, entry: Dict[str, object], category: str) -> bo
         insert_at = text.rfind("\n\n", start, end)
         insert_at = end if insert_at < 0 else insert_at
         text = text[:insert_at] + "\n" + row + text[insert_at:]
-    _write(path, text)
-    return True
+    return _write_if_changed(path, text)
 
 
 def _upsert_catalogue_set(dossier: Path, name: str) -> bool:
