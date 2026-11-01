@@ -3460,6 +3460,8 @@ class TestSecretHygieneScanner(unittest.TestCase):
             'secret = "${VAULT_SECRET}"',  # aikit:allow-secret
             'key = "placeholder"',
             'hard_coded = "short"',
+            'const key = callKey(input.sessionID, input.callID)',
+            'const key = makeKey()',
         ]
         for line in safe:
             with self.subTest(line=line):
@@ -9449,6 +9451,26 @@ class TestReforgeCore(unittest.TestCase):
         finalize_review(root, state, run)
         self.assertEqual(run["status"], "completed")
         self.assertIsNone(state["active_run"])
+
+    def test_finalize_review_reads_the_reloaded_history_entry(self):
+        # A separate invocation reloads state, where `last_audit` and its history entry are two
+        # objects; the history copy is what `review_is_ready` reads (ADR-297).
+        from reforge.state import finalize_review
+
+        root = self.root()
+        state = new_state()
+        run = create_run(state, 2, 1, 3)
+        entry = {"run": "run-1", "stage": 1, "window": 3, "commits": [], "new_commits": ["a"],
+                 "prior_commits": [], "findings": [], "repairs": [], "counts": {}, "tests": {},
+                 "review": {"status": "unreviewed", "packet": "stage-1.md"},
+                 "gates": {}, "timestamp": "2026-10-28T00:00:00"}
+        record_stage(root, state, run, entry)
+        reloaded = load_state(root)
+        reloaded_run = reloaded["runs"][0]
+        reloaded_run["last_audit"]["review"]["status"] = "reviewed"
+        finalize_review(root, reloaded, reloaded_run)
+        self.assertEqual(reloaded_run["status"], "completed")
+        self.assertIsNone(load_state(root)["active_run"])
 
     def test_an_unlimited_run_completes_at_the_end_of_history(self):
         from reforge.state import create_run, new_state, record_stage

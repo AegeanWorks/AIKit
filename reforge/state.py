@@ -384,6 +384,7 @@ def finalize_review(root: Path, state: Dict[str, object],
                     run: Dict[str, object],
                     total_commits: Optional[int] = None) -> Dict[str, object]:
     """Settle the run after a review and persist its mirror in one write."""
+    sync_last_audit(run)
     settle_run(run, state, total_commits)
     state["last_run"] = run["id"]
     _mirror(state, run)

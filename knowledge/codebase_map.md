@@ -9,8 +9,8 @@
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `824`
-- **Total Class Methods**: `952`
-- **Total Source Lines**: `36303`
+- **Total Class Methods**: `953`
+- **Total Source Lines**: `36328`
 
 ---
 
@@ -547,7 +547,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `561` lines (`22077` bytes)
+**Size**: `562` lines (`22102` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -768,7 +768,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `520` lines (`24460` bytes)
+**Size**: `522` lines (`24599` bytes)
 
 **Functions:**
 - `def shannon_entropy(value)` - *Bits of entropy per character; random credentials score high, English prose low.*
@@ -1611,7 +1611,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `10948` lines (`608062` bytes)
+**Size**: `10970` lines (`609258` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2378,6 +2378,7 @@
   - Method `.test_schema_one_migrates_to_an_independent_first_run()`
   - Method `.test_only_fixable_unrepaired_findings_block_the_next_stage()`
   - Method `.test_an_unreviewed_stage_blocks_progress_and_completion()`
+  - Method `.test_finalize_review_reads_the_reloaded_history_entry()`
   - Method `.test_an_unlimited_run_completes_at_the_end_of_history()`
   - Method `.test_reviewing_an_unlimited_partial_window_does_not_complete_run()`
   - Method `.test_an_unlimited_run_completes_when_prior_windows_cover_history()`

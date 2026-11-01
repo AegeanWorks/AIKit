@@ -2,70 +2,16 @@
   "version": 1,
   "active_task": {
     "task_id": "repo-review-fixes-v1",
-    "last_phase": "planning",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1793472914.8721204,
+    "last_phase": "verification",
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1793484506.1317675,
     "owner": "kilo:repo-fix",
     "started_by": "kilo:repo-fix",
     "continuations": [],
-    "impact_assessment": {
-      "why": "The verified review found destructive brand regeneration, a gate that hides failures, and four copies of one completion policy",
-      "benefits": "Approved assets survive, failures are actionable from the gate itself, and completion is changed in one place",
-      "risks": "contract: reforge state transitions and brand generation; dependency: none; concurrency: state writes must stay atomic; state: run status and media assets",
-      "mitigation": "Failing-first tests per defect, behavior-neutral refactor with a table-driven test, and full Phase 4 plus verify_commit"
-    }
+    "completed_at": 1793485083.2564821
   },
   "checkpoints": [
-    {
-      "task_id": "brand-palette",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Completed [1/3]-[3/3]: added Palette as the 40th authored identity with a dedicated purple palette and camera motif, updated the pinned catalog count, regenerated and reviewed the logo/social assets, and used them for the AegeanWorks dossier. Evidence: 799 AIKit tests pass, catalog uniqueness test passes, Palette assets are published at e0a9275, dossier media check reports 0 problems. checklists: passed (tests, principles, knowledge base, reachability, secrets).",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793435797.5675004,
-      "timestamp_str": "2026-10-31 11:36:37",
-      "agent": "opencode:editor-live"
-    },
-    {
-      "task_id": "brand-palette",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'brand-palette' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793435797.802852,
-      "timestamp_str": "2026-10-31 11:36:37",
-      "agent": "opencode:editor-live"
-    },
-    {
-      "task_id": "github-scan-batch4-v1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Research 14 new repositories for the seven targets: provenance and dependency audit, eval and browser actions, trust roots and witnesses, session and workload identity, library merge and citation rendering, checkpoint floors and transport credit, local notes and template attestation",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793436136.9944036,
-      "timestamp_str": "2026-10-31 11:42:16",
-      "agent": "opencode:idea-scan-b4",
-      "impact_assessment": {
-        "why": "The register's last batches left specific gaps: recomputable provenance, dependency waivers, eval comparability, verified browser actions, trust-root rotation, witnessed publication, session and workload identity, reversible merges, citation render profiles, checkpoint floors, transport credit and template attestation.",
-        "benefits": "28 new mechanism-backed ideas across all seven targets, each tied to a pinned commit and a real target file; 14 new review records; batch report with coverage, cross-cutting findings and a dependency-ordered sequence.",
-        "risks": "contract: dossier and routing-table schema must match the register; dependency: stdlib plus git/curl only; concurrency: the registry lock is the only shared write; state: new dossiers are git-ignored and the concurrent 1196-1201 reservations are left untouched",
-        "mitigation": "Pin every repository to a 40-character SHA, reserve exactly two ids per review, verify every cited path and line range with the independent verifier, run audit-claims, validate and render --check before closing"
-      }
-    },
-    {
-      "task_id": "github-scan-batch4-v1",
-      "phase": "delivery",
-      "phase_num": 4,
-      "description": "[2/2] Registered IDEA-1202..1229, closed reviews 360-373, verifier 14/14 clean, report reports/github-scan-2026-10-31-batch4.md complete",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793436140.6527364,
-      "timestamp_str": "2026-10-31 11:42:20",
-      "agent": "opencode:idea-scan-b4"
-    },
     {
       "task_id": "github-scan-batch4-v1",
       "phase": "completed",
@@ -262,6 +208,49 @@
         "risks": "contract: reforge state transitions and brand generation; dependency: none; concurrency: state writes must stay atomic; state: run status and media assets",
         "mitigation": "Failing-first tests per defect, behavior-neutral refactor with a table-driven test, and full Phase 4 plus verify_commit"
       }
+    },
+    {
+      "task_id": "repo-review-fixes-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/5] P0: brand generation keeps approved assets without force, fetches once, and returns a caller-shaped result; budget gate prints the failing tier tail; tests added",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793484498.426921,
+      "timestamp_str": "2026-11-01 01:08:18",
+      "agent": "kilo:repo-fix"
+    },
+    {
+      "task_id": "repo-review-fixes-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[3/5] P1/P2: one settle_run/completion_total path with reforge reload sync; shared placeholder predicate; bulk policy drift test; vestigial params removed; secret entropy fallback ignores call expressions; ADR-298..301",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793484498.5920615,
+      "timestamp_str": "2026-11-01 01:08:18",
+      "agent": "kilo:repo-fix"
+    },
+    {
+      "task_id": "repo-review-fixes-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/5] Verify: 820 tests pass; budget 10.48ms/unit, 4.38ms/auto-register, 392.19ms/integration; rules, AST map, licenses, reachability, secrets, dogfood 5/5 pass; delivery held pending authorization; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793484506.1317675,
+      "timestamp_str": "2026-11-01 01:08:26",
+      "agent": "kilo:repo-fix"
+    },
+    {
+      "task_id": "repo-review-fixes-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'repo-review-fixes-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793485083.2564833,
+      "timestamp_str": "2026-11-01 01:18:03",
+      "agent": "kilo:repo-fix"
     }
   ]
 }
