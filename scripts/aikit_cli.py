@@ -74,7 +74,7 @@ from scripts.project_registry import (
 )
 from scripts.subagent_delegate import delegate_subagent
 from scripts import ui_contract
-from scripts import project_artwork, project_media, project_topics, project_ui
+from scripts import dossier_sync, project_artwork, project_media, project_topics, project_ui
 from scripts.update_knowledge_base import (
     find_python_files,
     generate_codebase_map,
@@ -104,6 +104,23 @@ def _report_registered_ideas(project_path: Path, project_name: str) -> None:
         print("[OK] idea-catcher: registered "
               + ", ".join(str(row.get("id", "")) for row in registered)
               + " from the delivered commits; MATRIX.md refreshed.")
+
+
+def _sync_dossier(project_path: Path, project_name: str) -> None:
+    """Best-effort dossier catalogue sync after a publish; the publish itself already succeeded."""
+    try:
+        result = dossier_sync.sync_published(project_path, project_name)
+    except (ProjectError, OSError, ValueError, KeyError) as exc:
+        print(f"[DOSSIER] catalogue sync skipped: {exc}", file=sys.stderr)
+        return
+    if result.get("skipped"):
+        print(f"[DOSSIER] {result['skipped']}; the catalogue is unchanged.")
+        return
+    print(f"[DOSSIER] updated {result['repo']} in the AegeanWorks catalogue "
+          f"(category={result['category']}, {result['family']}): "
+          + ", ".join(str(path) for path in result["files"]))
+    print(f"[DOSSIER] {result['media']}")
+    print("[DOSSIER] Review and commit the AegeanWorks repository; nothing was committed here.")
 
 
 def resolve_gates(project):
@@ -292,6 +309,7 @@ def cmd_new(args: argparse.Namespace) -> int:
             print(f"[WARN] Project created locally at {root}, but GitHub publication failed.", file=sys.stderr)
             return code
         _report_registered_ideas(root, args.name)
+        _sync_dossier(root, args.name)
     else:
         print(f"     Next: describe what to build; work happens inside {root}.")
     return 0
@@ -808,6 +826,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     print(report, file=sys.stdout if code == 0 else sys.stderr)
     if code == 0:
         _report_registered_ideas(project.path, project.name)
+        _sync_dossier(project.path, project.name)
     return code
 
 

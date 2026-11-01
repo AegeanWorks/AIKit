@@ -1,76 +1,28 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "aikit-review-push-v1",
+    "task_id": "dossier-catalogue-sync-v1",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793536495.2836215,
-    "owner": "kilo:review",
-    "started_by": "kilo:review",
-    "continuations": [],
-    "completed_at": 1793536495.4252653
+    "updated_at": 1793552166.3318079,
+    "owner": "kilo:main",
+    "started_by": "kilo:main",
+    "continuations": [
+      {
+        "agent": "kilo:review",
+        "from": "kilo:main",
+        "at": 1793548126.8151836
+      },
+      {
+        "agent": "kilo:main",
+        "from": "kilo:review",
+        "at": 1793550965.9534395
+      }
+    ],
+    "completed_at": 1793552166.6365287
   },
   "checkpoints": [
-    {
-      "task_id": "timeout-stream-normalization",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'timeout-stream-normalization' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793519498.6714742,
-      "timestamp_str": "2026-11-01 10:51:38",
-      "agent": "copilot:licensing-ops"
-    },
-    {
-      "task_id": "aikit-media-topics-self-healing",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Implement media and topic self-healing in fix, attach, check and media apply",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793519702.2915957,
-      "timestamp_str": "2026-11-01 10:55:02",
-      "agent": "antigravity:goal"
-    },
-    {
-      "task_id": "aikit-media-topics-self-healing",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Verify all test suites and Phase 4 delivery gates",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793520228.026361,
-      "timestamp_str": "2026-11-01 11:03:48",
-      "agent": "antigravity:goal"
-    },
-    {
-      "task_id": "aikit-media-topics-self-healing",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-media-topics-self-healing' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793520253.2679293,
-      "timestamp_str": "2026-11-01 11:04:13",
-      "agent": "antigravity:goal"
-    },
-    {
-      "task_id": "media-topics-review-v1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Review and finalize the uncommitted media/topic self-healing work, fix the topic-warning license-kind regression, verify gates, then push AIKit and capability-showcase",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793521487.820966,
-      "timestamp_str": "2026-11-01 11:24:47",
-      "agent": "kilo:review",
-      "impact_assessment": {
-        "why": "The uncommitted check change derives the license kind from a config dict, so game and science projects never get the default-topic warning the feature promises",
-        "benefits": "The warning fires for every license kind, points to a command that actually records topics, and the completed but uncommitted capability-showcase work is delivered",
-        "risks": "contract: warning text and license-kind source in check; dependency: standard library only; concurrency: another agent recently edited the same slice, so edits are re-read first; state: ledger, codebase map and both repositories are pushed",
-        "mitigation": "Failing-first game-project warning test, re-read before edit, full Phase 4 triad plus read-only gates, explicit staging and a verified commit before push"
-      }
-    },
     {
       "task_id": "media-topics-review-v1",
       "phase": "implementation",
@@ -250,6 +202,68 @@
       "timestamp": 1793536495.4252667,
       "timestamp_str": "2026-11-01 15:34:55",
       "agent": "kilo:review"
+    },
+    {
+      "task_id": "dossier-catalogue-sync-v1",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: add a dossier catalogue sync module, invoked automatically after a successful publish, that upserts metadata, snapshot, license ledger, site card/JSON-LD, README row and the catalogue set, then rebuilds the repo media",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793543657.9304812,
+      "timestamp_str": "2026-11-01 17:34:17",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Publishing a project left the AegeanWorks dossier catalogue stale, so newly published repositories had no site card, README row, license family or media and their manifests were assembled by hand",
+        "benefits": "One publish keeps the dossier consistent: catalogue data, site card, README atlas, license ledger and schema-2 media are generated from the repository's own GitHub facts",
+        "risks": "contract: publish output and dossier files; dependency: gh CLI already used by publish; concurrency: dossier writes are atomic and the dossier stays uncommitted for review; state: dossier files and media",
+        "mitigation": "Unit tests against a synthetic dossier fixture plus an idempotency check on an existing catalogue entry, then the dossier's own 95-test suite and AIKit Phase 4 gates"
+      }
+    },
+    {
+      "task_id": "dossier-catalogue-sync-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Take-over review: add a private-repository guard and keep the inline JSON-LD CSP hash valid when the catalogue entry changes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793548126.8151836,
+      "timestamp_str": "2026-11-01 18:48:46",
+      "agent": "kilo:review",
+      "continued_from": "kilo:main"
+    },
+    {
+      "task_id": "dossier-catalogue-sync-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Implemented dossier_sync upserts (metadata, snapshot, license ledger, card, CSP-hashed JSON-LD, README atlas, catalogue set), publish/new hooks, media rebuild, tests and docs",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793550965.9534395,
+      "timestamp_str": "2026-11-01 19:36:05",
+      "agent": "kilo:main",
+      "continued_from": "kilo:review"
+    },
+    {
+      "task_id": "dossier-catalogue-sync-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Verify: 756 unit + 13 auto-register + 78 integration tests and budgets pass; sync, AST map, licenses, secrets, reachability and dogfood 5/5 pass; real catalogue entry rebuilds byte-identically; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793552166.3318079,
+      "timestamp_str": "2026-11-01 19:56:06",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dossier-catalogue-sync-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dossier-catalogue-sync-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793552166.6365304,
+      "timestamp_str": "2026-11-01 19:56:06",
+      "agent": "kilo:main"
     }
   ]
 }

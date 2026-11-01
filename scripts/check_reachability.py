@@ -96,6 +96,10 @@ EXTERNAL_SCHEMA_KEYS: Set[str] = {"scripts", "test", "build", "ui:snapshot", "pr
                                   "AIKIT_AGENT", "AI_AGENT", "CLAUDE_CODE_SESSION_ID",
                                   # GitHub's topics response names (project_topics, ADR-234).
                                   "names",
+                                  # GitHub REST repository fields read by dossier_sync (ADR-308):
+                                  # visibility and the SPDX id of the detected license. JSON-LD's
+                                  # `@graph` is read from the dossier page's inline structured data.
+                                  "private", "spdx_id", "@graph",
                                   # Project-owned `.aikit/project.json` fields: license tags chosen
                                   # by the owner/topics workflow and the optional mechanics contract.
                                   "license_topics", "core"}

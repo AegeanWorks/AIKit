@@ -15,7 +15,7 @@
 
 > **Orientation Contract**: verified commands and prerequisites below.
 
-- **Runtime Prerequisites**: Python 3.10+ (standard library only; no pip dependencies) and `git`.
+- **Runtime Prerequisites**: Python 3.10+ (standard library only; no pip dependencies), `git`, and `gh` for GitHub work.
 - **Canonical Regression Shield Gate**:
   ```bash
   python -m unittest discover tests
@@ -138,6 +138,7 @@ portable_agent_kit/
 │   ├── aikit_help.py             <- Generated top-level help for the --help fast path
 │   ├── subagent_delegate.py      <- Bounded OpenCode sub-agent runs
 │   ├── project_publish.py        <- Uploads a project to its own GitHub repo
+│   ├── dossier_sync.py           <- Publish-time AegeanWorks catalogue sync (ADR-308)
 │   ├── project_ui.py             <- Durable has_ui/ui_kind identifier (ADR-233)
 │   ├── project_topics.py         <- AI topic brief and validator, max 20 (ADR-236)
 │   ├── project_media.py          <- Reviewed logo/social/screenshot pipeline (ADR-235)
@@ -277,16 +278,15 @@ terminal `Blocked`, which refuses later review or status changes. `ideas` hides 
 `duplicate` and `Blocked` rows; pass the matching `--include-*` flag for the full audit view.
 `status` reports the full register; `MATRIX.md` keeps both (ADR-264, ADR-267, ADR-286).
 
-`ui-id` stores `has_ui`, `ui_kind` and `ui_evidence`. `topics --brief` gives an AI the evidence;
-`--from-file` records its tags and `--apply` publishes them, capped at 20. `media init --art` uses
-the online image model with `POLLINATIONS_API_KEY`; approved logos survive unless `--force` is
-given, and `review/apply/audit` need a named reviewer and shots. `attach`/`fix` seed candidates
-when media is uninitialized; `fix` also adds an approved banner to a README lacking one.
-`media apply <name> --readme-only` writes only the README.
+`ui-id` stores the UI identity. `topics --brief` gives an AI the evidence;
+`--from-file` records tags; `--apply` publishes them, capped at 20. `media init --art` uses an
+image model (`POLLINATIONS_API_KEY`); approved logos survive unless `--force`. `attach`/`fix` seed
+media candidates; `fix` adds an approved banner to a README lacking one; `publish` syncs the
+dossier catalogue.
 
 ## 📥 Alternative: Copy AIKit Into an Existing Project
 
-The primary path is above. To govern a repository in place, copy `GUIDELINES.md`, `scripts/`,
+To govern a repository in place, copy `GUIDELINES.md`, `scripts/`,
 `knowledge/` and `.agents/`, run the sync scripts, and keep project rules in `domain.md`. Do not
 copy `tests/`, `.github/` or the ledger.
 

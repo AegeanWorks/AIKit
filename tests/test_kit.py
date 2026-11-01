@@ -165,6 +165,7 @@ from reforge.state import (
 )
 from reforge.verification import default_test_command
 from idea_catcher import registry as idea_registry
+import scripts.dossier_sync as dossier_sync
 import scripts.project_artwork as project_artwork
 import scripts.project_brand as project_brand
 import scripts.project_media as project_media
@@ -11255,6 +11256,240 @@ class TestReforgeAnalyzer(unittest.TestCase):
         self.assertEqual(calls["timeout"], 7)
         self.assertEqual(calls["review"], ("run-1", 1, str(answer), "analyzer"))
         self.assertFalse(answer.exists())
+
+
+class TestDossierCatalogueSync(unittest.TestCase):
+    """The publish hook upserts every dossier artefact and stays idempotent (ADR-308)."""
+
+    PROFILE = {
+        "name": "AegeanWorks",
+        "description": "A local-first studio portfolio used by the dossier sync regression tests.",
+        "topics": ["ai", "portfolio"],
+        "homepage": "https://aegeanworks.github.io/AegeanWorks/",
+    }
+
+    OLD = {
+        "id": 1,
+        "name": "OldProject",
+        "description": "The first catalogue entry.",
+        "topics": ["aikit", "source-available", "cli"],
+        "language": "Python",
+        "license": "NOASSERTION",
+        "pushed_at": "2026-10-01T10:00:00Z",
+        "homepage": "",
+        "archived": False,
+        "default_branch": "master",
+    }
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.dossier = self.tmp / "AegeanWorks"
+        self._write_fixture()
+
+    def _write(self, relative, text):
+        path = self.dossier / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def _write_fixture(self):
+        metadata = {"source": "GitHub API", "captured_at": "2026-10-01",
+                    "profile": self.PROFILE, "repositories": [self.OLD]}
+        self._write("tests/metadata/repositories.json", json.dumps(metadata, indent=2) + "\n")
+        snapshot = {"version": 1, "generated_at": "2026-10-01",
+                    "profile": self.PROFILE, "repositories": [self.OLD]}
+        self._write("docs/atlas-snapshot.json", json.dumps(snapshot, indent=2) + "\n")
+        self._write("docs/atlas-core.js",
+                    'export const LICENSE_FAMILIES = Object.freeze({\n'
+                    '  AL: { short: "AL-1.1" },\n  AGL: { short: "AGL-1.1" },\n'
+                    '  ASL: { short: "ASL-1.1" },\n});\n\n'
+                    'export const REPO_LICENSES = Object.freeze({\n'
+                    '  "oldproject": "AL",\n});\n')
+        item = {"@type": "ListItem", "position": 1, "item": {
+            "@type": "SoftwareApplication", "name": "OldProject",
+            "description": self.OLD["description"], "applicationCategory": "DeveloperApplication",
+            "url": "https://aegeanworks.github.io/AegeanWorks/project.html?repo=OldProject",
+            "codeRepository": "https://github.com/AegeanWorks/OldProject"}}
+        graph = {"@context": "https://schema.org", "@graph": [
+            {"@type": "ItemList", "numberOfItems": 1, "itemListElement": [item]}]}
+        card = (
+            '<a class="project reveal" data-repo-id="1" data-archived="false" data-cat="tools" '
+            'data-topics="aikit,source-available,cli" '
+            'data-repo-url="https://github.com/AegeanWorks/OldProject" '
+            'href="project.html?repo=OldProject" data-language="Python" data-license="AL-1.1" '
+            'data-pushed-at="2026-10-01T10:00:00Z"> <!-- hygiene: allow outbound link, not a loaded dependency -->\n'
+            '          <span class="project-mark mark-tools" aria-hidden="true">Ol</span>\n'
+            '          <h3>OldProject</h3>\n'
+            '          <p>The first catalogue entry.</p>\n\n'
+            '          <span class="project-facts">Python \u2014 AL-1.1 \u2014 Updated 2026-10-01</span>\n\n'
+            '          <span class="project-tags"><span class="tag">cli</span></span>\n'
+            '        </a>'
+        )
+        self._write("docs/index.html",
+                    "<dd data-project-count>1</dd>\n"
+                    '<script type="application/ld+json">'
+                    + json.dumps(graph, ensure_ascii=False, separators=(",", ":"))
+                    + "</script>\n"
+                    "<span data-project-count>1</span>\n"
+                    '<div class="project-grid" id="project-grid">\n\n        '
+                    + card + "\n\n      </div>\n    </div>\n  </section>\n")
+        self._write("README.md",
+                    "# AegeanWorks\n\n## Public project atlas\n\n"
+                    "<details>\n<summary><b>Developer Tools &amp; Utilities</b></summary>\n\n"
+                    "| Project | Description |\n|---|---|\n"
+                    "| [OldProject](https://github.com/AegeanWorks/OldProject) | The first catalogue entry. |\n\n"
+                    "</details>\n")
+        self._write("tests/test_profile.py",
+                    'PUBLIC_REPOS = {\n    "OldProject",\n}\n\nCATEGORY_LABELS = {}\n')
+
+    def _entry(self, name="NewApp", **changes):
+        entry = {
+            "id": 2, "name": name, "description": "A new command line tool for agents.",
+            "topics": ["aikit", "cli", "ai-agents"], "language": "TypeScript",
+            "license": "NOASSERTION", "pushed_at": "2026-11-01T09:00:00Z",
+            "homepage": "", "archived": False, "default_branch": "main",
+        }
+        entry.update(changes)
+        return entry
+
+    def _snapshot(self):
+        return {
+            relative: (self.dossier / relative).read_bytes()
+            for relative in ("tests/metadata/repositories.json", "docs/atlas-snapshot.json",
+                             "docs/atlas-core.js", "docs/index.html", "README.md",
+                             "tests/test_profile.py")
+        }
+
+    def test_sync_entry_writes_every_catalogue_artifact(self):
+        files = dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+        self.assertEqual(len(files), 6)
+        metadata = json.loads((self.dossier / "tests/metadata/repositories.json").read_text(encoding="utf-8"))
+        names = [repo["name"] for repo in metadata["repositories"]]
+        self.assertEqual(names, ["OldProject", "NewApp"])
+        snapshot = json.loads((self.dossier / "docs/atlas-snapshot.json").read_text(encoding="utf-8"))
+        self.assertEqual(snapshot["repositories"], metadata["repositories"])
+        core = (self.dossier / "docs/atlas-core.js").read_text(encoding="utf-8")
+        self.assertIn('"newapp": "AL"', core)
+        page = (self.dossier / "docs/index.html").read_text(encoding="utf-8")
+        self.assertIn('data-repo-url="https://github.com/AegeanWorks/NewApp"', page)
+        self.assertIn('data-topics="aikit,cli,ai-agents"', page)
+        self.assertIn("<h3>NewApp</h3>", page)
+        self.assertIn("TypeScript \u2014 AL-1.1 \u2014 Updated 2026-11-01", page)
+        self.assertEqual(page.count('<dd data-project-count>2</dd>'), 1)
+        self.assertEqual(page.count('<span data-project-count>2</span>'), 1)
+        script = re.search(r'(<script type="application/ld\+json">)(.*?)(</script>)', page, re.S)
+        graph = json.loads(script.group(2))
+        item_list = [node for node in graph["@graph"] if node["@type"] == "ItemList"][0]
+        self.assertEqual(item_list["numberOfItems"], 2)
+        self.assertIn("https://github.com/AegeanWorks/NewApp",
+                      [item["item"]["codeRepository"] for item in item_list["itemListElement"]])
+        readme = (self.dossier / "README.md").read_text(encoding="utf-8")
+        self.assertIn("| [NewApp](https://github.com/AegeanWorks/NewApp) | A new command line tool", readme)
+        profile = (self.dossier / "tests/test_profile.py").read_text(encoding="utf-8")
+        self.assertIn('"NewApp",', profile)
+        self.assertEqual(page.count('class="project reveal"'), 2)
+
+    def test_sync_entry_is_idempotent_and_updates_metadata_in_place(self):
+        dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+        first = self._snapshot()
+        dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+        self.assertEqual(self._snapshot(), first)
+        changed = self._entry(description="The same tool, re-described.", topics=["aikit", "cli"])
+        dossier_sync.sync_entry(self.dossier, changed, "AL", "tools")
+        page = (self.dossier / "docs/index.html").read_text(encoding="utf-8")
+        self.assertEqual(page.count('data-repo-url="https://github.com/AegeanWorks/NewApp"'), 1)
+        self.assertIn("The same tool, re-described.", page)
+        self.assertEqual(page.count("The same tool, re-described."), 2)
+        readme = (self.dossier / "README.md").read_text(encoding="utf-8")
+        self.assertIn("| [NewApp](https://github.com/AegeanWorks/NewApp) | The same tool, re-described. |", readme)
+        metadata = json.loads((self.dossier / "tests/metadata/repositories.json").read_text(encoding="utf-8"))
+        self.assertEqual([repo["name"] for repo in metadata["repositories"]], ["OldProject", "NewApp"])
+
+    def test_repository_slug_parses_github_origin_forms(self):
+        self.assertEqual(dossier_sync.repository_slug("https://github.com/AegeanWorks/Keystone.git"),
+                         ("AegeanWorks", "Keystone"))
+        self.assertEqual(dossier_sync.repository_slug("git@github.com:AegeanWorks/Weft"),
+                         ("AegeanWorks", "Weft"))
+        self.assertIsNone(dossier_sync.repository_slug("https://example.test/elsewhere/repo"))
+
+    def test_build_entry_refuses_a_repository_without_language(self):
+        with self.assertRaises(ProjectError) as caught:
+            dossier_sync.build_entry("NewApp", {"id": 2, "language": None,
+                                                "pushed_at": "2026-11-01T09:00:00Z"}, "desc")
+        self.assertIn("no language", str(caught.exception))
+
+    def test_sync_published_skips_a_foreign_origin_and_an_absent_dossier(self):
+        project = self.tmp / "app"
+        project.mkdir()
+        with mock.patch.object(dossier_sync, "get_project_repo_url",
+                               return_value="https://github.com/SomeoneElse/App"):
+            result = dossier_sync.sync_published(project, "app", dossier=self.dossier)
+        self.assertIn("SomeoneElse", result["skipped"])
+        with mock.patch.object(dossier_sync, "get_project_repo_url",
+                               return_value="https://github.com/AegeanWorks/App"):
+            result = dossier_sync.sync_published(project, "app", dossier=self.tmp / "missing")
+        self.assertIn("no AegeanWorks dossier", result["skipped"])
+
+    def test_sync_published_keeps_a_private_repository_out_of_the_public_catalogue(self):
+        project = self.tmp / "app"
+        project.mkdir()
+        before = self._snapshot()
+        state = mock.Mock(kind="software", tier="personal")
+        facts = {"id": 9, "name": "SecretTool", "private": True, "language": "Python",
+                 "pushed_at": "2026-11-01T09:00:00Z"}
+        with mock.patch.object(dossier_sync, "get_project_repo_url",
+                               return_value="https://github.com/AegeanWorks/SecretTool"), \
+             mock.patch.object(dossier_sync, "license_state", return_value=state), \
+             mock.patch.object(dossier_sync, "github_facts", return_value=facts):
+            result = dossier_sync.sync_published(project, "secrettool", dossier=self.dossier)
+        self.assertIn("private", result["skipped"])
+        self.assertEqual(self._snapshot(), before)
+
+    def test_sync_entry_refreshes_the_inline_script_hash_in_the_csp(self):
+        page_path = self.dossier / "docs" / "index.html"
+        page = page_path.read_text(encoding="utf-8")
+        old_body = re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S).group(1)
+        old_hash = dossier_sync._inline_digest(old_body)
+        page = page.replace(
+            "<dd data-project-count>1</dd>",
+            '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; '
+            f"script-src 'self' 'sha256-{old_hash}'; object-src 'none'\">\n"
+            "<dd data-project-count>1</dd>", 1)
+        page_path.write_text(page, encoding="utf-8")
+
+        dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+
+        updated = page_path.read_text(encoding="utf-8")
+        new_body = re.search(r'<script type="application/ld\+json">(.*?)</script>',
+                             updated, re.S).group(1)
+        new_hash = dossier_sync._inline_digest(new_body)
+        self.assertNotEqual(new_hash, old_hash)
+        self.assertIn(f"'sha256-{new_hash}'", updated)
+        self.assertNotIn(f"'sha256-{old_hash}'", updated)
+
+    def test_sync_published_writes_the_catalogue_from_github_facts(self):
+        project = self.tmp / "app"
+        project.mkdir()
+        state = mock.Mock(kind="game", tier="personal")
+        facts = {"id": 7, "name": "Keystone", "description": "A game about locks.",
+                 "topics": ["aikit", "game"], "language": "Python",
+                 "license": {"spdx_id": "NOASSERTION"}, "pushed_at": "2026-11-01T09:00:00Z",
+                 "homepage": "", "archived": False, "default_branch": "master"}
+        with mock.patch.object(dossier_sync, "get_project_repo_url",
+                               return_value="https://github.com/AegeanWorks/Keystone"), \
+             mock.patch.object(dossier_sync, "license_state", return_value=state), \
+             mock.patch.object(dossier_sync, "github_facts", return_value=facts), \
+             mock.patch.object(dossier_sync, "_refresh_media", return_value="media rebuilt."):
+            result = dossier_sync.sync_published(project, "keystone", dossier=self.dossier)
+        self.assertEqual(result["repo"], "Keystone")
+        self.assertEqual(result["family"], "AGL")
+        self.assertEqual(result["category"], "play")
+        page = (self.dossier / "docs/index.html").read_text(encoding="utf-8")
+        self.assertIn('data-license="AGL-1.1"', page)
+        self.assertIn('data-cat="play"', page)
+        core = (self.dossier / "docs/atlas-core.js").read_text(encoding="utf-8")
+        self.assertIn('"keystone": "AGL"', core)
 
 
 if __name__ == "__main__":

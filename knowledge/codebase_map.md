@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `61`
-- **Total Classes**: `134`
-- **Total Top-Level Functions**: `829`
-- **Total Class Methods**: `972`
-- **Total Source Lines**: `36713`
+- **Total Python Modules**: `62`
+- **Total Classes**: `135`
+- **Total Top-Level Functions**: `855`
+- **Total Class Methods**: `985`
+- **Total Source Lines**: `37420`
 
 ---
 
@@ -634,12 +634,13 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1404` lines (`70946` bytes)
+**Size**: `1423` lines (`71922` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
 - `def _register_delivered_ideas(project_path, project_name)` - *Register ideas named by the project's delivered commits; raises on a bad register.*
 - `def _report_registered_ideas(project_path, project_name)` - *Best-effort registration after a push; delivery already succeeded, so never fail it.*
+- `def _sync_dossier(project_path, project_name)` - *Best-effort dossier catalogue sync after a publish; the publish itself already succeeded.*
 - `def resolve_gates(project)`
 - `def run_gates(path, gates)`
 - `def present_project(name, workspace)` - *The registered project `name`, refusing one whose folder or record is gone.*
@@ -750,7 +751,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `354` lines (`15133` bytes)
+**Size**: `358` lines (`15496` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -913,6 +914,40 @@
 - `def track_help_startup_budget(jail, log)` - *Track 4: every entrypoint must answer --help safely and inside the PRINCIPLE-010 R5*
 - `def _run_track(name, fn, jail)` - *Run one track with its own log; a crashing track is a failing track, never a crashing run.*
 - `def run_dogfood(verbose, keep_sandbox)` - *Execute every dogfood track and emit a terse dashboard (PRINCIPLE-015 Rule 7).*
+
+---
+
+### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
+> *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
+
+**Size**: `449` lines (`19241` bytes)
+
+**Functions:**
+- `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*
+- `def repository_slug(url)` - *(owner, repository) from a GitHub origin URL, else None.*
+- `def _today()`
+- `def _write(path, text)`
+- `def github_facts(name)` - *The repository's live GitHub facts, read through the `gh` CLI publish already requires.*
+- `def catalogue_category(project_path, topics, description)` - *The dossier category from the project's license kind and its own words.*
+- `def build_entry(name, facts, description)` - *The metadata entry the dossier records, in the catalogue's own key order.*
+- `def _load_json(path)`
+- `def _dump_json(data)`
+- `def _upsert_metadata(dossier, entry)`
+- `def _upsert_snapshot(dossier, entry)`
+- `def _upsert_license(dossier, name, family)`
+- `def _escape(value)`
+- `def _attribute(value)`
+- `def _card(entry, family, category, mark)`
+- `def _upsert_card(dossier, entry, family, category)`
+- `def _mark(name)`
+- `def _inline_digest(body)`
+- `def _refresh_inline_hash(page, old_body, new_body)` - *Replace the old inline-script CSP hash, so the rewritten JSON-LD stays allowed.*
+- `def _upsert_jsonld(dossier, entry, family, category)`
+- `def _upsert_readme(dossier, entry, category)`
+- `def _upsert_catalogue_set(dossier, name)`
+- `def sync_entry(dossier, entry, family, category)` - *Upsert one catalogue entry everywhere the dossier records it; return changed files.*
+- `def _refresh_media(dossier, name)` - *Rebuild the dossier's schema-2 media for one repository; the workflow retries on push.*
+- `def sync_published(project_path, project_name, dossier)` - *Bring the dossier catalogue in line with a published project; never raises for a skip.*
 
 ---
 
@@ -1616,7 +1651,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11261` lines (`626124` bytes)
+**Size**: `11496` lines (`639862` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2505,6 +2540,20 @@
   - Method `.test_an_empty_command_is_refused()`
   - Method `.test_the_analyze_command_declares_its_analyzer()`
   - Method `.test_analyze_stage_reviews_the_latest_packet()`
+- `class TestDossierCatalogueSync` - *The publish hook upserts every dossier artefact and stays idempotent (ADR-308).*
+  - Method `.setUp()`
+  - Method `._write(relative, text)`
+  - Method `._write_fixture()`
+  - Method `._entry(name, **changes)`
+  - Method `._snapshot()`
+  - Method `.test_sync_entry_writes_every_catalogue_artifact()`
+  - Method `.test_sync_entry_is_idempotent_and_updates_metadata_in_place()`
+  - Method `.test_repository_slug_parses_github_origin_forms()`
+  - Method `.test_build_entry_refuses_a_repository_without_language()`
+  - Method `.test_sync_published_skips_a_foreign_origin_and_an_absent_dossier()`
+  - Method `.test_sync_published_keeps_a_private_repository_out_of_the_public_catalogue()`
+  - Method `.test_sync_entry_refreshes_the_inline_script_hash_in_the_csp()`
+  - Method `.test_sync_published_writes_the_catalogue_from_github_facts()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`
