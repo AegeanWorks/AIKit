@@ -5786,6 +5786,55 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("├── LICENSE\n", readme)
         self.assertIn("├── LICENSE.md\n", readme)
 
+    def test_fix_seeds_brand_media_candidates_and_warns_on_default_topics(self):
+        folder = self.make_folder()
+        attach_project(folder, "mediafixapp", workspace=self.kit)
+        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            code, out, _ = self.run_cli("fix", "mediafixapp")
+        self.assertEqual(code, 0)
+        self.assertIn("seeded brand media candidates (.aikit/media.json and assets/)", out)
+        self.assertTrue((folder / ".aikit" / "media.json").is_file())
+        self.assertTrue((folder / "assets" / "logo.svg").is_file())
+        self.assertTrue((folder / "assets" / "social-preview.svg").is_file())
+        self.assertIn("only has default license topics", out)
+
+    def test_fix_applies_approved_media_to_readme_when_missing(self):
+        folder = self.make_folder(("README.md", "# demoapp\n\nDemo description here.\n"))
+        attach_project(folder, "readmebrandapp", workspace=self.kit)
+        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            self.run_cli("fix", "readmebrandapp")
+        project_media.review_media(folder, "logo", "approve", "agent:unit", "structural", "looks good")
+        project_media.review_media(folder, "social_preview", "approve", "agent:unit", "structural", "looks good")
+        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            code, out, _ = self.run_cli("fix", "readmebrandapp")
+        self.assertEqual(code, 0)
+        self.assertIn("updated README.md with approved brand media", out)
+        readme_content = (folder / "README.md").read_text(encoding="utf-8")
+        self.assertIn("<!-- aegean:media:start -->", readme_content)
+
+    def test_attach_seeds_local_brand_candidates_when_missing(self):
+        folder = self.make_folder(("README.md", "# AttachApp\n\nDescription.\n"))
+        code, out, err = self.run_cli("attach", str(folder), "--name", "attachapp")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Local brand candidates generated", out)
+        self.assertTrue((folder / ".aikit" / "media.json").is_file())
+        self.assertTrue((folder / "assets" / "logo.svg").is_file())
+
+    def test_check_warns_on_uninitialized_media_and_default_topics(self):
+        folder = self.make_folder()
+        attach_project(folder, "warnapp", test_command='python -c "exit(0)"', workspace=self.kit)
+        (folder / "README.md").write_text("# warnapp\n\nA small test tool.\n", encoding="utf-8")
+        media_file = folder / ".aikit" / "media.json"
+        if media_file.is_file():
+            media_file.unlink()
+        gate_obj = mock.Mock(command="test", source="config")
+        gate_obj.name = "test"
+        gate_res = mock.Mock(gate=gate_obj, passed=True, seconds=0.1, output="")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[gate_res]):
+            code, out, _ = self.run_cli("check", "warnapp")
+        self.assertIn("[WARN] Brand media not initialized; run `python aikit.py media init warnapp`", out)
+        self.assertIn("[WARN] 'warnapp' only has default license topics", out)
+
     def test_project_ledger_commands_keep_the_impact_gate(self):
         folder = self.make_folder()
         attach_project(folder, "demo", workspace=self.kit)
@@ -9269,6 +9318,25 @@ class TestReforgeCore(unittest.TestCase):
         self.assertIn("build_dossier_media.py", caught.exception.fix)
         self.assertEqual(manifest.read_text(encoding="utf-8"), before)
         self.assertFalse((media / "Clobber-Demo" / "logo.svg").exists())
+
+    def test_apply_media_supports_readme_only_flag(self):
+        root = self.project("readme-only-demo")
+        (root / "index.html").write_text("<html><body><main>demo</main></body></html>", encoding="utf-8")
+        (root / "README.md").write_text("# Readme-Only-Demo\n\nA sample app.\n", encoding="utf-8")
+        with mock.patch.object(project_media, "_head", return_value=""):
+            project_media.seed_media_assets(root, "readme-only-demo")
+        project_media.review_media(root, "logo", "approve", "agent:unit", "structural", "ok")
+        project_media.review_media(root, "social_preview", "approve", "agent:unit", "structural", "ok")
+        dossier = self.root()
+        media = dossier / "docs" / "media"
+        media.mkdir(parents=True)
+        manifest = media / "Readme-Only-Demo.json"
+        manifest.write_text(json.dumps({"schema": 2, "repo": "Readme-Only-Demo"}, indent=2) + "\n", encoding="utf-8")
+        applied = project_media.apply_media(root, "readme-only-demo", dossier=dossier, readme_only=True)
+        self.assertTrue(applied["applied"])
+        self.assertIn("README.md", applied["applied"][0])
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        self.assertIn("<!-- aegean:media:start -->", readme)
 
     def test_a_repository_without_a_ledger_records_nothing_and_does_not_fail(self):
         from reforge.ledger import ledger_artifacts, record_event

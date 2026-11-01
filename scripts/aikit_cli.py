@@ -316,6 +316,10 @@ def cmd_attach(args: argparse.Namespace) -> int:
         identity = project_ui.auto_ui(folder)
         print(f"     UI identifier: has_ui={identity['has_ui']} kind={identity['kind']} "
               f"(uncommitted; review and commit it).")
+    if not (folder / ".aikit" / "media.json").is_file():
+        project_media.seed_media_assets(folder, name)
+        print("     Local brand candidates generated "
+              "(uncommitted; review before applying).")
     return 0
 
 
@@ -537,6 +541,15 @@ def cmd_check(args: argparse.Namespace) -> int:
     if is_game_project(game_config) and not isinstance(game_config.get("mechanics"), dict):
         print("[WARN] Game detected but .aikit/project.json has no mechanics contract; declare "
               "`mechanics.core` and `mechanics.test` for a headless AI-testable core.")
+    if not (project.path / ".aikit" / "media.json").is_file():
+        print(f"[WARN] Brand media not initialized; run `python aikit.py media init {project.name}`.")
+    cfg = load_config(project.path)
+    topics = list(cfg.get("topics") or [])
+    state = license_state(project.path)
+    default_tags = set(INTEGRATION_TOPICS) | set(license_topics(state.kind or "software"))
+    content_topics = [t for t in topics if t not in default_tags]
+    if not content_topics:
+        print(f"[WARN] '{project.name}' only has default license topics; run `python aikit.py topics {project.name} --suggest` to choose domain tags.")
     if audit.get("ledger_error") or (strict and baseline_errors):
         print("Error: the project is not delivery-ready.", file=sys.stderr)
         print("Why: a passing gate run must describe the committed tree, not an unverified working copy.",
@@ -621,6 +634,30 @@ def cmd_fix(args: argparse.Namespace) -> int:
         fixes.append("wrote .aikit/ui.json and marked the UI contract required")
     elif identity["has_ui"]:
         print(f"[WARN] UI contract not adopted: {adoption['reason']}")
+    media_file = memory / "media.json"
+    if not media_file.is_file():
+        project_media.seed_media_assets(project.path, project.name)
+        fixes.append("seeded brand media candidates (.aikit/media.json and assets/)")
+    else:
+        try:
+            m_data = project_media.load_media(project.path)
+            assets = m_data.get("assets") or {}
+            readme_path = project.path / "README.md"
+            if readme_path.is_file() and project_media._approved(assets.get("social_preview")):
+                readme_text = readme_path.read_text(encoding="utf-8", errors="ignore")
+                if "<!-- aegean:media:start -->" not in readme_text:
+                    repo = project_media.repository_name(project.name)
+                    approved_shots = [s for s in m_data.get("screenshots") or [] if project_media._approved(s)]
+                    project_media._update_readme(readme_path, repo, m_data, approved_shots)
+                    fixes.append("updated README.md with approved brand media")
+        except (ProjectError, OSError, ValueError):
+            pass
+    cfg = load_config(project.path)
+    topics = list(cfg.get("topics") or [])
+    default_tags = set(INTEGRATION_TOPICS) | set(license_topics(state.kind or "software"))
+    content_topics = [t for t in topics if t not in default_tags]
+    if not content_topics:
+        print(f"[WARN] '{project.name}' only has default license topics; run `python aikit.py topics {project.name} --suggest` to choose domain tags.")
     for fix in fixes:
         print(f"[FIXED] {fix}")
     print(f"Checking '{project.name}' after {len(fixes)} repair(s):")
@@ -1087,7 +1124,9 @@ def cmd_media(args: argparse.Namespace) -> int:
             project.path, args.kind, args.decision, args.reviewer, args.method,
             args.notes, score=args.score, index=args.index)
     elif action == "apply":
-        result = project_media.apply_media(project.path, project.name, dossier=args.dossier)
+        result = project_media.apply_media(
+            project.path, project.name, dossier=args.dossier,
+            readme_only=getattr(args, "readme_only", False))
     else:
         result = project_media.audit_media(project.path, dossier=args.dossier)
     if getattr(args, "json", False):

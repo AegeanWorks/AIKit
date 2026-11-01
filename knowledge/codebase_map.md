@@ -9,8 +9,8 @@
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `828`
-- **Total Class Methods**: `962`
-- **Total Source Lines**: `36502`
+- **Total Class Methods**: `967`
+- **Total Source Lines**: `36626`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1341` lines (`67445` bytes)
+**Size**: `1380` lines (`69863` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -687,7 +687,7 @@
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `293` lines (`20114` bytes)
+**Size**: `295` lines (`20279` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -1030,7 +1030,7 @@
 ### [`scripts/project_media.py`](scripts/project_media.py)
 > *Project brand and screenshot media pipeline (ADR-235).*
 
-**Size**: `887` lines (`39671` bytes)
+**Size**: `902` lines (`40380` bytes)
 
 **Classes:**
 - `class _QuietHandler` - *Serve one capture directory without writing request logs.*
@@ -1065,7 +1065,7 @@
 - `def name_of(root)`
 - `def _approved(asset)` - *True only for a reviewed, approved asset entry; a missing entry is simply not approved.*
 - `def _copy_media(source, target)`
-- `def apply_media(project_root, name, dossier)` - *Copy approved assets into the dossier and reference them from the project README.*
+- `def apply_media(project_root, name, dossier, readme_only)` - *Copy approved assets into the dossier and reference them from the project README.*
 - `def _badge_row(project_root, repo)` - *License and AIKit badges under the banner; AegeanWorks keeps its own badge set.*
 - `def _update_readme(readme, repo, data, shots)`
 - `def audit_media(project_root, dossier)` - *Check the manifest, files, commit stamps, dossier links and README references.*
@@ -1615,7 +1615,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11137` lines (`618317` bytes)
+**Size**: `11205` lines (`622664` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2086,6 +2086,10 @@
   - Method `.test_fix_adopts_a_detected_ui_contract()`
   - Method `.test_fix_reconciles_omitted_tracked_files_in_readme_tree()`
   - Method `.test_fix_reconciles_a_name_that_is_a_substring_of_another_entry()`
+  - Method `.test_fix_seeds_brand_media_candidates_and_warns_on_default_topics()`
+  - Method `.test_fix_applies_approved_media_to_readme_when_missing()`
+  - Method `.test_attach_seeds_local_brand_candidates_when_missing()`
+  - Method `.test_check_warns_on_uninitialized_media_and_default_topics()`
   - Method `.test_project_ledger_commands_keep_the_impact_gate()`
   - Method `.test_workspace_is_explicit_never_the_working_directory()`
   - Method `.test_new_with_publish_flag_calls_publish_project()`
@@ -2367,6 +2371,7 @@
   - Method `.test_audit_media_and_blockers_flag_generated_dossier_placeholder()`
   - Method `.test_aegeanworks_keeps_its_own_badge_set()`
   - Method `.test_apply_media_refuses_a_dossier_manifest_it_does_not_own()`
+  - Method `.test_apply_media_supports_readme_only_flag()`
   - Method `.test_a_repository_without_a_ledger_records_nothing_and_does_not_fail()`
   - Method `.test_aikit_ledger_is_found_even_though_reforge_created_dot_aikit()`
   - Method `.test_a_stage_checkpoint_is_appended_without_becoming_the_active_task()`

@@ -223,6 +223,8 @@ def build_parser() -> argparse.ArgumentParser:
     media_apply = media_commands.add_parser("apply", help="copy approved assets to README and the AegeanWorks dossier")
     media_apply.add_argument("name")
     media_apply.add_argument("--dossier", type=Path, help="AegeanWorks project root")
+    media_apply.add_argument("--readme-only", action="store_true",
+                            help="update the project README only, leaving the dossier untouched")
     media_apply.add_argument("--json", action="store_true")
     media_audit = media_commands.add_parser("audit", help="verify files, commit stamps, README and dossier links")
     media_audit.add_argument("name")

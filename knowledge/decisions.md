@@ -3246,3 +3246,16 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Every `project_media` write into a project or dossier tree passes `backup=False`, keeping the atomic replace, fsync and lock while leaving the reviewed patch exact; state files under `.aikit/` keep their `.bak`. The non-model `--art` branch forwards `args.force`, matching the model branch and the documented contract.
 - **Consequences**: Re-running or applying media changes only the files the operation names, so a project audit stays green and no shadow file is committed; `media init --art` without `--force` preserves an approved logo, and `--force` still replaces it. Failing-first tests pin both the no-backup rule and the CLI flag forwarding.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-013 (durable replace without unintended siblings), PRINCIPLE-011 (the documented `--force` contract holds) and PRINCIPLE-014 (two regressions pinned); PRINCIPLE-000 R5 is unchanged.
+### ADR-304: Self-healing brand media, topic depth gates, and decoupled README application
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: Newly attached or repaired projects previously had blind spots in AIKit's self-healing and gating workflows: (1) `aikit fix` and `aikit attach` omitted brand media candidate initialization, leaving projects without `.aikit/media.json` or `assets/`; (2) `aikit fix` did not update `README.md` when brand assets were approved; (3) projects created without explicit `--topic` permanently retained only the 5 generic baseline license tags without warning during `check` or `fix`; and (4) `aikit media apply` failed completely when the AegeanWorks dossier manifest used Schema 2, which raised a `ProjectError` before line 710 and prevented the project's own `README.md` from ever receiving the approved media banner block.
+- **Decision**:
+  1. Extend `aikit fix` to automatically generate missing brand media candidates (`.aikit/media.json` and `assets/`) and update `README.md` with approved brand media banners and badges when missing.
+  2. Extend `aikit attach` to generate candidate brand assets for uninitialized projects.
+  3. Warn during `aikit check` and `aikit fix` when a project lacks brand media initialization or carries only default license tags with zero domain/content topics.
+  4. Add `--readme-only` to `aikit media apply` allowing project README updates independently of dossier manifests, and suggest `--readme-only` when a Schema 2 dossier conflict is detected.
+- **Consequences**:
+  - *Positive*: Projects can never silently drift or remain without graphics or proper domain topics; `aikit fix` reliably restores full project presence; `media apply` provides a non-destructive fallback path when the central dossier is externally managed.
+  - *Trade-offs*: None; all existing gates, schema constraints, and unit test budgets remain fully satisfied.
+

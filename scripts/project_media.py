@@ -629,11 +629,25 @@ def _copy_media(source: Path, target: Path) -> None:
     atomic_write_bytes(target, source.read_bytes(), backup=False)
 
 
-def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -> Dict[str, object]:
+def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None,
+                readme_only: bool = False) -> Dict[str, object]:
     """Copy approved assets into the dossier and reference them from the project README."""
     root = Path(project_root)
     data = load_media(root)
     repo = repository_name(name)
+    assets = data.get("assets") or {}
+    logo = assets.get("logo")
+    approved_shots = [s for s in data.get("screenshots") or [] if _approved(s)]
+    if readme_only:
+        applied: List[str] = []
+        readme = root / "README.md"
+        if readme.is_file():
+            _update_readme(readme, repo, data, approved_shots)
+            applied.append(str(readme))
+        return {"project": name, "repo": repo, "applied": applied,
+                "logo": bool(_approved(logo)), "screenshots": len(approved_shots),
+                "manifest": ""}
+
     dossier_root = Path(dossier) if dossier else ROOT_DIR / "projects" / "AegeanWorks"
     media_dir = dossier_root / "docs" / "media" / repo
     manifest_path = dossier_root / "docs" / "media" / f"{repo}.json"
@@ -661,8 +675,9 @@ def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -
                     "rewrite would delete its preview, screenshots, commit stamps and digests, and "
                     "the published page would silently lose the project's media.",
                     "record this asset with the dossier's builder (for AegeanWorks, "
-                    "`python tools/build_dossier_media.py ingest`), or delete the manifest "  # hygiene: allow path inside the AegeanWorks project, not AIKit
-                    "deliberately before applying.",
+                    "`python tools/build_dossier_media.py ingest`), run "  # hygiene: allow path inside the AegeanWorks project, not AIKit
+                    f"`python aikit.py media apply {name} --readme-only` to update the project README alone, "
+                    "or delete the manifest deliberately before applying.",
                 )
             existing_manifest = existing
     dossier: Dict[str, object] = {"schema": MEDIA_SCHEMA, "repo": repo, "screenshots": []}
