@@ -374,14 +374,15 @@ def seed_media_assets(project_root: Path, name: str, force: bool = False,
     logo = LOGO_REL
     social = SOCIAL_REL
     if force or not (root / logo).is_file():
-        atomic_write_text(root / logo, _logo_svg(name))
+        atomic_write_text(root / logo, _logo_svg(name), backup=False)
     if force or not (root / social).is_file():
         try:
             topics = load_config(root).get("topics") or []
         except (OSError, ValueError, KeyError, ProjectError):
             topics = []
         atomic_write_text(root / social, _social_svg(
-            name, kind, description, f"github.com/AegeanWorks/{repository_name(name)}", topics))
+            name, kind, description, f"github.com/AegeanWorks/{repository_name(name)}", topics),
+            backup=False)
     assets: Dict[str, object] = {
         "logo": _asset(logo, commit),
         "social_preview": _asset(social, commit),
@@ -625,7 +626,7 @@ def _approved(asset: object) -> bool:
 
 def _copy_media(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write_bytes(target, source.read_bytes())
+    atomic_write_bytes(target, source.read_bytes(), backup=False)
 
 
 def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -> Dict[str, object]:
@@ -702,7 +703,7 @@ def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -
         })
         applied.append(str(target))
     dossier["screenshots"] = approved_shots[:MAX_SCREENSHOTS]
-    atomic_write_text(manifest_path, json.dumps(dossier, indent=2) + "\n")
+    atomic_write_text(manifest_path, json.dumps(dossier, indent=2) + "\n", backup=False)
     applied.append(str(manifest_path))
     readme = root / "README.md"
     if readme.is_file():
@@ -808,7 +809,7 @@ def _update_readme(readme: Path, repo: str, data: Dict[str, object],
             text = text[:index] + section + "\n" + text[index:]
         else:
             text = text.rstrip("\n") + "\n\n" + section
-    atomic_write_text(readme, text)
+    atomic_write_text(readme, text, backup=False)
 
 
 def audit_media(project_root: Path, dossier: Optional[Path] = None) -> Dict[str, object]:

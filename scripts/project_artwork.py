@@ -20,7 +20,6 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from scripts.project_brand import brand_spec
 from scripts.project_media import capture_html, load_media, media_path, save_media
-from scripts.project_publish import extract_readme_description
 from scripts.project_registry import ProjectError, repository_name
 
 ART_REL = Path("assets") / "artwork.jpg"

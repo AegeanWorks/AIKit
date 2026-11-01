@@ -9,8 +9,8 @@
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `826`
-- **Total Class Methods**: `957`
-- **Total Source Lines**: `36416`
+- **Total Class Methods**: `960`
+- **Total Source Lines**: `36456`
 
 ---
 
@@ -480,7 +480,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `457` lines (`20042` bytes)
+**Size**: `456` lines (`20030` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1343` lines (`67497` bytes)
+**Size**: `1341` lines (`67445` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -929,7 +929,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `548` lines (`29596` bytes)
+**Size**: `547` lines (`29533` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -1028,7 +1028,7 @@
 ### [`scripts/project_media.py`](scripts/project_media.py)
 > *Project brand and screenshot media pipeline (ADR-235).*
 
-**Size**: `886` lines (`39589` bytes)
+**Size**: `887` lines (`39671` bytes)
 
 **Classes:**
 - `class _QuietHandler` - *Serve one capture directory without writing request logs.*
@@ -1613,7 +1613,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11066` lines (`613891` bytes)
+**Size**: `11109` lines (`616808` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2078,6 +2078,7 @@
   - Method `.test_status_names_unknown_and_missing_projects()`
   - Method `.test_fix_cli_reports_triad_on_unknown_project()`
   - Method `.run_cli(*argv)` - *`aikit` in-process against this test's kit; returns (exit code, stdout, stderr).*
+  - Method `.test_media_art_cli_forwards_the_force_flag()`
   - Method `.stale(path)`
   - Method `.test_fix_restores_memory_and_readme_and_removes_only_stale_buffers()`
   - Method `.test_fix_adopts_a_detected_ui_contract()`
@@ -2350,6 +2351,8 @@
   - Method `.test_model_brand_keeps_approved_assets_without_force()`
   - Method `.test_model_brand_regenerates_social_when_only_the_logo_is_approved()`
   - Method `.test_generate_brand_does_not_fetch_artwork_twice()`
+  - Method `.test_reseeding_media_leaves_no_backup_files_in_the_project()`
+  - Method `.test_applying_media_leaves_no_backup_files_in_the_project_or_dossier()`
   - Method `.test_the_asset_disclosure_is_specific_and_honest()`
   - Method `.test_html_capture_is_served_over_http()`
   - Method `.test_media_blockers_are_empty_without_a_manifest()`

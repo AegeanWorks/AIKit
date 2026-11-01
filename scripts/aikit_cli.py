@@ -252,10 +252,8 @@ def cmd_new(args: argparse.Namespace) -> int:
     )
     print(f"[OK] Created project '{args.name}' at {root} "
           f"with the {LICENSE_CHOICES[license_kind]['name']}")
-    kind = "library"
     if config_path(root).is_file():
         identity = project_ui.auto_ui(root)
-        kind = str(identity["kind"])
         print(f"     UI identifier: has_ui={identity['has_ui']} kind={identity['kind']} "
               "(uncommitted; update with `ui-id` as the interface appears).")
     if not getattr(args, "no_media", False):
@@ -1075,7 +1073,7 @@ def cmd_media(args: argparse.Namespace) -> int:
             result = project_artwork.generate_brand(
                 project.path, project.name, description=description,
                 tags=config.get("topics") or [], kind=str(ui.get("kind") or "library"),
-                force=True, refresh_art=args.force)
+                force=args.force, refresh_art=args.force)
         else:
             result = project_media.seed_media_assets(
                 project.path, project.name, force=args.force, capture_png=args.png)

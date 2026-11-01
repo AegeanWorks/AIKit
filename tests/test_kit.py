@@ -5670,6 +5670,19 @@ class TestProjectRegistry(unittest.TestCase):
             code = aikit_main(["--workspace", str(self.kit), *argv])
         return code, out.getvalue(), err.getvalue()
 
+    def test_media_art_cli_forwards_the_force_flag(self):
+        # `generate_brand` skips an approved logo only when `force` is false (ADR-298), so the
+        # local `media init --art` branch must forward the flag instead of hard-coding True.
+        folder = self.make_folder(("README.md", "# app\n\nA local-first CLI that tests things.\n"))
+        attach_project(folder, "myapp", workspace=self.kit)
+        result = {"artwork": "art.jpg", "has_ui": False, "kind": "cli"}
+        with mock.patch("scripts.project_artwork.model_key", return_value=""), \
+             mock.patch("scripts.project_artwork.generate_brand", return_value=result) as brand:
+            self.assertEqual(self.run_cli("media", "init", "myapp", "--art")[0], 0)
+            self.assertFalse(brand.call_args.kwargs["force"])
+            self.assertEqual(self.run_cli("media", "init", "myapp", "--art", "--force")[0], 0)
+            self.assertTrue(brand.call_args.kwargs["force"])
+
     def stale(self, path):
         path.write_text("buffer", encoding="utf-8")
         old = time.time() - 3600
@@ -9025,6 +9038,36 @@ class TestReforgeCore(unittest.TestCase):
             project_artwork.generate_brand(missing, "fetch-demo", description="d",
                                            refresh_art=False)
         self.assertEqual(calls, ["fetch-demo"], "missing artwork must be fetched exactly once")
+
+    def test_reseeding_media_leaves_no_backup_files_in_the_project(self):
+        # `seed_media_assets(force=True)` overwrote the SVGs through the shared writer, whose
+        # default shadow backup put `logo.svg.bak` and `social-preview.svg.bak` in `assets/`,
+        # where the project's `.gitignore` does not cover them and hygiene flags them as drift.
+        root = self.project("media-demo")
+        with mock.patch.object(project_media, "_head", return_value=""):
+            project_media.seed_media_assets(root, "media-demo")
+            project_media.seed_media_assets(root, "media-demo", force=True)
+        leftovers = [path.relative_to(root).as_posix() for path in root.rglob("*.bak")
+                     if ".aikit" not in path.parts]
+        self.assertEqual(leftovers, [], "project media writes must not leave shadow backups")
+
+    def test_applying_media_leaves_no_backup_files_in_the_project_or_dossier(self):
+        root = self.project("media-demo")
+        (root / "index.html").write_text("<html><body><main>demo</main></body></html>",
+                                          encoding="utf-8")
+        with mock.patch.object(project_media, "_head", return_value=""):
+            project_media.seed_media_assets(root, "media-demo")
+        project_media.review_media(
+            root, "logo", "approve", "agent:unit", "structural", "monogram and palette fit")
+        project_media.review_media(
+            root, "social_preview", "approve", "agent:unit", "structural", "banner fits")
+        dossier = self.root()
+        (dossier / "docs").mkdir()
+        project_media.apply_media(root, "media-demo", dossier=dossier)
+        project_media.apply_media(root, "media-demo", dossier=dossier)
+        leftovers = [path.as_posix() for base in (root, dossier)
+                     for path in base.rglob("*.bak") if ".aikit" not in path.parts]
+        self.assertEqual(leftovers, [], "applying media must not leave shadow backups")
 
     def test_the_asset_disclosure_is_specific_and_honest(self):
         text = project_media.ASSET_DISCLOSURE
