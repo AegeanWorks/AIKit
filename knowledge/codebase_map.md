@@ -10,7 +10,7 @@
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `828`
 - **Total Class Methods**: `967`
-- **Total Source Lines**: `36626`
+- **Total Source Lines**: `36629`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1380` lines (`69863` bytes)
+**Size**: `1383` lines (`70071` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
