@@ -678,8 +678,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
                     repo = project_media.repository_name(project.name)
                     project_media._update_readme(readme_path, repo, m_data, approved_shots)
                     fixes.append("updated README.md with approved brand media")
-        except (ProjectError, OSError, ValueError):
-            pass
+        except (ProjectError, OSError, ValueError) as exc:
+            # A corrupt or unsupported manifest is the operator's to fix; swallowing it made
+            # `fix` report success while the media and README stayed unrepaired (ADR-306).
+            print(f"[WARN] Brand media could not be read or written: {exc}")
     for fix in fixes:
         print(f"[FIXED] {fix}")
     print(f"Checking '{project.name}' after {len(fixes)} repair(s):")

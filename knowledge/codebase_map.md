@@ -9,8 +9,8 @@
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `829`
-- **Total Class Methods**: `971`
-- **Total Source Lines**: `36702`
+- **Total Class Methods**: `972`
+- **Total Source Lines**: `36713`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1402` lines (`70695` bytes)
+**Size**: `1404` lines (`70946` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1616,7 +1616,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11252` lines (`625579` bytes)
+**Size**: `11261` lines (`626124` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2090,6 +2090,7 @@
   - Method `.test_fix_seeds_brand_media_candidates_and_warns_once_on_default_topics()`
   - Method `.test_fix_warns_when_brand_candidates_cannot_be_written()`
   - Method `.test_attach_warns_when_brand_candidates_cannot_be_written()`
+  - Method `.test_fix_warns_when_the_media_manifest_cannot_be_read()`
   - Method `.test_fix_applies_approved_media_to_readme_when_missing()`
   - Method `.test_attach_seeds_local_brand_candidates_when_missing()`
   - Method `.test_check_warns_on_uninitialized_media_and_default_topics()`

@@ -5822,6 +5822,15 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertEqual(code, 0, err)
         self.assertIn("Brand media candidates could not be generated", out)
 
+    def test_fix_warns_when_the_media_manifest_cannot_be_read(self):
+        folder = self.make_folder(("README.md", "# badmediaapp\n\nA tool.\n"))
+        attach_project(folder, "badmediaapp", workspace=self.kit)
+        (folder / ".aikit" / "media.json").write_text('{"schema": 999}', encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            code, out, _ = self.run_cli("fix", "badmediaapp")
+        self.assertEqual(code, 0)
+        self.assertIn("Brand media could not be read or written", out)
+
     def test_fix_applies_approved_media_to_readme_when_missing(self):
         folder = self.make_folder(("README.md", "# demoapp\n\nDemo description here.\n"))
         attach_project(folder, "readmebrandapp", workspace=self.kit)
