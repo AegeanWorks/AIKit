@@ -3300,3 +3300,27 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: `sync_published` skips when GitHub reports the repository private, leaving every dossier file untouched, and the skip names the reason. `_upsert_jsonld` replaces the old inline-script hash with the hash of the rewritten block inside the CSP meta tag.
 - **Consequences**: Publishing privately never leaks a project into the public catalogue, and a synced entry keeps its JSON-LD active under the existing CSP. Failing-first tests pin both the untouched-tree skip and the hash replacement.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-011 (an explicit skip with a reason), PRINCIPLE-014 (both regressions pinned) and PRINCIPLE-019 (private work stays private); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-310: A project guideline can waive the person in a UI review
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: `ui finish --reviewed` closed a UI task only after a person looked at the running surface, which blocks agent-led UI work with no human in the loop. The waiver must be explicit, attributable, and visible — never silent.
+- **Decision**: `ui_review_waiver` scans the project's guidelines for a line that both names a UI review and asks for no person; when found, `ui finish` records the verification as a review by `agent:<resolved agent>`, prints a `[NOTE]` naming the waiving guideline, and keeps the `ui.review-missing` gate unchanged for every project without such a line.
+- **Consequences**: Agent-led UI tasks can close with a recorded, attributable review; the waiver, its source guideline, and the reviewer are all printed and stored in the task history. Failing-first tests pin the waiver path and the unchanged gate.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-011 (explicit, recorded attribution), PRINCIPLE-004 (recorded answers are not re-asked) and PRINCIPLE-014 (regression tests); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-311: Every UI change and demo is analyzed via AI before close or push
+- **Date**: 2026-11-01
+- **Status**: Accepted
+- **Context**: The operator set this as the standing first rule: no UI change or demo ships on assertion alone. An AI pass over the actual rendered surface catches misspellings, clipping, hierarchy breaks, palette clashes, and leftover artefacts that unit tests cannot see.
+- **Decision**: Before closing or pushing UI changes or demos, the operator (or agent) views the real rendered output through AI analysis — legibility, spelling, hierarchy, palette, and artefacts — and records the verdict with the change. Applied to this change: AI-viewed `assets/logo.png` (pass: crisp aegis mark, correct "AIKit / AEGEANWORKS" type, generous negative space), `assets/social-preview.png` (pass with note: legible kicker/tagline/chips and correct repo URL; the 5px top accent band renders as a bright green-yellow strip that clashes with the teal/navy field and should be retuned to the palette), and `assets/logo.svg` (pass: clean vector, correct metadata).
+- **Consequences**: UI and demo diffs carry an AI verdict; the social top-band retune is tracked follow-up work, not a blocker. No gate code changes: the rule is operator-enforced until a project asks for a wired check.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (evidence before synthesis: look at the surface), PRINCIPLE-014 (verification beyond unit tests) and PRINCIPLE-016 (verdicts recorded with the change); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-312: The image model paints abstract art only; type is composited locally
+- **Date**: 2026-11-02
+- **Status**: Accepted
+- **Context**: Model-rendered logos and social cards baked the title into pixels, which produced misspellings, clipped edges and letterbox bands (ADR-239/240). The root AIKit identity and several project cards carried those artefacts, and `media init --art` crashed outright when the network or model was unreachable instead of producing candidates.
+- **Decision**: `_logo_model_prompt` and `_social_model_prompt` are art-only and explicitly forbid text; `generate_model_brand` fetches one abstract background and `compose_brand` overlays the exact title, monogram, kicker, tagline and chips as crisp vector type, resolving description/tags/kind from the README and manifest when the caller passes none. `compose_brand` raises unless the captures are exactly 512x512 and 1280x640, and `media init --art` falls back to local SVG candidates with a warning when the art path fails. The letterbox-crop helper and the unused logo-ring helper were removed; the social top band is a solid accent line.
+- **Consequences**: Future `media init --art` output stays spelled, unclipped and on-spec even when the model drifts; off-spec captures fail loudly with no asset recorded; offline runs still seed reviewable candidates. A failing-first test pins the dimension rejection.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (no hallucinated text in pixels), PRINCIPLE-010 (bounded, single shared background fetch), PRINCIPLE-011 (usable offline with a warning) and PRINCIPLE-014 (regression test); PRINCIPLE-000 R5 is unchanged.

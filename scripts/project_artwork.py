@@ -42,6 +42,7 @@ MOTIF_PROMPT = {
     "book": "layered paper planes and a quiet editorial structure",
     "calendar": "a precise modular grid with highlighted cells",
     "shield": "a faceted protective shield form",
+    "aegis": "a minimal geometric gate archway holding a checkpoint diamond, governance and delivery gates",
     "key": "a precise key-and-lock geometry",
     "compass": "a navigational compass rose over a dark field",
     "timer": "concentric time rings with a single marker",
@@ -64,8 +65,9 @@ MOTIF_PROMPT = {
     "origami": "folded paper planes in sharp geometric creases",
     "dna": "a double helix rendered as precise geometry",
     "stone": "smooth river stones with layered strata",
+    "cube": "a precise isometric cube, clean engineering geometry",
     "seed": "a seed splitting into a geometric sprout",
-    "ledger": "stacked ledger sheets with precise rows",
+    "ledger": "stacked ledger sheets with precise rows, an append-only record",
     "fingerprint": "a fingerprint-like set of fine ridges",
     "notes": "floating paper note cards connected by luminous threads, an abstract idea constellation",
 }
@@ -146,53 +148,69 @@ def _palette_words(palette: Sequence[str]) -> str:
 
 
 def _logo_model_prompt(name: str) -> str:
+    # Art-only: the image model never renders text (it misspells and clips).
+    # The exact title, monogram and category are overlaid locally by compose_brand
+    # with crisp vector type, so the model prompt must forbid every letter.
     spec = brand_spec(name)
-    title = _display_name(name)
-    category = str(spec.get("category") or "").strip()
     motif = MOTIF_PROMPT.get(str(spec.get("motif")), "a refined geometric software symbol")
-    break_hint = "If the title is long, split it into two clean lines." if len(title) > 14 else ""
     return (
-        "Premium logo lockup on a square deep-navy canvas. Upper half: one simple geometric "
-        f"symbol, {motif}, in teal and amber, centered, no text inside the symbol, no swoosh, "
-        "no arrow. Lower half: the exact title "
-        f"\"{title}\" in title case, modern clean sans-serif, perfectly spelled and legible, "
-        "unclipped and unoverlapped. " + break_hint +
-        f" Below it the small letter-spaced words \"{category}\" in uppercase. "
-        f"Palette: {_palette_words(spec['palette'])}. Flat vector brand identity, strong "
-        "hierarchy, generous negative space, full-bleed dark background, no watermark, no extra "
-        "words, no misspelling, no trailing punctuation or period after the title."
+        "Premium abstract square background for a software brand mark. One simple geometric "
+        f"focal motif, {motif}, centered in the upper two thirds with generous negative space "
+        f"around it. Palette: {_palette_words(spec['palette'])}. Deep cinematic dark field, "
+        "volumetric light, subtle micro-detail, flat 3D hybrid, soft vignette, full-bleed "
+        "edge-to-edge, no text, no letters, no words, no numbers, no monogram, no logo text, "
+        "no watermark, no border, no frame, no mockup."
     )
 
 
 def _social_model_prompt(name: str) -> str:
+    # Art-only: the image model paints the abstract field; compose_brand overlays the
+    # exact project title, kicker, tagline and chips locally for legibility.
     spec = brand_spec(name)
-    title = _display_name(name)
-    category = str(spec.get("category") or "").strip()
     motif = MOTIF_PROMPT.get(str(spec.get("motif")), "a refined geometric software symbol")
-    break_hint = ("Split a long title into two clean lines. " if len(title) > 14 else "")
     return (
-        "Wide 2:1 social media banner for a software project. Left side: the exact title "
-        f"\"{title}\" in large clean modern title-case sans-serif, perfectly spelled and "
-        "unclipped, " + break_hint + "and under it the small spaced uppercase words "
-        f"\"{category}\". Right side: premium abstract artwork of {motif} in teal and amber "
-        f"on a deep navy field; palette {_palette_words(spec['palette'])}. Strong hierarchy, "
-        "single full-bleed edge-to-edge dark background, no white bands, no frames, no borders, "
-        "no letterboxing, generous margins, no tagline, no chips, no other text, no watermark, "
-        "no misspelling, no "
-        "trailing punctuation, no clipping, no overlap."
+        "Wide 2:1 abstract hero background for a software project banner. Premium abstract "
+        f"artwork of {motif} occupying the right half, fading into a deep navy editorial "
+        f"field on the left for overlaid text. Palette {_palette_words(spec['palette'])}. "
+        "Strong left-to-right gradient from solid dark (left) to detailed artwork (right), "
+        "single full-bleed edge-to-edge dark background, no white bands, no frames, "
+        "no borders, no letterboxing, generous negative space on the left, no text, "
+        "no letters, no words, no watermark, no clipping."
     )
+
+
+def _local_description(root: Path, name: str, fallback: str = "") -> str:
+    for candidate in ("README.md", "readme.md"):
+        path = root / candidate
+        if path.is_file():
+            try:
+                text = path.read_text(encoding="utf-8", errors="replace")
+                lines = [line.strip("# ").strip() for line in text.splitlines()]
+                lines = [line for line in lines if len(line) >= 10 and not line.startswith(("<", "!", "["))]
+                if lines:
+                    # First substantial prose line, kept short for the social card.
+                    pick = next((line for line in lines[1:3] if line), lines[0])
+                    return pick[:280]
+            except OSError:
+                pass
+    return fallback or f"{repository_name(name)} — an AegeanWorks project."
 
 
 def generate_model_brand(project_root: Path, name: str,
                          force: bool = False, parts: Sequence[str] = ("logo", "social"),
-                         seed_offset: int = 0) -> Dict[str, object]:
-    """Render the requested parts with the online image model (ADR-239/240/241)."""
+                         seed_offset: int = 0, description: str = "",
+                         tags: Sequence[str] = (), kind: str = "") -> Dict[str, object]:
+    """Render the requested parts with the online image model (ADR-239/240/241).
+
+    The model paints an abstract, text-free background only; the exact title,
+    monogram, kicker and chips are composited locally by compose_brand so type
+    stays crisp, spelled correctly and unclipped. This keeps future `media init
+    --art` output professional even when the model drifts.
+    """
     root = Path(project_root)
     spec = brand_spec(name)
     model = os.getenv("POLLINATIONS_IMAGE_MODEL", "community/scriptsnsenses-sys/flux-2-dev-free")
     seed = int(hashlib.sha256(name.encode("utf-8")).hexdigest()[:6], 16) + seed_offset
-    logo = root / "assets" / "logo.jpg"
-    social = root / "assets" / "social-preview.jpg"
     data = load_media(root)
     assets = dict(data.get("assets") or {})
     if (not force and "logo" in parts
@@ -201,37 +219,42 @@ def generate_model_brand(project_root: Path, name: str,
         # A social-only regeneration does not touch the logo, so it must not be refused for it.
         return {"skipped": True, "reason": "approved assets already exist"}
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
+    resolved_kind = (kind or str(data.get("ui_kind") or "library")).strip() or "library"
+    resolved_tags = tuple(tags) or tuple(data.get("topics") or ()) or (resolved_kind, "aegeanworks", "software")
+    resolved_desc = (description or _local_description(root, name)
+                     or str(spec.get("tagline") or ""))
+    # One abstract, text-free hero background shared by both lockups.
+    art = root / ART_REL
+    query = urllib.parse.urlencode({"model": model, "width": 1024, "height": 1024,
+                                    "seed": seed, "nologo": "true"})
+    _download_url("https://gen.pollinations.ai/image/"
+                  + urllib.parse.quote(_art_prompt(name, resolved_desc,
+                                                   str(spec.get("motif")), spec["palette"]))
+                  + "?" + query, art)
+    tagline = str(spec.get("tagline") or "") or resolved_desc
+    composed = compose_brand(root, name, tagline, resolved_tags, resolved_kind)
+    logo = Path(composed["logo"])
+    social = Path(composed["social"])
     if "logo" in parts:
-        query = urllib.parse.urlencode({"model": model, "width": 1024, "height": 1024,
-                                        "seed": seed, "nologo": "true"})
-        _download_url("https://gen.pollinations.ai/image/"
-                      + urllib.parse.quote(_logo_model_prompt(name)) + "?" + query, logo)
-        assets["logo"] = {"path": "assets/logo.jpg", "status": "pending_review", "commit": "",
+        assets["logo"] = {"path": LOGO_PNG_REL.as_posix(), "status": "pending_review", "commit": "",
                           "generated_at": stamp, "review": None}
     if "social" in parts:
-        query = urllib.parse.urlencode({"model": model, "width": 1280, "height": 640,
-                                        "seed": seed + 1, "nologo": "true"})
-        _download_url("https://gen.pollinations.ai/image/"
-                      + urllib.parse.quote(_social_model_prompt(name)) + "?" + query, social)
-        assets["social_preview"] = {"path": "assets/social-preview.jpg",
+        assets["social_preview"] = {"path": SOCIAL_PNG_REL.as_posix(),
                                     "status": "pending_review", "commit": "",
                                     "generated_at": stamp, "review": None}
+    assets["artwork"] = {"path": ART_REL.as_posix(), "status": "pending_review", "commit": "",
+                         "generated_at": stamp, "review": None}
     data["assets"] = assets
     data["motif"] = spec.get("motif")
     data["layout"] = spec.get("layout")
     data["palette"] = list(spec.get("palette") or [])
     data["model"] = model
     save_media(root, data)
-    if "social" in parts:
-        # The free model returns a square; reframe it to GitHub's 1280x640 without re-rendering
-        # the model's text. The crop is reviewed like any other asset.
-        cropped = crop_letterboxed_social(root, name, 1.0, "y")
-        social = Path(cropped["social"])
     return {"path": str(root), "created": True, "manifest": str(media_path(root)),
             "assets": sorted(assets), "has_ui": bool(data.get("has_ui")),
-            "kind": str(data.get("ui_kind") or "library"), "model": model,
+            "kind": resolved_kind, "model": model,
             "logo": str(logo), "social": str(social),
-            "logo_size": (1024, 1024), "social_size": (1280, 640), "parts": list(parts)}
+            "logo_size": (512, 512), "social_size": (1280, 640), "parts": list(parts)}
 
 
 def _download(url: str, output: Path, attempts: int = 4) -> None:
@@ -354,13 +377,14 @@ def _logo_html(name: str, art: Path) -> str:
 *{{box-sizing:border-box}} html,body{{margin:0;width:512px;height:512px;overflow:hidden}}
 body{{background:{palette[0]};font-family:'Segoe UI',Arial,sans-serif}}
 .art{{position:absolute;inset:0;background:url('{uri}') center 38%/128% no-repeat;filter:saturate(1.06) contrast(1.03)}}
-.veil{{position:absolute;inset:0;background:linear-gradient(180deg,{_rgba(palette[0],.08)} 0%,{_rgba(palette[0],.18)} 38%,{_rgba(palette[0],.72)} 64%,{_rgba(palette[0],.97)} 100%)}}
+.veil{{position:absolute;inset:0;background:linear-gradient(180deg,{_rgba(palette[0],.10)} 0%,{_rgba(palette[0],.22)} 38%,{_rgba(palette[0],.78)} 64%,{_rgba(palette[0],.98)} 100%)}}
+.safe{{position:absolute;inset:10px;border:1px solid {_rgba(palette[2],.22)};border-radius:26px}}
 .badge{{position:absolute;left:54px;top:54px;width:104px;height:104px;border-radius:26px;background:{_rgba(palette[0],.66)};border:1px solid {_rgba(palette[2],.55)};box-shadow:0 18px 50px rgba(0,0,0,.45);backdrop-filter:blur(4px)}}
 .mark{{position:absolute;left:54px;top:54px;width:104px;height:104px;display:flex;align-items:center;justify-content:center;font-size:{38 if len(monogram) <= 2 else 30}px;font-weight:800;letter-spacing:{1 if len(monogram) <= 2 else 0}px;color:{palette[2]};text-shadow:0 2px 12px rgba(0,0,0,.45)}}
 .category{{position:absolute;left:56px;top:{category_top}px;font-size:11px;font-weight:650;letter-spacing:3px;color:{palette[2]};text-transform:uppercase}}
 .rule{{position:absolute;left:56px;top:{rule_top}px;width:54px;height:2px;background:linear-gradient(90deg,{palette[2]},{palette[3]})}}
 .name{{position:absolute;left:54px;bottom:88px;width:410px;font-size:{size}px;line-height:1.05;font-weight:700;letter-spacing:-0.6px;color:#f8fafc;text-shadow:0 6px 26px rgba(0,0,0,.45)}}
-</style></head><body><div class="art"></div><div class="veil"></div>
+</style></head><body><div class="art"></div><div class="veil"></div><div class="safe"></div>
 <div class="badge"></div><div class="mark">{html.escape(monogram)}</div>
 <div class="category">{html.escape(category)}</div><div class="rule"></div>
 <div class="name">{name_html}</div></body></html>'''
@@ -368,13 +392,16 @@ body{{background:{palette[0]};font-family:'Segoe UI',Arial,sans-serif}}
 
 def _chips_html(tags: Sequence[str]) -> str:
     generic = {"aikit", "aegeanworks", "software", "source-available"}
-    selected = [tag for tag in tags if str(tag) not in generic][:3]
+    selected = [str(tag).replace("-", " ").strip()[:20]
+                for tag in tags if str(tag) not in generic and str(tag).strip()]
     if not selected:
-        selected = list(tags)[:3]
+        selected = [str(tag).replace("-", " ").strip()[:20]
+                    for tag in list(tags)[:3] if str(tag).strip()]
     chips = []
-    for tag in selected:
-        label = html.escape(str(tag).replace("-", " "))
-        chips.append(f'<span class="chip">{label}</span>')
+    for label in selected[:3]:
+        if not label:
+            continue
+        chips.append(f'<span class="chip">{html.escape(label)}</span>')
     return "".join(chips)
 
 
@@ -383,23 +410,26 @@ def _social_html(name: str, art: Path, description: str, kind: str,
     spec = brand_spec(name)
     palette = spec["palette"]
     layout = str(spec["layout"])
-    text_80 = _rgba("#f8fafc", .80)
-    text_45 = _rgba("#f8fafc", .45)
-    chip_border = _rgba("#94a3b8", .35)
-    chip_text = _rgba("#f8fafc", .84)
+    text_80 = _rgba("#f8fafc", .86)
+    text_45 = _rgba("#f8fafc", .55)
+    chip_border = _rgba("#94a3b8", .38)
+    chip_text = _rgba("#f8fafc", .86)
     title = _display_name(name)
+    category = str(spec.get("category") or "").strip()
+    kicker = category or kind.strip().upper() or "PROJECT"
     title_size = 78 if len(title) <= 14 else 64 if len(title) <= 22 else 52
     title_lines = _wrap_words(title, 16 if title_size >= 74 else 20 if title_size >= 60 else 24, 2)
     title_html = "<br>".join(html.escape(line) for line in title_lines)
-    tagline = html.escape(description or f"{title} — an AegeanWorks project.")
+    tagline = html.escape((description or f"{title} — an AegeanWorks project.")[:220])
     uri = art.resolve().as_uri()
-    repo_url = f"github.com/AegeanWorks/{repository_name(name)}"
+    repo_suffix = str(spec.get("repo") or "").strip() or repository_name(name)
+    repo_url = f"github.com/AegeanWorks/{repo_suffix}"
     chips = _chips_html(tags or (kind, "aegeanworks", "software"))
     accent, accent2 = palette[2], palette[3]
     if layout == "center":
         center = f'''<div class="center-art" style="background-image:url('{uri}')"></div>
         <div class="center-veil"></div>
-        <div class="center-kicker">AEGEANWORKS · {html.escape(kind.upper())}</div>
+        <div class="center-kicker">AEGEANWORKS · {html.escape(kicker)}</div>
         <div class="center-title">{title_html}</div>
         <div class="center-tag">{tagline}</div>
         <div class="center-chips">{chips}</div>
@@ -407,18 +437,19 @@ def _social_html(name: str, art: Path, description: str, kind: str,
         body = center
         css = f'''.center-art{{position:absolute;inset:0;background-position:center 34%;background-size:cover;filter:saturate(1.08)}}
         .center-veil{{position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,{_rgba(palette[0],.10)} 0%,{_rgba(palette[0],.55)} 52%,{_rgba(palette[0],.96)} 100%)}}
-        .center-kicker{{position:absolute;left:0;right:0;top:112px;text-align:center;font-size:16px;letter-spacing:8px;color:{accent};font-weight:600}}
-        .center-title{{position:absolute;left:70px;right:70px;top:202px;text-align:center;font-size:{title_size}px;line-height:1.02;font-weight:800;color:#f8fafc;letter-spacing:-1px}}
-        .center-tag{{position:absolute;left:190px;right:190px;top:342px;max-height:96px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;text-align:center;font-size:25px;line-height:1.4;color:{text_80}}}
+        .center-kicker{{position:absolute;left:0;right:0;top:104px;text-align:center;font-size:16px;letter-spacing:8px;color:{accent};font-weight:600;text-shadow:0 2px 14px rgba(0,0,0,.5)}}
+        .center-title{{position:absolute;left:70px;right:70px;top:192px;text-align:center;font-size:{title_size}px;line-height:1.02;font-weight:800;color:#f8fafc;letter-spacing:-1px;text-shadow:0 4px 24px rgba(0,0,0,.55)}}
+        .center-tag{{position:absolute;left:190px;right:190px;top:360px;max-height:96px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;text-align:center;font-size:25px;line-height:1.4;color:{text_80};text-shadow:0 2px 12px rgba(0,0,0,.5)}}
         .center-chips{{position:absolute;left:0;right:0;top:492px;display:flex;justify-content:center;gap:10px}}
         .foot{{position:absolute;left:76px;bottom:32px;font-size:12px;letter-spacing:5px;color:{text_45};z-index:4}}
-        .url{{position:absolute;right:56px;bottom:32px;font-size:17px;color:{accent};z-index:5;font-family:'Segoe UI',Arial,sans-serif}}'''
+        .url{{position:absolute;right:56px;bottom:32px;font-size:16px;letter-spacing:1px;color:{text_45};z-index:5;font-family:'Segoe UI',Arial,sans-serif}}'''
     else:
         serif = layout == "editorial"
         family = "Georgia, 'Times New Roman', serif" if serif else "'Segoe UI', Arial, sans-serif"
         panel = f'''<div class="art" style="background-image:url('{uri}')"></div>
         <div class="panel"></div>
-        <div class="kicker">AEGEANWORKS · {html.escape(kind.upper())}</div>
+        <div class="band"></div>
+        <div class="kicker">AEGEANWORKS · {html.escape(kicker)}</div>
         <div class="title">{title_html}</div>
         <div class="rule"></div>
         <div class="tag">{tagline}</div>
@@ -428,14 +459,15 @@ def _social_html(name: str, art: Path, description: str, kind: str,
         css = f'''.panel{{position:absolute;left:0;top:0;width:790px;height:640px;background:linear-gradient(100deg,{palette[0]} 0%,{palette[1]} 68%,{_rgba(palette[1],.92)} 100%);z-index:3}}
         .art{{position:absolute;right:0;top:0;width:600px;height:640px;background-position:center 38%;background-size:auto 124%;filter:saturate(1.05);z-index:1}}
         .art:after{{content:'';position:absolute;inset:0;background:linear-gradient(90deg,{palette[1]} 0%,{_rgba(palette[1],.10)} 45%,{_rgba(palette[0],.10)} 100%),linear-gradient(0deg,{_rgba(palette[0],.92)} 0%,transparent 18%)}}
-        .kicker{{position:absolute;left:76px;top:138px;font-size:16px;letter-spacing:7px;color:{accent};font-weight:600;z-index:4;font-family:{family}}}
-        .title{{position:absolute;left:72px;top:196px;width:700px;font-size:{title_size}px;line-height:.98;font-weight:800;color:#f8fafc;letter-spacing:-1px;z-index:4;font-family:{family}}}
+        .band{{position:absolute;left:0;top:0;width:1280px;height:4px;background:{accent};z-index:5}}
+        .kicker{{position:absolute;left:76px;top:138px;font-size:16px;letter-spacing:7px;color:{accent};font-weight:600;z-index:4;font-family:{family};text-shadow:0 2px 12px rgba(0,0,0,.5)}}
+        .title{{position:absolute;left:72px;top:196px;width:700px;font-size:{title_size}px;line-height:.98;font-weight:800;color:#f8fafc;letter-spacing:-1px;z-index:4;font-family:{family};text-shadow:0 4px 22px rgba(0,0,0,.5)}}
         .rule{{position:absolute;left:74px;top:360px;width:560px;height:2px;background:linear-gradient(90deg,{accent},{accent2});z-index:4}}
-        .tag{{position:absolute;left:76px;top:392px;width:540px;max-height:112px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:26px;line-height:1.38;color:{text_80};z-index:4;font-family:{family}}}
+        .tag{{position:absolute;left:76px;top:392px;width:540px;max-height:112px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:26px;line-height:1.38;color:{text_80};z-index:4;font-family:{family};text-shadow:0 2px 12px rgba(0,0,0,.45)}}
         .chips{{position:absolute;left:76px;top:534px;display:flex;gap:10px;z-index:4}}
         .foot{{position:absolute;left:76px;bottom:32px;font-size:12px;letter-spacing:5px;color:{text_45};z-index:4}}
         .footerband{{position:absolute;right:0;bottom:0;width:600px;height:84px;background:linear-gradient(0deg,{palette[0]} 0%,{_rgba(palette[0],.92)} 55%,transparent 100%);z-index:4}}
-        .url{{position:absolute;right:56px;bottom:32px;font-size:17px;color:{accent};z-index:5;font-family:'Segoe UI',Arial,sans-serif}}'''
+        .url{{position:absolute;right:56px;bottom:32px;font-size:16px;letter-spacing:1px;color:{text_45};z-index:5;font-family:'Segoe UI',Arial,sans-serif}}'''
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 *{{box-sizing:border-box}} html,body{{margin:0;width:1280px;height:640px;overflow:hidden}}
 body{{background:{palette[0]};font-family:'Segoe UI',Arial,sans-serif}}
@@ -469,51 +501,17 @@ def compose_brand(project_root: Path, name: str, description: str = "",
             temporary.unlink()
         except OSError:  # hygiene: allow temporary HTML cleanup cannot fail the rendered PNG
             pass
-    return {"logo": str(logo), "social": str(social), "logo_size": (logo_result["width"], logo_result["height"]),
-            "social_size": (social_result["width"], social_result["height"])}
-
-
-def crop_letterboxed_social(project_root: Path, name: str, zoom: float = 1.18,
-                            axis: str = "y") -> Dict[str, object]:
-    """Crop a model card's dark letterbox bands by scaling it inside the 1280x640 frame."""
-    root = Path(project_root)
-    source = root / "assets" / "social-preview.jpg"
-    if not source.is_file():
+    logo_size = (logo_result["width"], logo_result["height"])
+    social_size = (social_result["width"], social_result["height"])
+    if logo_size != (512, 512) or social_size != (1280, 640):
         raise ProjectError(
-            f"{source} is missing.",
-            "the crop needs the model-rendered card.",
-            "regenerate the social card first.",
+            f"Brand composition rendered {logo_size[0]}x{logo_size[1]} and "
+            f"{social_size[0]}x{social_size[1]}.",
+            "the logo must be 512x512 and the social card 1280x640.",
+            "retry the composition; no asset was recorded.",
         )
-    target = root / "assets" / "social-preview.png"
-    palette = brand_spec(name)["palette"]
-    transform = (f"scale({zoom})" if axis == "both" else
-                 f"scaleX({zoom})" if axis == "x" else f"scaleY({zoom})")
-    html_path = root / ".aikit" / "_social_crop.html"
-    html_path.parent.mkdir(parents=True, exist_ok=True)
-    html_path.write_text(
-        "<!doctype html><html><head><meta charset='utf-8'><style>"
-        "*{box-sizing:border-box}html,body{margin:0;width:1280px;height:640px;overflow:hidden;"
-        f"background:{palette[0]}}}"
-        f"img{{display:block;width:1280px;height:640px;object-fit:cover;"
-        f"transform:{transform};transform-origin:center center}}"
-        f"</style></head><body><img src='{source.resolve().as_uri()}'></body></html>",
-        encoding="utf-8",
-    )
-    try:
-        result = capture_html(html_path, target, 1280, 640)
-    finally:
-        try:
-            html_path.unlink()
-        except OSError:  # hygiene: allow temporary crop HTML cleanup cannot fail the PNG
-            pass
-    data = load_media(root)
-    assets = dict(data.get("assets") or {})
-    assets["social_preview"] = {"path": "assets/social-preview.png", "status": "pending_review",
-                                "commit": "", "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "review": None}
-    data["assets"] = assets
-    save_media(root, data)
-    return {"social": str(target), "size": (result["width"], result["height"]), "zoom": zoom}
+    return {"logo": str(logo), "social": str(social), "logo_size": logo_size,
+            "social_size": social_size}
 
 
 def generate_brand(project_root: Path, name: str, description: str = "",

@@ -66,7 +66,9 @@ portable_agent_kit/
 ├── licenses/                     <- Pinned Aegean license texts + PIN.json
 ├── aikit.py                      <- Project CLI
 ├── assets/                       <- Root brand assets
-│   ├── logo.jpg
+│   ├── logo.svg
+│   ├── logo.png
+│   ├── social-preview.svg
 │   └── social-preview.png
 ├── reforge.py                    <- Aegean Reforge CLI entry point (and `aikit.py reforge`)
 ├── reforge/                      <- host-reviewed Git history auditor & safe repair engine
@@ -184,7 +186,7 @@ python aikit.py ui init my-app --fast "npm run test" --paths "src/**"  # other s
 python aikit.py ui begin my-app --surface menu  # bound edits to one declared UI surface
 python aikit.py ui verify my-app       # scope, budget, fast + snapshot proofs, style drift
 python aikit.py ui allow my-app "Btn*" --reason "<why>"  # intended inventory removal
-python aikit.py ui finish my-app --reviewed  # close after review; evidence in .aikit/ui_history.json
+python aikit.py ui finish my-app --reviewed  # close after review; a guideline can waive the human
 python aikit.py fix my-app          # restore memory/README, adopt UI, refresh map, then check
 python aikit.py guideline my-app "money is integer cents" --source user  # project rule
 python aikit.py publish my-app [--owner ORG] [--license auto]  # repo, description, recorded AI topics

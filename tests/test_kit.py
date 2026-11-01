@@ -6500,7 +6500,7 @@ class TestProjectRegistry(unittest.TestCase):
         # contract" was false in exactly this case, and its first remedy (abort) reverts the work.
         folder = self.make_folder()
         attach_project(folder, "reviewapp", workspace=self.kit)
-        review = "human review not recorded: no one confirmed the running UI looks right."
+        review = "review not recorded: no one confirmed the running UI looks right."
         with mock.patch("scripts.aikit_cli.ui_contract.finish", return_value=[review]), \
              mock.patch("scripts.aikit_cli.ui_contract.read_task", return_value={}):
             code, out, err = self.run_cli("ui", "finish", "reviewapp")
@@ -9041,7 +9041,7 @@ class TestReforgeCore(unittest.TestCase):
     def test_every_catalog_project_has_a_unique_palette_and_artwork(self):
         catalog = json.loads((ROOT_DIR / "scripts" / "brand_catalog.json").read_text(encoding="utf-8"))
         names = sorted(catalog["projects"])
-        self.assertEqual(len(names), 41)
+        self.assertEqual(len(names), 57)
         palettes = [tuple(project_brand.brand_spec(name)["palette"]) for name in names]
         self.assertEqual(len(set(palettes)), len(names), "two projects share a palette")
         logos = [project_brand.logo_svg(name) for name in names]
@@ -9067,10 +9067,14 @@ class TestReforgeCore(unittest.TestCase):
                             for prompt in prompts))
         logo_prompt = project_artwork._logo_model_prompt("AegeanWorks")
         social_prompt = project_artwork._social_model_prompt("AegeanWorks")
-        self.assertIn('"Aegean Works"', logo_prompt)
-        self.assertIn("STUDIO", logo_prompt)
-        self.assertIn('"Aegean Works"', social_prompt)
-        self.assertIn("no tagline", social_prompt.lower())
+        # Art-only model prompts: the image model must never render text (it misspells
+        # and clips); the exact title is overlaid locally by compose_brand.
+        self.assertNotIn('"Aegean Works"', logo_prompt)
+        self.assertNotIn('"Aegean Works"', social_prompt)
+        self.assertIn("no text", logo_prompt)
+        self.assertIn("no text", social_prompt)
+        self.assertIn("no watermark", logo_prompt)
+        self.assertIn("no watermark", social_prompt)
 
     def test_model_brand_requires_an_environment_key(self):
         root = self.project("model-demo")
@@ -9081,7 +9085,8 @@ class TestReforgeCore(unittest.TestCase):
 
     def test_model_brand_reports_the_assets_it_wrote(self):
         # `media init` and `new` read this result; returning None made `new` replace the model
-        # assets with the local seed (ADR-298).
+        # assets with the local seed (ADR-298). The model paints an abstract background only;
+        # the title is composited locally so type stays crisp.
         root = self.project("model-demo")
         (root / "assets").mkdir(exist_ok=True)
 
@@ -9090,14 +9095,17 @@ class TestReforgeCore(unittest.TestCase):
             Path(target).write_bytes(b"\xff\xd8\xff\xe0fake")
 
         with mock.patch.object(project_artwork, "_download_url", side_effect=fake_download), \
-             mock.patch.object(project_artwork, "crop_letterboxed_social",
-                               return_value={"social": str(root / "assets" / "social-preview.png")}):
+             mock.patch.object(project_artwork, "compose_brand",
+                               return_value={"logo": str(root / "assets" / "logo.png"),
+                                             "social": str(root / "assets" / "social-preview.png")}):
             result = project_artwork.generate_model_brand(root, "model-demo", force=True)
         self.assertTrue(result["created"])
-        self.assertEqual(result["assets"], ["logo", "social_preview"])
+        self.assertEqual(result["assets"], ["artwork", "logo", "social_preview"])
         self.assertIn("manifest", result)
         self.assertEqual(project_media.load_media(root)["assets"]["logo"]["status"],
                          "pending_review")
+        self.assertEqual(project_media.load_media(root)["assets"]["logo"]["path"],
+                         "assets/logo.png")
 
     def test_model_brand_keeps_approved_assets_without_force(self):
         # The local brand generator and the model generator must agree on `force`; without it an
@@ -9135,10 +9143,16 @@ class TestReforgeCore(unittest.TestCase):
             "screenshots": [],
         })
         calls = []
-        with mock.patch.object(project_artwork, "_download_url",
-                               side_effect=lambda url, target: calls.append(url)), \
-             mock.patch.object(project_artwork, "crop_letterboxed_social",
-                               return_value={"social": str(root / "assets" / "social-preview.png")}):
+
+        def fake_art(url, target):
+            calls.append(url)
+            Path(target).parent.mkdir(parents=True, exist_ok=True)
+            Path(target).write_bytes(b"\xff\xd8\xff\xe0fake")
+
+        with mock.patch.object(project_artwork, "_download_url", side_effect=fake_art), \
+             mock.patch.object(project_artwork, "compose_brand",
+                               return_value={"logo": str(root / "assets" / "logo.png"),
+                                             "social": str(root / "assets" / "social-preview.png")}):
             result = project_artwork.generate_model_brand(
                 root, "model-demo", force=False, parts=("social",))
         self.assertFalse(result.get("skipped"))
@@ -9161,6 +9175,22 @@ class TestReforgeCore(unittest.TestCase):
             project_artwork.generate_brand(missing, "fetch-demo", description="d",
                                            refresh_art=False)
         self.assertEqual(calls, ["fetch-demo"], "missing artwork must be fetched exactly once")
+
+    def test_compose_brand_rejects_off_spec_dimensions(self):
+        # A mis-sized capture must fail loudly instead of recording a bad asset (ADR-239).
+        root = self.project("compose-demo")
+        art = root / project_artwork.ART_REL
+        art.parent.mkdir(parents=True, exist_ok=True)
+        art.write_bytes(b"art")
+        bad = {"logo": {"width": 512, "height": 512}, "social": {"width": 640, "height": 640}}
+        with mock.patch.object(project_artwork, "capture_html",
+                               side_effect=[bad["logo"], bad["social"]]):
+            with self.assertRaises(ProjectError):
+                project_artwork.compose_brand(root, "compose-demo")
+        self.assertFalse((root / "assets" / "logo.png").is_file()
+                        and (root / ".aikit" / "media.json").is_file()
+                        and "logo" in (project_media.load_media(root).get("assets") or {}),
+                        "an off-spec composition must not record assets")
 
     def test_reseeding_media_leaves_no_backup_files_in_the_project(self):
         # `seed_media_assets(force=True)` overwrote the SVGs through the shared writer, whose

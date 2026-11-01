@@ -261,7 +261,8 @@ def build_parser() -> argparse.ArgumentParser:
                              help="why the removal is intended; recorded with the allow entry")
         if action == "finish":
             sub.add_argument("--reviewed", action="store_true",
-                             help="confirm a human looked at the running UI")
+                             help="confirm the review of the running UI was recorded; a project "
+                                  "guideline that waives human review lets an agent review instead")
             sub.add_argument("--reviewer", metavar="NAME",
                              help="who reviewed the running UI, recorded in the task history")
         if action == "verify":

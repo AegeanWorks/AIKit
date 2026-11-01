@@ -8,6 +8,7 @@ could not be carried out, 2 the command line was wrong (PRINCIPLE-011).
 
 import argparse
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -533,6 +534,23 @@ def default_topic_warning(project: Project) -> Optional[str]:
     return (f"[WARN] '{project.name}' only has default license topics; run "
             f"`python aikit.py topics {project.name} --brief`, then record the choice with "
             f"`--from-file` or `--set`.")
+
+
+def ui_review_waiver(project_root: Path) -> Optional[str]:
+    """The project rule that waives the person in a UI review, or None (ADR-310)."""
+    for line in project_guidelines(project_root):
+        text = line.lower()
+        asks_nobody = any(phrase in text for phrase in (
+            "do not ask", "don't ask", "never ask", "no human", "not ask"))
+        names_review = "ui review" in text or "ui/ux review" in text
+        if asks_nobody and names_review:
+            return line
+    return None
+
+
+def _named_guideline(line: str) -> str:
+    match = re.search(r"G-\d{3}", line)
+    return match.group(0) if match else "the project guideline"
 
 
 def cmd_check(args: argparse.Namespace) -> int:
@@ -1144,16 +1162,28 @@ def cmd_media(args: argparse.Namespace) -> int:
         project_ui.refresh_ui_identifier(project.path)
     if action == "init":
         if getattr(args, "art", False) and project_artwork.model_key():
-            result = project_artwork.generate_model_brand(
-                project.path, project.name, force=args.force)
+            try:
+                result = project_artwork.generate_model_brand(
+                    project.path, project.name, force=args.force)
+            except (ProjectError, OSError, ValueError) as exc:
+                print(f"     [WARN] Image-model brand failed: {exc}; "
+                      "seeding local candidates instead.", file=sys.stderr)
+                result = project_media.seed_media_assets(
+                    project.path, project.name, force=args.force, capture_png=args.png)
         elif getattr(args, "art", False):
-            description = extract_readme_description(project.path) or ""
-            config = load_config(project.path)
-            ui = project_ui.ui_payload(project.path)
-            result = project_artwork.generate_brand(
-                project.path, project.name, description=description,
-                tags=config.get("topics") or [], kind=str(ui.get("kind") or "library"),
-                force=args.force, refresh_art=args.force)
+            try:
+                description = extract_readme_description(project.path) or ""
+                config = load_config(project.path)
+                ui = project_ui.ui_payload(project.path)
+                result = project_artwork.generate_brand(
+                    project.path, project.name, description=description,
+                    tags=config.get("topics") or [], kind=str(ui.get("kind") or "library"),
+                    force=args.force, refresh_art=args.force)
+            except (ProjectError, OSError, ValueError) as exc:
+                print(f"     [WARN] Art-backed brand failed: {exc}; "
+                      "seeding local candidates instead.", file=sys.stderr)
+                result = project_media.seed_media_assets(
+                    project.path, project.name, force=args.force, capture_png=args.png)
         else:
             result = project_media.seed_media_assets(
                 project.path, project.name, force=args.force, capture_png=args.png)
@@ -1299,8 +1329,15 @@ def cmd_ui(args: argparse.Namespace) -> int:
                 before = ui_contract.read_task(project.path)
             except ProjectError:
                 before = None
-            findings = ui_contract.finish(project.path, reviewed=args.reviewed,
-                                          reviewer=getattr(args, "reviewer", "") or "")
+            reviewer = getattr(args, "reviewer", "") or ""
+            reviewed = bool(args.reviewed)
+            waiver = ui_review_waiver(project.path) if not reviewed else None
+            if waiver:
+                reviewed = True
+                reviewer = reviewer or f"agent:{resolve_agent()}"
+                print(f"[NOTE] {_named_guideline(waiver)} waives human UI review; recording "
+                      f"the verification as a review by {reviewer}.")
+            findings = ui_contract.finish(project.path, reviewed=reviewed, reviewer=reviewer)
         else:
             try:
                 findings = ui_contract.verify(project.path)
@@ -1334,9 +1371,9 @@ def cmd_ui(args: argparse.Namespace) -> int:
         # opposite and lead with `ui abort`, which reverts valid work. Keyed on the stable finding
         # code, not the message text, so the JSON contract and this branch cannot drift apart.
         if findings and all(ui_contract.finding_code(f) == "ui.review-missing" for f in findings):
-            print("Error: the UI change passed verification; only the human review is missing.",
+            print("Error: the UI change passed verification; only the recorded review is missing.",
                   file=sys.stderr)
-            print("Why: a UI task closes only after a person has looked at the running surface.",
+            print("Why: a UI task closes only after a person or agent reviewed the running surface.",
                   file=sys.stderr)
             print(f"Fix: look at the running UI, then run `python aikit.py ui finish "
                   f"{project.name} --reviewed` (add --reviewer <name> to record who).",
@@ -1351,7 +1388,7 @@ def cmd_ui(args: argparse.Namespace) -> int:
                   f"`python aikit.py ui abort {project.name}` to restore the surface; "
                   "then rerun.", file=sys.stderr)
             if args.ui_action == "finish":
-                print("Fix: `ui finish` also needs --reviewed after a human looked at "
+                print("Fix: `ui finish` also needs --reviewed after a review of "
                       "the running UI.", file=sys.stderr)
             return 1
         identity = project_ui.refresh_ui_identifier(project.path)

@@ -124,7 +124,9 @@ headless core and its test command, so the UI and an agent can call the same mec
 ### Project Media Manifest (`<project>/.aikit/media.json`)
 Schema 1; `name`, `repo`, `has_ui`, `ui_kind`, `palette`, `motif`, `layout`, `assets` (`logo`, `social_preview`,
 optional `social_preview_png`, `artwork`) and `screenshots`. Logo and social previews may be SVG
-fallbacks or model-rendered JPEGs (`model` records the model ID); each asset has `path`, `status`
+fallbacks or model compositions: the model paints an abstract background only (`model` records
+the model ID) while the exact title, monogram, kicker and chips are composited locally as crisp
+vector type; legacy model-rendered JPEGs remain readable. Each asset has `path`, `status`
 (`pending_review`, `approved`, `rejected`), `generated_at`, `commit` and `review`; a review records
 `reviewer`, `method` (`vision`/`structural`), `notes`, `score` and `reviewed_at`. A screenshot also
 records `taken_at`, `viewport`, `width` and `height`, and its `commit` must resolve in the project.
@@ -134,7 +136,9 @@ dossier manifest `docs/media/<Repo>.json` (schema 1: `repo`, `logo`, `screenshot
 ### Brand Catalogue (`scripts/brand_catalog.json`)
 Schema 1; `palettes` (one unique four-colour palette per project) and `projects`. Each project entry
 has `motif`, `layout`, `palette` index, optional `monogram`, `display` (title-case override such as
-"No More Clutter"), `category` (the logo eyebrow) and `tagline` (the curated social-card sentence).
+"No More Clutter"), `category` (the logo eyebrow), `tagline` (the curated social-card sentence),
+`repo` (social-URL override such as "AIKit"), and `lockup` (`wordmark` renders the full display
+name in the logo instead of the monogram).
 
 ### Reforge Audit State (`.aikit/reforge.json`)
 Schema 2; `next_run_id`, `active_run`, `last_run`, `runs` and mirrored top-level fields (`stage`,

@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
-- **Total Top-Level Functions**: `855`
-- **Total Class Methods**: `985`
-- **Total Source Lines**: `37420`
+- **Total Top-Level Functions**: `858`
+- **Total Class Methods**: `986`
+- **Total Source Lines**: `37580`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1423` lines (`71922` bytes)
+**Size**: `1460` lines (`73758` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -662,6 +662,8 @@
 - `def cmd_clean(args)`
 - `def project_baseline_errors(project, audit)` - *The delivery baseline `--strict` requires; ordinary check reports these as warnings.*
 - `def default_topic_warning(project)` - *The default-only topic warning, or None when the project has a domain topic.*
+- `def ui_review_waiver(project_root)` - *The project rule that waives the person in a UI review, or None (ADR-310).*
+- `def _named_guideline(line)`
 - `def cmd_check(args)`
 - `def cmd_fix(args)` - *Repair what AIKit can repair mechanically, then run the gates: everything left is the*
 - `def cmd_publish(args)`
@@ -689,7 +691,7 @@
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `295` lines (`20279` bytes)
+**Size**: `296` lines (`20400` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -967,7 +969,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `547` lines (`29533` bytes)
+**Size**: `545` lines (`30036` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -979,7 +981,8 @@
 - `def _palette_words(palette)`
 - `def _logo_model_prompt(name)`
 - `def _social_model_prompt(name)`
-- `def generate_model_brand(project_root, name, force, parts, seed_offset)` - *Render the requested parts with the online image model (ADR-239/240/241).*
+- `def _local_description(root, name, fallback)`
+- `def generate_model_brand(project_root, name, force, parts, seed_offset, description, tags, kind)` - *Render the requested parts with the online image model (ADR-239/240/241).*
 - `def _download(url, output, attempts)`
 - `def _throttle()`
 - `def fetch_artwork(project_root, name, description)` - *Generate and store this project's hero image; retries transient model failures.*
@@ -991,7 +994,6 @@
 - `def _chips_html(tags)`
 - `def _social_html(name, art, description, kind, tags)`
 - `def compose_brand(project_root, name, description, tags, kind)` - *Render the final 512px logo and 1280x640 social card over the generated artwork.*
-- `def crop_letterboxed_social(project_root, name, zoom, axis)` - *Crop a model card's dark letterbox bands by scaling it inside the 1280x640 frame.*
 - `def generate_brand(project_root, name, description, tags, kind, force, refresh_art)` - *Fetch image-model artwork, compose PNG brand assets, and mark them for review.*
 
 ---
@@ -999,7 +1001,7 @@
 ### [`scripts/project_brand.py`](scripts/project_brand.py)
 > *Project-specific brand artwork: one motif, palette and composition per project.*
 
-**Size**: `452` lines (`27984` bytes)
+**Size**: `545` lines (`32916` bytes)
 
 **Functions:**
 - `def _catalog()`
@@ -1008,12 +1010,13 @@
 - `def brand_spec(name)` - *The authored motif/palette/composition for a project, with a stable fallback.*
 - `def _display_name(name)`
 - `def _monogram(name)`
-- `def _wrap(text, width, limit)`
-- `def _motif_body(motif, accent, accent2)`
-- `def _motif(motif, accent, accent2, cx, cy, scale, opacity)`
-- `def _logo_rings(layout, accent, accent2)`
+- `def _wrap(text, width, limit)` - *Greedy word wrap that marks a clipped card instead of ending mid-sentence.*
+- `def _motif_body(motif, accent, accent2, monogram)`
+- `def _motif(motif, accent, accent2, cx, cy, scale, opacity, monogram)`
 - `def logo_svg(name)` - *A 512px square identity: project motif, unique palette, monogram and AegeanWorks mark.*
+- `def _chip_width(label)`
 - `def _chips(tags, x, y)`
+- `def _chips_centered(tags, y, center)`
 - `def social_svg(name, kind, description, repo_url, tags)` - *A 1280x640 social card with a layout chosen for this project, not a shared template.*
 
 ---
@@ -1344,7 +1347,7 @@
 ### [`scripts/ui_contract.py`](scripts/ui_contract.py)
 > *Bounded UI-surface edits against a committed `.aikit/ui.json` contract (opt-in).*
 
-**Size**: `781` lines (`38477` bytes)
+**Size**: `782` lines (`38517` bytes)
 
 **Classes:**
 - `class UiContract` - *One project's committed UI contract: surfaces, protected paths, commands and limits.*
@@ -1651,7 +1654,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11496` lines (`639862` bytes)
+**Size**: `11526` lines (`641641` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2399,6 +2402,7 @@
   - Method `.test_model_brand_keeps_approved_assets_without_force()`
   - Method `.test_model_brand_regenerates_social_when_only_the_logo_is_approved()`
   - Method `.test_generate_brand_does_not_fetch_artwork_twice()`
+  - Method `.test_compose_brand_rejects_off_spec_dimensions()`
   - Method `.test_reseeding_media_leaves_no_backup_files_in_the_project()`
   - Method `.test_applying_media_leaves_no_backup_files_in_the_project_or_dossier()`
   - Method `.test_the_asset_disclosure_is_specific_and_honest()`

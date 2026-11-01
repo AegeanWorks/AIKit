@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc" data-motif="aegis" data-layout="editorial">
+  <title id="title">AIKit logo</title>
+  <desc id="desc">Project-specific aegis mark for AIKit; AegeanWorks identity.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#060b16"/><stop offset="1" stop-color="#0f1e33"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g transform="translate(256 210) scale(1.45)" opacity="1.0"><path d="M-36 -28H36V28H22V-14H-22V28H-36Z" fill="#5eead4"/><path d="M0 -8L10 2L0 12L-10 2Z" fill="#fbbf24"/></g>
+  <text x="256" y="392" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="88" font-weight="700" fill="#F8FAFC" letter-spacing="-1">AIKit</text><text x="256" y="432" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="5" fill="#F8FAFC" fill-opacity="0.62">AEGEANWORKS</text>
+</svg>

@@ -4,8 +4,9 @@ Bounded UI-surface edits against a committed `.aikit/ui.json` contract (opt-in).
 A UI task records its baseline commit and allowed surface before the first edit. `verify`
 refuses changes outside that surface or protected paths, enforces a diff budget and runs
 the project's fast proof command, the snapshot inventory proof and the style drift lint.
-`allow` records intended inventory removals; `finish` also requires a recorded human
-review; `abort` restores only the surface, leaving unrelated work intact.
+`allow` records intended inventory removals; `finish` also requires a recorded review (a person
+or an agent when the project waives the person); `abort` restores only the surface, leaving
+unrelated work intact.
 
 PRINCIPLE-006, PRINCIPLE-011, PRINCIPLE-013, PRINCIPLE-014 and PRINCIPLE-018.
 """
@@ -46,7 +47,7 @@ FINDING_CODES = (
     ("UI snapshot proof printed no inventory", "ui.snapshot-empty"),
     ("UI snapshot proof lost", "ui.snapshot-lost"),
     ("style literal", "ui.style-literal"),
-    ("human review not recorded", "ui.review-missing"),
+    ("review not recorded", "ui.review-missing"),
 )
 
 
@@ -711,7 +712,7 @@ def finish(root: Path, git_io: Optional[GitIo] = None,
     if findings:
         return findings
     if not reviewed:
-        return ["human review not recorded: no one confirmed the running UI looks right."]
+        return ["review not recorded: no one confirmed the running UI looks right."]
     with file_lock(_task_path(root)) as acquired:
         if not acquired:
             raise _task_error("Another UI operation holds the task lock.",

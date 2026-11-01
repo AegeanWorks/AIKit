@@ -20,8 +20,20 @@ from scripts.project_registry import repository_name
 CATALOG_PATH = Path(__file__).with_name("brand_catalog.json")
 TEXT = "#F8FAFC"
 MUTED = "#94A3B8"
-FALLBACK_MOTIFS = ("grid", "network", "orbit", "pulse", "terminal", "lens", "stack")
+FALLBACK_MOTIFS = ("grid", "network", "orbit", "pulse", "terminal", "lens", "stack",
+                  "notes", "cube", "aegis")
 FALLBACK_LAYOUTS = ("left", "split", "editorial", "center", "terminal", "grid", "wave")
+# A clipped description must not end on a word that reads as unfinished ("... and a few").
+_DANGLING_WORDS = frozenset({
+    "and", "or", "but", "with", "for", "from", "into", "onto", "to", "of", "in", "on",
+    "at", "by", "as", "the", "a", "an", "its", "their", "your", "our", "that", "which",
+    "so", "then", "than", "via", "per", "over", "under", "across", "using",
+})
+# The kind fallback: a social card reads "AEGEANWORKS · WEB APP", not "AEGEANWORKS · WEB".
+_KIND_LABELS = {
+    "web": "WEB APP", "mobile": "MOBILE APP", "cli": "CLI TOOL", "desktop": "DESKTOP APP",
+    "library": "LIBRARY", "game": "GAME", "service": "SERVICE", "api": "API",
+}
 _CATALOG: Optional[Dict[str, object]] = None
 
 
@@ -67,6 +79,8 @@ def brand_spec(name: str) -> Dict[str, object]:
             "display": str(entry.get("display") or ""),
             "category": str(entry.get("category") or ""),
             "tagline": str(entry.get("tagline") or ""),
+            "repo": str(entry.get("repo") or ""),
+            "lockup": str(entry.get("lockup") or ""),
             "palette": tuple(palette) if isinstance(palette, list) and len(palette) == 4
             else _fallback_palette(name),
             "source": "catalog",
@@ -85,12 +99,30 @@ def brand_spec(name: str) -> Dict[str, object]:
 
 
 def _display_name(name: str) -> str:
-    title = repository_name(name).replace("-", " ")
+    try:
+        catalog = _catalog()
+        projects = catalog.get("projects") if isinstance(catalog, dict) else {}
+        entry = projects.get(name) if isinstance(projects, dict) else None
+        override = str((entry or {}).get("display") or "") if isinstance(entry, dict) else ""
+    except (AttributeError, TypeError):
+        override = ""
+    if override.strip():
+        return re.sub(r"\s+", " ", override.strip())
+    title = repository_name(name).replace("-", " ").replace("_", " ")
     title = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", title)
     return re.sub(r"\s+", " ", title).strip()
 
 
 def _monogram(name: str) -> str:
+    try:
+        catalog = _catalog()
+        projects = catalog.get("projects") if isinstance(catalog, dict) else {}
+        entry = projects.get(name) if isinstance(projects, dict) else None
+        override = str((entry or {}).get("monogram") or "") if isinstance(entry, dict) else ""
+    except (AttributeError, TypeError):
+        override = ""
+    if override.strip():
+        return override.strip().upper()[:3]
     words = [word for word in _display_name(name).split() if word]
     if len(words) >= 2:
         return (words[0][0] + words[1][0]).upper()
@@ -99,25 +131,35 @@ def _monogram(name: str) -> str:
 
 
 def _wrap(text: str, width: int, limit: int) -> List[str]:
-    words, lines, current = text.split(), [], ""
+    """Greedy word wrap that marks a clipped card instead of ending mid-sentence."""
+    words = text.split()
+    lines, current = [], ""
     for word in words:
         if len(current) + len(word) + 1 > width and current:
             lines.append(current)
             current = word
+            if len(lines) == limit:
+                break
         else:
             current = (current + " " + word).strip()
-        if len(lines) == limit:
-            break
-    if current and len(lines) < limit:
-        lines.append(current)
+    if len(lines) < limit:
+        if current:
+            lines.append(current)
+        return lines
+    # Clipped: drop a dangling connector so the last line does not read "and a few".
+    tail = lines[-1].split()
+    while len(tail) > 1 and tail[-1].lower().strip(",;:") in _DANGLING_WORDS:
+        tail.pop()
+    lines[-1] = (" ".join(tail).rstrip(",;:") + " \u2026").strip()
     return lines
 
 
-def _motif_body(motif: str, accent: str, accent2: str) -> str:
+def _motif_body(motif: str, accent: str, accent2: str, monogram: str = "AA") -> str:
     stroke = f'fill="none" stroke="{accent}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"'
     thin = f'fill="none" stroke="{accent}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"'
     alt = f'fill="none" stroke="{accent2}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"'
     soft = f'fill="{accent}" fill-opacity="0.18" stroke="{accent}" stroke-width="2"'
+    safe_mono = xml_escape((monogram or "AA")[:2].upper())
     if motif == "grid":
         return "".join(f'<rect x="{x}" y="{y}" width="26" height="26" rx="6" {soft}/>'
                        for x in (-48, -8, 32) for y in (-48, -8, 32))
@@ -264,32 +306,38 @@ def _motif_body(motif: str, accent: str, accent2: str) -> str:
         return (f'<rect x="-42" y="-52" width="78" height="104" rx="9" {stroke}/>'
                 f'<path d="M-24 -32H16M-24 -16H16M-24 0H4M-24 16H16" {thin}/>'
                 f'<circle cx="26" cy="40" r="16" fill="{accent2}" fill-opacity="0.9"/>'
-                f'<text x="26" y="47" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="{TEXT}">$</text>')
+                f'<path d="M20 34L26 46L32 34" fill="none" stroke="{TEXT}" stroke-width="3" '
+                f'stroke-linecap="round" stroke-linejoin="round"/>')
+    if motif == "notes":
+        return (f'<rect x="-58" y="-34" width="52" height="64" rx="10" {stroke}/>'
+                f'<rect x="-4" y="-46" width="52" height="64" rx="10" {thin}/>'
+                f'<rect x="-30" y="2" width="52" height="64" rx="10" {alt} opacity="0.85"/>'
+                f'<path d="M-46 -14H-18M-46 0H-18M8 -26H36M8 -12H36M-18 22H10" {thin}/>'
+                f'<path d="M-6 -2L-30 -14M20 18L48 2" stroke="{accent2}" stroke-width="2" '
+                f'stroke-dasharray="5 5" stroke-linecap="round" opacity="0.8"/>'
+                f'<circle cx="48" cy="-28" r="5" fill="{accent2}"/>'
+                f'<circle cx="-52" cy="42" r="4" fill="{accent}"/>')
+    if motif == "cube":
+        return (f'<path d="M0 -56L50 -28V28L0 56L-50 28V-28Z" {stroke}/>'
+                f'<path d="M0 -56V0M-50 -28L0 0L50 -28M0 0V56" {thin}/>'
+                f'<path d="M-50 -28L0 0L0 56L-50 28Z" fill="{accent}" fill-opacity="0.10"/>'
+                f'<path d="M50 -28L0 0L0 56L50 28Z" fill="{accent2}" fill-opacity="0.10"/>'
+                f'<circle cx="0" cy="0" r="6" fill="{accent2}"/>')
+    if motif == "aegis":
+        # Checkpoint Gate: a solid gate archway (delivery gates) holding an amber
+        # checkpoint diamond (the durable recovery ledger). Flat fills, sharp
+        # construction, legible down to favicon size.
+        return (f'<path d="M-36 -28H36V28H22V-14H-22V28H-36Z" fill="{accent}"/>'
+                f'<path d="M0 -8L10 2L0 12L-10 2Z" fill="{accent2}"/>')
     return (f'<rect x="-48" y="-48" width="96" height="96" rx="22" {stroke}/>'
             f'<text x="0" y="14" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
-            f'font-size="48" font-weight="700" fill="{accent}">{xml_escape(_monogram("Aa"))}</text>')
+            f'font-size="48" font-weight="700" fill="{accent}">{safe_mono}</text>')
 
 
 def _motif(motif: str, accent: str, accent2: str, cx: float, cy: float, scale: float,
-           opacity: float = 1.0) -> str:
+           opacity: float = 1.0, monogram: str = "AA") -> str:
     return (f'<g transform="translate({cx} {cy}) scale({scale})" opacity="{opacity}">'
-            f'{_motif_body(motif, accent, accent2)}</g>')
-
-
-def _logo_rings(layout: str, accent: str, accent2: str) -> str:
-    if layout in {"center", "wave"}:
-        return (f'<circle cx="256" cy="238" r="170" fill="none" stroke="{accent}" '
-                f'stroke-opacity="0.22" stroke-width="2"/>'
-                f'<circle cx="256" cy="238" r="136" fill="none" stroke="{accent2}" '
-                f'stroke-opacity="0.20" stroke-width="2"/>')
-    if layout in {"grid", "terminal"}:
-        return (f'<path d="M96 160H416M96 238H416M96 316H416M160 96V416M256 96V416M352 96V416" '
-                f'stroke="{accent}" stroke-opacity="0.13" stroke-width="2"/>')
-    if layout in {"editorial", "split"}:
-        return (f'<path d="M64 384L448 128" stroke="{accent2}" stroke-opacity="0.22" stroke-width="3"/>'
-                f'<path d="M64 128L448 384" stroke="{accent}" stroke-opacity="0.12" stroke-width="2"/>')
-    return (f'<circle cx="256" cy="238" r="164" fill="none" stroke="{accent}" '
-            f'stroke-opacity="0.18" stroke-width="2"/>')
+            f'{_motif_body(motif, accent, accent2, monogram)}</g>')
 
 
 def logo_svg(name: str) -> str:
@@ -299,33 +347,70 @@ def logo_svg(name: str) -> str:
     motif = str(spec["motif"])
     layout = str(spec["layout"])
     title = _display_name(name)
+    mono = _monogram(name)
+    wordmark = str(spec.get("lockup") or "").strip().lower() == "wordmark" and title
+    if wordmark:
+        type_block = (f'<text x="256" y="392" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
+                      f'font-size="88" font-weight="700" fill="{TEXT}" letter-spacing="-1">{xml_escape(title)}</text>'
+                      f'<text x="256" y="432" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
+                      f'font-size="16" letter-spacing="5" fill="{TEXT}" fill-opacity="0.62">AEGEANWORKS</text>')
+    else:
+        type_block = (f'<text x="256" y="400" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
+                      f'font-size="64" font-weight="700" fill="{TEXT}" letter-spacing="2">{xml_escape(mono)}</text>'
+                      f'<text x="256" y="438" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
+                      f'font-size="16" letter-spacing="5" fill="{TEXT}" fill-opacity="0.62">AEGEANWORKS</text>')
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc" data-motif="{xml_escape(motif)}" data-layout="{xml_escape(layout)}">
   <title id="title">{xml_escape(title)} logo</title>
   <desc id="desc">Project-specific {xml_escape(motif)} mark for {xml_escape(title)}; AegeanWorks identity.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{bg1}"/><stop offset="1" stop-color="{bg2}"/></linearGradient>
-    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{accent}"/><stop offset="1" stop-color="{accent2}"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  {_logo_rings(layout, accent, accent2)}
-  {_motif(motif, accent, accent2, 256, 232, 1.62)}
-  <text x="256" y="404" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="700" fill="url(#mark)" letter-spacing="3">{xml_escape(_monogram(name))}</text>
-  <text x="256" y="458" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="17" letter-spacing="6" fill="{TEXT}" fill-opacity="0.55">AEGEANWORKS</text>
+  {_motif(motif, accent, accent2, 256, 210, 1.45, monogram=mono)}
+  {type_block}
 </svg>
 '''
 
 
+def _chip_width(label: str) -> int:
+    return min(220, 30 + len(label) * 9)
+
+
 def _chips(tags: Sequence[str], x: int, y: int) -> str:
     parts = []
-    for index, tag in enumerate(list(tags)[:3]):
-        label = xml_escape(str(tag).replace("-", " ")[:18])
-        width = 26 + len(str(tag)) * 10
-        offset = x + index * (width + 12)
+    offset = x
+    for tag in list(tags)[:3]:
+        label = str(tag).replace("-", " ").strip()[:20]
+        if not label:
+            continue
+        width = _chip_width(label)
+        if offset + width > 1210:
+            break
         parts.append(f'<rect x="{offset}" y="{y}" width="{width}" height="38" rx="19" '
                      f'fill="#0B1220" fill-opacity="0.55" stroke="{MUTED}" stroke-opacity="0.35"/>'
                      f'<text x="{offset + width / 2}" y="{y + 25}" text-anchor="middle" '
                      f'font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="{TEXT}" '
-                     f'fill-opacity="0.82">{label}</text>')
+                     f'fill-opacity="0.82">{xml_escape(label)}</text>')
+        offset += width + 12
+    return "".join(parts)
+
+
+def _chips_centered(tags: Sequence[str], y: int, center: int = 640) -> str:
+    labels = [str(tag).replace("-", " ").strip()[:20] for tag in list(tags)[:3]]
+    labels = [label for label in labels if label]
+    if not labels:
+        return ""
+    widths = [_chip_width(label) for label in labels]
+    total = sum(widths) + 12 * (len(widths) - 1)
+    offset = center - total / 2
+    parts = []
+    for label, width in zip(labels, widths):
+        parts.append(f'<rect x="{offset:.0f}" y="{y}" width="{width}" height="38" rx="19" '
+                     f'fill="#0B1220" fill-opacity="0.55" stroke="{MUTED}" stroke-opacity="0.35"/>'
+                     f'<text x="{offset + width / 2:.0f}" y="{y + 25}" text-anchor="middle" '
+                     f'font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="{TEXT}" '
+                     f'fill-opacity="0.82">{xml_escape(label)}</text>')
+        offset += width + 12
     return "".join(parts)
 
 
@@ -337,36 +422,42 @@ def social_svg(name: str, kind: str, description: str, repo_url: str,
     motif = str(spec["motif"])
     layout = str(spec["layout"])
     title = _display_name(name)
-    lines = _wrap(description or f"{title} — an AegeanWorks project.", 50, 3)
+    category = str(spec.get("category") or "").strip()
+    kicker = category or _KIND_LABELS.get(kind.lower(), kind.upper())
+    title = str(spec.get("display") or "").strip() or title
+    body = str(spec.get("tagline") or "").strip() or description
+    repo_suffix = str(spec.get("repo") or "").strip() or repository_name(name)
+    repo_url = f"github.com/AegeanWorks/{repo_suffix}"
+    lines = _wrap(body or f"{title} — an AegeanWorks project.", 50, 3)
     font_size = 76 if len(title) <= 15 else 62 if len(title) <= 22 else 50
     tagline = ""
     chips = ""
+    mono = _monogram(name)
     if layout == "center":
-        title_y, text_x, align = 356, 640, "middle"
-        tagline = tagline.replace(f'x="{text_x}"', f'x="{text_x}"')
-        chips = _chips(tags or (kind, "aegeanworks", "software"), 430, 530)
-        mark = _motif(motif, accent, accent2, 640, 214, 1.55)
+        title_y = 350
+        chips = _chips_centered(tags or (kind, "aegeanworks", "software"), 530)
+        mark = _motif(motif, accent, accent2, 640, 208, 1.4, monogram=mono)
         title_block = (f'<text x="640" y="{title_y}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
-                       f'<text x="640" y="{title_y + 56}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="22" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'<text x="640" y="{title_y + 52}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" '
+                       f'font-size="22" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
-            f'<text x="640" y="{428 + index * 38}" text-anchor="middle" '
+            f'<text x="640" y="{442 + index * 38}" text-anchor="middle" '
             f'font-family="Segoe UI, Arial, sans-serif" font-size="25" fill="{TEXT}" '
             f'fill-opacity="0.72">{xml_escape(line)}</text>' for index, line in enumerate(lines))
     elif layout == "split":
-        mark = _motif(motif, accent, accent2, 245, 320, 1.9)
+        mark = _motif(motif, accent, accent2, 245, 320, 1.9, monogram=mono)
         title_block = (f'<text x="548" y="246" font-family="Segoe UI, Arial, sans-serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
                        f'<text x="550" y="292" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
             f'<text x="550" y="{344 + index * 42}" font-family="Segoe UI, Arial, sans-serif" '
             f'font-size="28" fill="{TEXT}" fill-opacity="0.74">{xml_escape(line)}</text>'
             for index, line in enumerate(lines))
         chips = _chips(tags or (kind, "aegeanworks", "software"), 550, 500)
     elif layout == "terminal":
-        mark = _motif(motif, accent, accent2, 1040, 320, 1.8, 0.42)
+        mark = _motif(motif, accent, accent2, 1040, 320, 1.8, 0.42, monogram=mono)
         title_block = (f'<text x="78" y="206" font-family="Consolas, monospace" font-size="20" '
                        f'fill="{accent}">$ open {xml_escape(repository_name(name))}</text>'
                        f'<text x="78" y="292" font-family="Segoe UI, Arial, sans-serif" '
@@ -377,25 +468,25 @@ def social_svg(name: str, kind: str, description: str, repo_url: str,
             for index, line in enumerate(lines))
         chips = _chips(tags or (kind, "aegeanworks", "software"), 80, 502)
     elif layout == "editorial":
-        mark = _motif(motif, accent, accent2, 1030, 304, 2.35, 0.85)
+        mark = _motif(motif, accent, accent2, 1030, 304, 2.35, 0.85, monogram=mono)
         title_block = (f'<text x="76" y="238" font-family="Georgia, Times New Roman, serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
                        f'<path d="M78 270H690" stroke="{accent}" stroke-width="3"/>'
                        f'<text x="78" y="316" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="20" letter-spacing="6" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'font-size="20" letter-spacing="6" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
             f'<text x="80" y="{378 + index * 42}" font-family="Georgia, Times New Roman, serif" '
             f'font-size="29" fill="{TEXT}" fill-opacity="0.74">{xml_escape(line)}</text>'
             for index, line in enumerate(lines))
         chips = _chips(tags or (kind, "aegeanworks", "software"), 80, 506)
     elif layout == "grid":
-        pattern = "".join(_motif(motif, accent, accent2, x, y, 0.55, 0.10)
+        pattern = "".join(_motif(motif, accent, accent2, x, y, 0.55, 0.08, monogram=mono)
                           for x in (160, 440, 720, 1000) for y in (130, 400))
-        mark = _motif(motif, accent, accent2, 188, 318, 2.0)
+        mark = _motif(motif, accent, accent2, 188, 318, 2.0, monogram=mono)
         title_block = (f'<text x="384" y="250" font-family="Segoe UI, Arial, sans-serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
                        f'<text x="386" y="296" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
             f'<text x="386" y="{348 + index * 42}" font-family="Segoe UI, Arial, sans-serif" '
             f'font-size="28" fill="{TEXT}" fill-opacity="0.74">{xml_escape(line)}</text>'
@@ -403,22 +494,22 @@ def social_svg(name: str, kind: str, description: str, repo_url: str,
         chips = _chips(tags or (kind, "aegeanworks", "software"), 386, 502)
         mark += pattern
     elif layout == "wave":
-        mark = _motif(motif, accent, accent2, 190, 300, 2.0)
+        mark = _motif(motif, accent, accent2, 190, 300, 2.0, monogram=mono)
         title_block = (f'<text x="390" y="246" font-family="Segoe UI, Arial, sans-serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
                        f'<text x="392" y="292" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
             f'<text x="392" y="{344 + index * 42}" font-family="Segoe UI, Arial, sans-serif" '
             f'font-size="28" fill="{TEXT}" fill-opacity="0.74">{xml_escape(line)}</text>'
             for index, line in enumerate(lines))
         chips = _chips(tags or (kind, "aegeanworks", "software"), 392, 500)
     else:
-        mark = _motif(motif, accent, accent2, 190, 310, 2.0)
+        mark = _motif(motif, accent, accent2, 190, 310, 2.0, monogram=mono)
         title_block = (f'<text x="390" y="246" font-family="Segoe UI, Arial, sans-serif" '
                        f'font-size="{font_size}" font-weight="700" fill="{TEXT}">{xml_escape(title)}</text>'
                        f'<text x="392" y="292" font-family="Segoe UI, Arial, sans-serif" '
-                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kind.upper())}</text>')
+                       f'font-size="21" letter-spacing="5" fill="{accent}">AEGEANWORKS · {xml_escape(kicker)}</text>')
         tagline = "".join(
             f'<text x="392" y="{344 + index * 42}" font-family="Segoe UI, Arial, sans-serif" '
             f'font-size="28" fill="{TEXT}" fill-opacity="0.74">{xml_escape(line)}</text>'
@@ -434,12 +525,14 @@ def social_svg(name: str, kind: str, description: str, repo_url: str,
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{bg1}"/><stop offset="1" stop-color="{bg2}"/></linearGradient>
     <radialGradient id="glow" cx="0.2" cy="0.12" r="0.95"><stop offset="0" stop-color="{accent}" stop-opacity="0.28"/><stop offset="1" stop-color="{accent}" stop-opacity="0"/></radialGradient>
-    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{accent}"/><stop offset="1" stop-color="{accent2}"/></linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{accent}"/><stop offset="1" stop-color="{accent}"/></linearGradient>
   </defs>
   <rect width="1280" height="640" fill="url(#bg)"/>
   <rect width="1280" height="640" fill="url(#glow)"/>
+  <rect x="0" y="0" width="1280" height="4" fill="url(#band)"/>
+  <rect x="10" y="14" width="1260" height="616" rx="18" fill="none" stroke="{TEXT}" stroke-opacity="0.10" stroke-width="1.5"/>
   {panel}
-  <g opacity="0.15" stroke="{TEXT}">
+  <g opacity="0.09" stroke="{TEXT}" stroke-width="1">
     <path d="M0 128H1280M0 256H1280M0 384H1280M0 512H1280M256 0V640M512 0V640M768 0V640M1024 0V640"/>
   </g>
   {mark}
@@ -447,6 +540,6 @@ def social_svg(name: str, kind: str, description: str, repo_url: str,
   {tagline}
   {chips}
   <text x="76" y="592" font-family="Segoe UI, Arial, sans-serif" font-size="19" letter-spacing="6" fill="{TEXT}" fill-opacity="0.50">AEGEANWORKS</text>
-  <text x="1204" y="592" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="{accent}">{xml_escape(repo_url)}</text>
+  <text x="1204" y="592" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="1" fill="{TEXT}" fill-opacity="0.55">{xml_escape(repo_url)}</text>
 </svg>
 '''

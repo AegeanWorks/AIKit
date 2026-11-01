@@ -246,6 +246,102 @@
       "#1a1030",
       "#a78bfa",
       "#f472b6"
+    ],
+    [
+      "#070f13",
+      "#121a30",
+      "#5eb7f3",
+      "#c590f4"
+    ],
+    [
+      "#13070d",
+      "#301214",
+      "#f35e99",
+      "#f4d990"
+    ],
+    [
+      "#0c0713",
+      "#2d1230",
+      "#b25ef3",
+      "#f490ae"
+    ],
+    [
+      "#070d13",
+      "#121430",
+      "#5e99f3",
+      "#d990f4"
+    ],
+    [
+      "#130c07",
+      "#302d12",
+      "#f3b25e",
+      "#aef490"
+    ],
+    [
+      "#071311",
+      "#122630",
+      "#5ef3f3",
+      "#9d90f4"
+    ],
+    [
+      "#130907",
+      "#302512",
+      "#f38a5e",
+      "#c8f490"
+    ],
+    [
+      "#110713",
+      "#301227",
+      "#ee5ef3",
+      "#f49a90"
+    ],
+    [
+      "#130f07",
+      "#2b3012",
+      "#f3da5e",
+      "#93f490"
+    ],
+    [
+      "#07130d",
+      "#12302e",
+      "#5ef3b7",
+      "#90aaf4"
+    ],
+    [
+      "#0b0713",
+      "#2a1230",
+      "#a35ef3",
+      "#f490b8"
+    ],
+    [
+      "#0c1307",
+      "#123013",
+      "#8af35e",
+      "#90f4e3"
+    ],
+    [
+      "#13070f",
+      "#30121b",
+      "#f35ebc",
+      "#f4c290"
+    ],
+    [
+      "#071113",
+      "#122030",
+      "#5ed5f3",
+      "#b190f4"
+    ],
+    [
+      "#060b16",
+      "#0f1e33",
+      "#5eead4",
+      "#fbbf24"
+    ],
+    [
+      "#0a0f1e",
+      "#14263d",
+      "#7dd3fc",
+      "#fbbf24"
     ]
   ],
   "projects": {
@@ -349,7 +445,8 @@
       "palette": 13,
       "layout": "terminal",
       "category": "PRODUCTIVITY",
-      "tagline": "A terminal focus timer that tracks deep-work sessions."
+      "tagline": "A terminal focus timer that tracks deep-work sessions.",
+      "monogram": "CR"
     },
     "crypt-crawler": {
       "motif": "dungeon",
@@ -544,6 +641,128 @@
       "layout": "center",
       "category": "GAME",
       "tagline": "A visual perception gauntlet with a daily challenge."
+    },
+    "aegean-tge": {
+      "motif": "stack",
+      "palette": 41,
+      "layout": "split",
+      "category": "INFERENCE ENGINE",
+      "tagline": "Hybrid CPU and GPU LLM inference that treats RAM and VRAM as one memory tier."
+    },
+    "cairn": {
+      "motif": "stone",
+      "palette": 42,
+      "layout": "editorial",
+      "category": "LANGUAGE",
+      "tagline": "An agent-first systems language with its own x86-64 backend."
+    },
+    "capability-showcase": {
+      "motif": "grid",
+      "palette": 43,
+      "layout": "center",
+      "category": "SHOWCASE",
+      "tagline": "A local-first showcase of AI-assisted planning, implementation and verification."
+    },
+    "chatduck": {
+      "motif": "orbit",
+      "palette": 44,
+      "layout": "split",
+      "category": "CHAT UI",
+      "tagline": "A fast, local-first chat UI for any OpenAI-compatible model server.",
+      "monogram": "CD"
+    },
+    "driftwood": {
+      "motif": "branch",
+      "palette": 45,
+      "layout": "terminal",
+      "category": "CLI TOOL",
+      "tagline": "Rank code hotspots by git churn and file complexity."
+    },
+    "dupefinder": {
+      "motif": "fingerprint",
+      "palette": 46,
+      "layout": "left",
+      "category": "CLI TOOL",
+      "tagline": "Find byte-identical files and reclaim space, read-only."
+    },
+    "dustline": {
+      "motif": "dungeon",
+      "palette": 47,
+      "layout": "wave",
+      "category": "GAME",
+      "tagline": "A top-down horde-survival shooter with endless procedural arenas.",
+      "monogram": "DL"
+    },
+    "iris": {
+      "motif": "prism",
+      "palette": 48,
+      "layout": "center",
+      "category": "GAME",
+      "tagline": "A neon colour-mixing puzzle of mirrors, beams and exact hues."
+    },
+    "keystone": {
+      "motif": "cube",
+      "palette": 49,
+      "layout": "grid",
+      "category": "ENGINE",
+      "tagline": "A small, game-agnostic 3D engine core in Python."
+    },
+    "modelduck": {
+      "motif": "gauge",
+      "palette": 50,
+      "layout": "terminal",
+      "category": "LOCAL AI",
+      "tagline": "Serve GGUF models locally and tune them for code."
+    },
+    "noesis": {
+      "motif": "brain",
+      "palette": 51,
+      "layout": "editorial",
+      "category": "COGNITION",
+      "tagline": "Evidence-led cognitive training with deterministic mechanics.",
+      "monogram": "NS"
+    },
+    "pocket-planner": {
+      "motif": "notes",
+      "palette": 52,
+      "layout": "left",
+      "category": "CLI TOOL",
+      "tagline": "Capture, prioritise and finish work from the terminal."
+    },
+    "tessera": {
+      "motif": "grid",
+      "palette": 53,
+      "layout": "grid",
+      "category": "DESIGN TOOL",
+      "tagline": "Compose seamless geometric patterns and export crisp SVG.",
+      "monogram": "TS"
+    },
+    "weft": {
+      "motif": "network",
+      "palette": 54,
+      "layout": "editorial",
+      "category": "GAME",
+      "tagline": "A thread-routing puzzle: fill every cell of the loom."
+    },
+    "portable_agent_kit": {
+      "motif": "aegis",
+      "palette": 55,
+      "layout": "editorial",
+      "monogram": "AI",
+      "display": "AIKit",
+      "category": "AI GOVERNANCE",
+      "tagline": "Universal AI principles, disruption recovery and delivery gates for coding agents.",
+      "repo": "AIKit",
+      "lockup": "wordmark"
+    },
+    "Atlas": {
+      "motif": "fold",
+      "palette": 56,
+      "layout": "editorial",
+      "monogram": "AX",
+      "display": "Atlas",
+      "category": "KNOWLEDGE PLATFORM",
+      "tagline": "An interactive visual knowledge platform for scientific figures."
     }
   }
 }
