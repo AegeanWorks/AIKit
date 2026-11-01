@@ -69,6 +69,15 @@ def _failure_tail(output: str) -> str:
     return "\n".join(lines[-FAILURE_TAIL_LINES:])
 
 
+def _print_failure_tail(tail: str) -> None:
+    """Print a bounded failure slice between rules, or nothing when the tail is empty."""
+    if not tail:
+        return
+    print("-" * 58)
+    print(tail)
+    print("-" * 58)
+
+
 @dataclass(frozen=True)
 class TierResult:
     """One tier's measured outcome; frozen so a report cannot edit what was measured."""
@@ -136,8 +145,11 @@ def run_tier(module: str, runner: Optional[Callable[[str, int], Tuple[int, str]]
     for attempt in range(max(1, attempts)):
         code, output = run(module, TIER_TIMEOUT)
         if code == TIMEOUT_EXIT:
+            # The runner kept the partial output precisely so the stalled test can be named;
+            # dropping it left a timeout report with only the tier, never the test (ADR-293).
             return TierResult(module=module, tests=0, seconds=float(TIER_TIMEOUT),
-                              passed=False, attempts=len(measurements) + 1, timed_out=True)
+                              passed=False, attempts=len(measurements) + 1, timed_out=True,
+                              failure_tail=_failure_tail(output))
         summary = parse_tier_output(output)
         if summary is None:
             return None
@@ -192,6 +204,9 @@ def run_check(runner: Optional[Callable[[str, int], Tuple[int, str]]] = None,
         if result.timed_out:
             failures.append(f"{module}: did not finish within {TIER_TIMEOUT}s")
             print(f"[FAIL] {module}: did not finish within {TIER_TIMEOUT}s")
+            # The partial output names the test that stopped making progress; without it the
+            # operator had to rerun the tier to find it (ADR-293, ADR-299).
+            _print_failure_tail(result.failure_tail)
             continue
         if not result.passed:
             failures.append(f"{module}: the tier failed")
@@ -200,10 +215,7 @@ def run_check(runner: Optional[Callable[[str, int], Tuple[int, str]]] = None,
                    if result.attempts > 1 else "")
         print(f"[{verdict}] {module}: {result.tests} tests in {result.seconds:.3f}s "
               f"= {result.per_test_ms:.2f}ms per test (ceiling {result.budget_ms:.2f}ms){retried}")
-        if result.failure_tail:
-            print("-" * 58)
-            print(result.failure_tail)
-            print("-" * 58)
+        _print_failure_tail(result.failure_tail)
 
     over = budget_errors(results)
     for line in over:

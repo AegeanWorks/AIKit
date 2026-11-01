@@ -8280,6 +8280,21 @@ class TestTestTierBudgetGate(unittest.TestCase):
         self.assertIn("did not finish within", out)
         self.assertIn("Fix:", out)
 
+    def test_a_timed_out_tier_prints_the_test_that_stalled(self):
+        # default_runner captures the partial output, so discarding it left a timeout report with
+        # only the tier name: the operator still had to rerun to find the hanging test (ADR-293).
+        from scripts.check_test_budgets import TIMEOUT_EXIT
+
+        partial = ("FAIL: test_hangs (tests.test_integration.TestHang.test_hangs)\n"
+                   "Traceback (most recent call last):\n"
+                   "  File \"tests/test_integration.py\", line 9, in test_hangs\n"
+                   "    hang_forever()\ndid not finish within 900s\n")
+        code, out = self.gate({self.UNIT: (TIMEOUT_EXIT, partial),
+                               self.INTEG: self.ok(45, 1.0)})
+        self.assertEqual(code, 1)
+        self.assertIn("test_hangs", out)
+        self.assertIn("did not finish within", out)
+
     def test_the_real_runner_reports_a_timeout_as_output(self):
         from scripts import check_test_budgets as budgets
 
