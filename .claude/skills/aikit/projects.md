@@ -6,7 +6,7 @@ The user's software lives in its own project, never in AIKit's tree:
 ```bash
 python aikit.py list                 # which projects exist
 python aikit.py new <name> --description "<10-350 chars>" [--topic <t>]... [--kind software|game|science]  # own repo + .aikit memory; auto-detects UI, generates model logo/social candidates (POLLINATIONS_API_KEY) or local fallback, writes media pending; --publish refuses until logo/social are reviewed and applied (ADR-243)
-python aikit.py attach <path>        # an existing folder: adds .aikit/ memory and an AIKit Integrated badge under its README title (uncommitted)
+python aikit.py attach <path>        # an existing folder: adds .aikit/ memory, an AIKit Integrated badge under its README title and pending brand candidates when .aikit/media.json is missing (uncommitted)
 python aikit.py status <name>        # its task, changes, latest decision and its gates
 python aikit.py check <name>         # its Phase 4: tests, stack gates, hygiene, guidelines, secret scan; exit 0 to commit; never pushes, add --push only when push delivery is authorized (PRINCIPLE-018 R4)
 python aikit.py guideline <name> "<rule>" --source user   # a project rule, below the principles
@@ -17,7 +17,8 @@ python aikit.py topics <name> --from-file <json> [--apply]  # record the AI's ch
 python aikit.py topics <name> --review [--json]  # audit current/recorded tags without choosing
 python aikit.py ui-id <name> [--set auto|yes|no] [--kind <k>]  # durable has_ui/ui_kind evidence (ADR-233)
 python aikit.py media init --art <name>  # IMAGE MODEL: POLLINATIONS_API_KEY env only; gen.pollinations.ai free flux model renders title+category, then the square is reframed to 1280x640; never commit the key (ADR-239, ADR-241)
-python aikit.py fix <name>           # self-heals memory, adopts UI, cleans temp buffers, syncs codebase map
+python aikit.py media apply <name> --readme-only  # update only the project README; for a dossier manifest another builder owns
+python aikit.py fix <name>           # self-heals memory, adopts UI, cleans temp buffers, syncs codebase map, seeds brand candidates and writes an approved banner into a README that lacks one
 python aikit.py checkpoint <name>    # disruption checkpoint on the project ledger; --agent <host>:<session> names you
 python aikit.py resume <name>        # disruption resume on the project
 python aikit.py complete <name>      # mark project task complete; another agent's task needs --take-over

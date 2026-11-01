@@ -280,7 +280,9 @@ terminal `Blocked`, which refuses later review or status changes. `ideas` hides 
 `ui-id` stores `has_ui`, `ui_kind` and `ui_evidence`. `topics --brief` gives an AI the evidence;
 `--from-file` records its tags and `--apply` publishes them, capped at 20. `media init --art` uses
 the online image model with `POLLINATIONS_API_KEY`; approved logos survive unless `--force` is
-given, and `review/apply/audit` need a named reviewer and shots.
+given, and `review/apply/audit` need a named reviewer and shots. `attach`/`fix` seed candidates
+when media is uninitialized; `fix` also adds an approved banner to a README lacking one.
+`media apply <name> --readme-only` writes only the README.
 
 ## 📥 Alternative: Copy AIKit Into an Existing Project
 

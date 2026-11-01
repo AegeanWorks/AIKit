@@ -1,77 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "adr-304-repair-v1",
+    "task_id": "media-selfheal-followup-v1",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793522487.794102,
-    "owner": "kilo:review",
-    "started_by": "kilo:review",
+    "updated_at": 1793529621.2787013,
+    "owner": "kilo:main",
+    "started_by": "kilo:main",
     "continuations": [],
-    "completed_at": 1793522487.9707632
+    "completed_at": 1793529665.2750604
   },
   "checkpoints": [
-    {
-      "task_id": "entire-audit-remediation",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Remediate verified Entire audit findings in AIKit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793493908.1011698,
-      "timestamp_str": "2026-11-01 03:45:08",
-      "agent": "commandcode:audit-fix",
-      "impact_assessment": {
-        "why": "The recovered Entire audits report 8 defects in reforge, media, artwork, CLI and a drift test; each must be verified against the current tree and fixed where real.",
-        "benefits": "Restores ADR-297 completion semantics, makes every state write durable, bounds test process trees, removes dead code and duplicate writers, and turns the walker test into a real drift detector.",
-        "risks": "contract: settle_run and save_state behavior changes touch every Reforge entry point; dependency: process-tree teardown will reuse scripts.dogfood; concurrency: state writes keep the advisory lock; state: .aikit/reforge.json and generated knowledge files must stay consistent.",
-        "mitigation": "Failing-first tests per behavior change, full test budgets plus read-only gates, and an ADR recording the remediation."
-      }
-    },
-    {
-      "task_id": "entire-audit-remediation",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'entire-audit-remediation' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793494433.0055828,
-      "timestamp_str": "2026-11-01 03:53:53",
-      "agent": "commandcode:audit-fix"
-    },
-    {
-      "task_id": "media-write-regressions",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Audit the last three pushes and fix project media write regressions",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793498682.4087324,
-      "timestamp_str": "2026-11-01 05:04:42",
-      "agent": "kilo:neurocore",
-      "impact_assessment": {
-        "why": "The last three pushes routed project media through the shared atomic writer, whose default shadow backup left .bak files in project and dossier trees, and the local media init --art branch still hard-coded force=True, bypassing the approved-logo guard.",
-        "benefits": "Re-seeding or applying media touches only named files, project hygiene stays green, and approved logos survive a plain re-run on both art paths.",
-        "risks": "contract: the media CLI now honors --force exactly as documented; dependency: none added; concurrency: shared writer and lock unchanged; state: .aikit state keeps its .bak recovery shadow while project trees do not.",
-        "mitigation": "Failing-first regression tests for re-seed, apply and CLI flag forwarding; full Phase 4 gate triad plus dogfood; ADR-303 records the decision."
-      }
-    },
-    {
-      "task_id": "media-write-regressions",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] Fixes verified: unit and integration tiers, budget gate, dogfood and every read-only gate pass",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793498688.6769156,
-      "timestamp_str": "2026-11-01 05:04:48",
-      "agent": "kilo:neurocore",
-      "handoff": {
-        "state": "code committed as 25afd87",
-        "next": "commit ledger and push",
-        "evidence": "736 unit + 78 integration tests, 5/5 dogfood tracks, ADR-303"
-      }
-    },
     {
       "task_id": "media-write-regressions",
       "phase": "completed",
@@ -267,6 +207,55 @@
       "timestamp": 1793522487.970765,
       "timestamp_str": "2026-11-01 11:41:27",
       "agent": "kilo:review"
+    },
+    {
+      "task_id": "media-selfheal-followup-v1",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/4] Plan: close the follow-up gaps in the media/topic self-healing feature (readme-only failure path, attach/fix resilience, single topic warning, docs)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793527993.6960053,
+      "timestamp_str": "2026-11-01 13:13:13",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The self-healing feature silently succeeds when media apply --readme-only has no README, attach and fix can crash on a failed candidate write, check and fix can print the same topic warning twice, and the new behaviour is undocumented",
+        "benefits": "Every new path either reports an actionable error or a single warning, attach cannot be aborted by an unwritable assets folder, and the command matrix documents the self-healing and readme-only paths",
+        "risks": "contract: check output order and media apply exit codes; dependency: standard library only; concurrency: none; state: project README and .aikit/media.json writes only",
+        "mitigation": "Failing-first unit tests for the readme-only gap and single-warning output, focused test runs, then the full Phase 4 triad and read-only gates"
+      }
+    },
+    {
+      "task_id": "media-selfheal-followup-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/4] Implemented: readme-only ProjectError, resilient attach/fix seeding, single media/topic warning before the gate-failure return, screenshot-driven README repair, docs and ADR-306",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793529621.143141,
+      "timestamp_str": "2026-11-01 13:40:21",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "media-selfheal-followup-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/4] Verify: 747 unit + 13 auto-register + 78 integration tests and budgets pass; sync, AST map, licenses, secrets, reachability and dogfood 5/5 pass; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793529621.2787013,
+      "timestamp_str": "2026-11-01 13:40:21",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "media-selfheal-followup-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'media-selfheal-followup-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793529665.2750616,
+      "timestamp_str": "2026-11-01 13:41:05",
+      "agent": "kilo:main"
     }
   ]
 }

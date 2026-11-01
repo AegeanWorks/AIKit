@@ -5786,17 +5786,41 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("├── LICENSE\n", readme)
         self.assertIn("├── LICENSE.md\n", readme)
 
-    def test_fix_seeds_brand_media_candidates_and_warns_on_default_topics(self):
+    def test_fix_seeds_brand_media_candidates_and_warns_once_on_default_topics(self):
         folder = self.make_folder()
         attach_project(folder, "mediafixapp", workspace=self.kit)
-        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+        gate_obj = mock.Mock(command="test", source="config")
+        gate_obj.name = "test"
+        gate_res = mock.Mock(gate=gate_obj, passed=True, seconds=0.1, output="")
+        # `fix` ends in `check`, which owns the topic warning; printing it in both places showed
+        # the operator the same advice twice whenever the gates passed.
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[gate_res]):
             code, out, _ = self.run_cli("fix", "mediafixapp")
         self.assertEqual(code, 0)
         self.assertIn("seeded brand media candidates (.aikit/media.json and assets/)", out)
         self.assertTrue((folder / ".aikit" / "media.json").is_file())
         self.assertTrue((folder / "assets" / "logo.svg").is_file())
         self.assertTrue((folder / "assets" / "social-preview.svg").is_file())
-        self.assertIn("only has default license topics", out)
+        self.assertEqual(out.count("only has default license topics"), 1)
+
+    def test_fix_warns_when_brand_candidates_cannot_be_written(self):
+        folder = self.make_folder(("README.md", "# fixfailapp\n\nA tool.\n"))
+        attach_project(folder, "fixfailapp", workspace=self.kit)
+        (folder / ".aikit" / "media.json").unlink(missing_ok=True)
+        with mock.patch("scripts.aikit_cli.project_media.seed_media_assets",
+                        side_effect=OSError("read-only volume")), \
+             mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            code, out, _ = self.run_cli("fix", "fixfailapp")
+        self.assertEqual(code, 0)
+        self.assertIn("Brand media candidates could not be generated", out)
+
+    def test_attach_warns_when_brand_candidates_cannot_be_written(self):
+        folder = self.make_folder(("README.md", "# attachfailapp\n\nA tool.\n"))
+        with mock.patch("scripts.aikit_cli.project_media.seed_media_assets",
+                        side_effect=OSError("read-only volume")):
+            code, out, err = self.run_cli("attach", str(folder), "--name", "attachfailapp")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Brand media candidates could not be generated", out)
 
     def test_fix_applies_approved_media_to_readme_when_missing(self):
         folder = self.make_folder(("README.md", "# demoapp\n\nDemo description here.\n"))
@@ -9349,6 +9373,17 @@ class TestReforgeCore(unittest.TestCase):
         self.assertIn("README.md", applied["applied"][0])
         readme = (root / "README.md").read_text(encoding="utf-8")
         self.assertIn("<!-- aegean:media:start -->", readme)
+
+    def test_apply_media_readme_only_refuses_a_project_without_a_readme(self):
+        root = self.project("readme-only-missing")
+        (root / "README.md").unlink()
+        with mock.patch.object(project_media, "_head", return_value=""):
+            project_media.seed_media_assets(root, "readme-only-missing", force=True)
+        self.assertFalse((root / "README.md").exists())
+        with self.assertRaises(ProjectError) as caught:
+            project_media.apply_media(root, "readme-only-missing", readme_only=True)
+        self.assertIn("no README.md", str(caught.exception))
+        self.assertIn("fix", caught.exception.fix)
 
     def test_a_repository_without_a_ledger_records_nothing_and_does_not_fail(self):
         from reforge.ledger import ledger_artifacts, record_event

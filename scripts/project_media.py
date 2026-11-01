@@ -641,9 +641,16 @@ def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None,
     if readme_only:
         applied: List[str] = []
         readme = root / "README.md"
-        if readme.is_file():
-            _update_readme(readme, repo, data, approved_shots)
-            applied.append(str(readme))
+        if not readme.is_file():
+            raise ProjectError(
+                f"{root} has no README.md to update.",
+                "media apply --readme-only writes the approved banner and screenshots into the "
+                "project README, so without one it would change nothing.",
+                f"run `python aikit.py fix {name}` to seed README.md, then rerun "
+                f"`python aikit.py media apply {name} --readme-only`.",
+            )
+        _update_readme(readme, repo, data, approved_shots)
+        applied.append(str(readme))
         return {"project": name, "repo": repo, "applied": applied,
                 "logo": bool(_approved(logo)), "screenshots": len(approved_shots),
                 "manifest": ""}

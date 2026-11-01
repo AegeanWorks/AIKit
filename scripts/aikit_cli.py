@@ -317,9 +317,13 @@ def cmd_attach(args: argparse.Namespace) -> int:
         print(f"     UI identifier: has_ui={identity['has_ui']} kind={identity['kind']} "
               f"(uncommitted; review and commit it).")
     if not (folder / ".aikit" / "media.json").is_file():
-        project_media.seed_media_assets(folder, name)
-        print("     Local brand candidates generated "
-              "(uncommitted; review before applying).")
+        try:
+            project_media.seed_media_assets(folder, name)
+            print("     Local brand candidates generated "
+                  "(uncommitted; review before applying).")
+        except (ProjectError, OSError, ValueError) as exc:
+            # A read-only or full assets folder must not undo a successful attach.
+            print(f"     [WARN] Brand media candidates could not be generated: {exc}")
     return 0
 
 
@@ -532,6 +536,13 @@ def cmd_check(args: argparse.Namespace) -> int:
     print(f"{passed}/{len(results)} gates passed for '{project.name}'")
     print("Manual: record 'checklists: passed' or the failed or skipped item IDs in the task's"
           " latest checkpoint before the next commit (PRINCIPLE-001 R8, PRINCIPLE-011 R8).")
+    # These warnings describe the project, not the gate run, so a failing tier must not hide them;
+    # `fix` ends in this same check and used to print the topic warning a second time on success.
+    if not (project.path / ".aikit" / "media.json").is_file():
+        print(f"[WARN] Brand media not initialized; run `python aikit.py media init {project.name}`.")
+    warning = default_topic_warning(project)
+    if warning:
+        print(warning)
     failed = [result.gate.name for result in results if not result.passed]
     sys.stdout.flush()  # the report above, then the triad, in that order when both are piped
     if failed:
@@ -562,11 +573,6 @@ def cmd_check(args: argparse.Namespace) -> int:
     if is_game_project(game_config) and not isinstance(game_config.get("mechanics"), dict):
         print("[WARN] Game detected but .aikit/project.json has no mechanics contract; declare "
               "`mechanics.core` and `mechanics.test` for a headless AI-testable core.")
-    if not (project.path / ".aikit" / "media.json").is_file():
-        print(f"[WARN] Brand media not initialized; run `python aikit.py media init {project.name}`.")
-    warning = default_topic_warning(project)
-    if warning:
-        print(warning)
     if audit.get("ledger_error") or (strict and baseline_errors):
         print("Error: the project is not delivery-ready.", file=sys.stderr)
         print("Why: a passing gate run must describe the committed tree, not an unverified working copy.",
@@ -653,25 +659,27 @@ def cmd_fix(args: argparse.Namespace) -> int:
         print(f"[WARN] UI contract not adopted: {adoption['reason']}")
     media_file = memory / "media.json"
     if not media_file.is_file():
-        project_media.seed_media_assets(project.path, project.name)
-        fixes.append("seeded brand media candidates (.aikit/media.json and assets/)")
+        try:
+            project_media.seed_media_assets(project.path, project.name)
+            fixes.append("seeded brand media candidates (.aikit/media.json and assets/)")
+        except (ProjectError, OSError, ValueError) as exc:
+            print(f"[WARN] Brand media candidates could not be generated: {exc}")
     else:
         try:
             m_data = project_media.load_media(project.path)
             assets = m_data.get("assets") or {}
+            approved_shots = [s for s in m_data.get("screenshots") or []
+                              if project_media._approved(s)]
             readme_path = project.path / "README.md"
-            if readme_path.is_file() and project_media._approved(assets.get("social_preview")):
+            if readme_path.is_file() and (project_media._approved(assets.get("social_preview"))
+                                          or approved_shots):
                 readme_text = readme_path.read_text(encoding="utf-8", errors="ignore")
                 if "<!-- aegean:media:start -->" not in readme_text:
                     repo = project_media.repository_name(project.name)
-                    approved_shots = [s for s in m_data.get("screenshots") or [] if project_media._approved(s)]
                     project_media._update_readme(readme_path, repo, m_data, approved_shots)
                     fixes.append("updated README.md with approved brand media")
         except (ProjectError, OSError, ValueError):
             pass
-    warning = default_topic_warning(project)
-    if warning:
-        print(warning)
     for fix in fixes:
         print(f"[FIXED] {fix}")
     print(f"Checking '{project.name}' after {len(fixes)} repair(s):")

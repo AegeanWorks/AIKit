@@ -9,8 +9,8 @@
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
 - **Total Top-Level Functions**: `829`
-- **Total Class Methods**: `968`
-- **Total Source Lines**: `36652`
+- **Total Class Methods**: `971`
+- **Total Source Lines**: `36702`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1394` lines (`70082` bytes)
+**Size**: `1402` lines (`70695` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1031,7 +1031,7 @@
 ### [`scripts/project_media.py`](scripts/project_media.py)
 > *Project brand and screenshot media pipeline (ADR-235).*
 
-**Size**: `902` lines (`40380` bytes)
+**Size**: `909` lines (`40804` bytes)
 
 **Classes:**
 - `class _QuietHandler` - *Serve one capture directory without writing request logs.*
@@ -1616,7 +1616,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11217` lines (`623400` bytes)
+**Size**: `11252` lines (`625579` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2087,7 +2087,9 @@
   - Method `.test_fix_adopts_a_detected_ui_contract()`
   - Method `.test_fix_reconciles_omitted_tracked_files_in_readme_tree()`
   - Method `.test_fix_reconciles_a_name_that_is_a_substring_of_another_entry()`
-  - Method `.test_fix_seeds_brand_media_candidates_and_warns_on_default_topics()`
+  - Method `.test_fix_seeds_brand_media_candidates_and_warns_once_on_default_topics()`
+  - Method `.test_fix_warns_when_brand_candidates_cannot_be_written()`
+  - Method `.test_attach_warns_when_brand_candidates_cannot_be_written()`
   - Method `.test_fix_applies_approved_media_to_readme_when_missing()`
   - Method `.test_attach_seeds_local_brand_candidates_when_missing()`
   - Method `.test_check_warns_on_uninitialized_media_and_default_topics()`
@@ -2374,6 +2376,7 @@
   - Method `.test_aegeanworks_keeps_its_own_badge_set()`
   - Method `.test_apply_media_refuses_a_dossier_manifest_it_does_not_own()`
   - Method `.test_apply_media_supports_readme_only_flag()`
+  - Method `.test_apply_media_readme_only_refuses_a_project_without_a_readme()`
   - Method `.test_a_repository_without_a_ledger_records_nothing_and_does_not_fail()`
   - Method `.test_aikit_ledger_is_found_even_though_reforge_created_dot_aikit()`
   - Method `.test_a_stage_checkpoint_is_appended_without_becoming_the_active_task()`
