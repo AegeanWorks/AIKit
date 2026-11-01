@@ -286,6 +286,14 @@ def _motif_body(motif: str, accent: str, accent2: str, monogram: str = "AA") -> 
         return (f'<path d="M-52 18C-50 -26 -18 -52 14 -46C48 -40 60 -8 46 24C34 54 -20 60 -42 38'
                 f'C-54 28 -54 28 -54 18Z" fill="{accent}" fill-opacity="0.22" stroke="{accent}" stroke-width="4"/>'
                 f'<path d="M-58 34C-30 20 24 20 58 34M-46 48C-20 38 20 38 46 48" {thin}/>')
+    if motif == "code":
+        # Code chevrons: an agent-first systems language. Sharp, symmetric, no coils.
+        chev = (f'fill="none" stroke="{accent}" stroke-width="9" stroke-linecap="square" '
+                f'stroke-linejoin="miter" stroke-miterlimit="4"')
+        slash = (f'fill="none" stroke="{accent2}" stroke-width="8" stroke-linecap="square"')
+        return (f'<path d="M-14 -22L-38 0L-14 22" {chev}/>'
+                f'<path d="M14 -22L38 0L14 22" {chev}/>'
+                f'<path d="M7 -28L-7 28" {slash}/>')
     if motif == "seed":
         return (f'<path d="M0 58V-8" stroke="{accent}" stroke-width="6" stroke-linecap="round"/>'
                 f'<path d="M0 -4C-34 -10 -42 -40 -12 -52C2 -40 4 -20 0 -4Z" fill="{accent2}" fill-opacity="0.28" stroke="{accent2}" stroke-width="3"/>'

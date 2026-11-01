@@ -647,10 +647,12 @@
       "palette": 41,
       "layout": "split",
       "category": "INFERENCE ENGINE",
-      "tagline": "Hybrid CPU and GPU LLM inference that treats RAM and VRAM as one memory tier."
+      "tagline": "Hybrid CPU and GPU LLM inference that treats RAM and VRAM as one memory tier.",
+      "display": "Aegean TGE",
+      "repo": "Aegean-TGE"
     },
     "cairn": {
-      "motif": "stone",
+      "motif": "code",
       "palette": 42,
       "layout": "editorial",
       "category": "LANGUAGE",

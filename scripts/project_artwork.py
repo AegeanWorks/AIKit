@@ -65,6 +65,7 @@ MOTIF_PROMPT = {
     "origami": "folded paper planes in sharp geometric creases",
     "dna": "a double helix rendered as precise geometry",
     "stone": "smooth river stones with layered strata",
+    "code": "bold angle-bracket code chevrons with a slash, precise vector geometry",
     "cube": "a precise isometric cube, clean engineering geometry",
     "seed": "a seed splitting into a geometric sprout",
     "ledger": "stacked ledger sheets with precise rows, an append-only record",

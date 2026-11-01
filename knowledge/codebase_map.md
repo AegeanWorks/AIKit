@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
-- **Total Top-Level Functions**: `858`
+- **Total Top-Level Functions**: `859`
 - **Total Class Methods**: `986`
-- **Total Source Lines**: `37582`
+- **Total Source Lines**: `37596`
 
 ---
 
@@ -922,13 +922,14 @@
 ### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
 > *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
 
-**Size**: `451` lines (`19545` bytes)
+**Size**: `456` lines (`19874` bytes)
 
 **Functions:**
 - `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*
 - `def repository_slug(url)` - *(owner, repository) from a GitHub origin URL, else None.*
 - `def _today()`
 - `def _write(path, text)`
+- `def _write_if_changed(path, text)` - *Write only when the bytes would differ, so a no-op sync reports nothing.*
 - `def github_facts(name)` - *The repository's live GitHub facts, read through the `gh` CLI publish already requires.*
 - `def catalogue_category(project_path, topics, description)` - *The dossier category from the project's license kind and its own words.*
 - `def build_entry(name, facts, description)` - *The metadata entry the dossier records, in the catalogue's own key order.*
@@ -969,7 +970,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `545` lines (`30036` bytes)
+**Size**: `546` lines (`30122` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -1001,7 +1002,7 @@
 ### [`scripts/project_brand.py`](scripts/project_brand.py)
 > *Project-specific brand artwork: one motif, palette and composition per project.*
 
-**Size**: `545` lines (`32916` bytes)
+**Size**: `553` lines (`33446` bytes)
 
 **Functions:**
 - `def _catalog()`
@@ -1654,7 +1655,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11526` lines (`641641` bytes)
+**Size**: `11526` lines (`641663` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
