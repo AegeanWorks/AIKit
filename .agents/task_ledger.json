@@ -1,66 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "media-topics-review-v1",
+    "task_id": "adr-304-repair-v1",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793521795.130345,
-    "owner": "antigravity:goal",
+    "updated_at": 1793522487.794102,
+    "owner": "kilo:review",
     "started_by": "kilo:review",
-    "continuations": [
-      {
-        "agent": "antigravity:goal",
-        "from": "kilo:review",
-        "at": 1793521714.0904121
-      }
-    ],
-    "completed_at": 1793521795.2960334
+    "continuations": [],
+    "completed_at": 1793522487.9707632
   },
   "checkpoints": [
-    {
-      "task_id": "repo-review-fixes-v1",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/5] P0: brand generation keeps approved assets without force, fetches once, and returns a caller-shaped result; budget gate prints the failing tier tail; tests added",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793484498.426921,
-      "timestamp_str": "2026-11-01 01:08:18",
-      "agent": "kilo:repo-fix"
-    },
-    {
-      "task_id": "repo-review-fixes-v1",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[3/5] P1/P2: one settle_run/completion_total path with reforge reload sync; shared placeholder predicate; bulk policy drift test; vestigial params removed; secret entropy fallback ignores call expressions; ADR-298..301",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793484498.5920615,
-      "timestamp_str": "2026-11-01 01:08:18",
-      "agent": "kilo:repo-fix"
-    },
-    {
-      "task_id": "repo-review-fixes-v1",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/5] Verify: 820 tests pass; budget 10.48ms/unit, 4.38ms/auto-register, 392.19ms/integration; rules, AST map, licenses, reachability, secrets, dogfood 5/5 pass; delivery held pending authorization; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793484506.1317675,
-      "timestamp_str": "2026-11-01 01:08:26",
-      "agent": "kilo:repo-fix"
-    },
-    {
-      "task_id": "repo-review-fixes-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'repo-review-fixes-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793485083.2564833,
-      "timestamp_str": "2026-11-01 01:18:03",
-      "agent": "kilo:repo-fix"
-    },
     {
       "task_id": "entire-audit-remediation",
       "phase": "in_progress",
@@ -267,6 +218,55 @@
       "timestamp": 1793521795.296035,
       "timestamp_str": "2026-11-01 11:29:55",
       "agent": "antigravity:goal"
+    },
+    {
+      "task_id": "adr-304-repair-v1",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Repair ADR-304 control characters and record ADR-305 for the default-topic license-kind correction",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793522329.3600986,
+      "timestamp_str": "2026-11-01 11:38:49",
+      "agent": "kilo:review",
+      "impact_assessment": {
+        "why": "ADR-304 was committed with BEL and form-feed characters that hide letters, and its warning correction needs a durable decision record",
+        "benefits": "Readable decision history and ADR-305 pinning the corrected warning behavior",
+        "risks": "contract: documentation only; dependency: none; concurrency: another agent committed the code fix; state: decisions.md only",
+        "mitigation": "Check knowledge integrity, secret scan and focused tests, then commit and push docs alone"
+      }
+    },
+    {
+      "task_id": "adr-304-repair-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[2/2] Repaired ADR-304 BEL/form-feed characters and added ADR-305 for the license-kind warning correction",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793522487.5741045,
+      "timestamp_str": "2026-11-01 11:41:27",
+      "agent": "kilo:review"
+    },
+    {
+      "task_id": "adr-304-repair-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] Verified: 744+13+78 tests inside budget, rules/map/licenses/secrets/reachability/dogfood 5/5 clean, capability-showcase 4/4 gates and 12 tests clean; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793522487.794102,
+      "timestamp_str": "2026-11-01 11:41:27",
+      "agent": "kilo:review"
+    },
+    {
+      "task_id": "adr-304-repair-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'adr-304-repair-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793522487.970765,
+      "timestamp_str": "2026-11-01 11:41:27",
+      "agent": "kilo:review"
     }
   ]
 }
