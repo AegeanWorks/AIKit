@@ -9,8 +9,8 @@
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `859`
-- **Total Class Methods**: `986`
-- **Total Source Lines**: `37596`
+- **Total Class Methods**: `990`
+- **Total Source Lines**: `37703`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1460` lines (`73758` bytes)
+**Size**: `1490` lines (`75532` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1655,7 +1655,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11526` lines (`641663` bytes)
+**Size**: `11603` lines (`646477` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2094,6 +2094,7 @@
   - Method `.test_pinned_license_texts_match_their_recorded_digests()`
   - Method `.test_every_personal_license_has_a_patent_grant_notice_and_catalog_entry()`
   - Method `.make_licensed_project(name)`
+  - Method `.approve_media(folder, name)`
   - Method `.git_head(commit, returncode)`
   - Method `.test_restrict_swaps_the_license_records_the_cutoff_and_drops_commercial_terms()`
   - Method `.test_restrict_twice_keeps_the_first_cutoff()`
@@ -2106,6 +2107,9 @@
   - Method `.test_license_suggest_on_a_restricted_project_is_read_only()`
   - Method `.test_switching_a_license_seeds_missing_commercial_terms()`
   - Method `.test_publish_refuses_the_template_description_placeholder()`
+  - Method `.test_publish_seeds_missing_brand_candidates_before_refusing_review()`
+  - Method `.test_publish_refuses_a_repository_without_recorded_topics()`
+  - Method `.test_publish_accepts_recorded_topics_and_applies_them()`
   - Method `.test_status_reports_the_license_tier()`
   - Method `.test_a_restricted_project_pushes_only_to_a_private_remote()`
   - Method `.test_check_push_refuses_a_restricted_project_with_a_public_origin()`

@@ -5278,6 +5278,7 @@ class TestProjectRegistry(unittest.TestCase):
     def test_publish_license_auto_applies_and_stops_before_upload(self):
         folder = create_project("game-jam", workspace=self.kit, git_start=lambda root: None,
                                 description="A tiny game prototype made for a weekend jam.")
+        self.approve_media(folder, "game-jam")
         (folder / "README.md").write_text(
             "# Game Jam\n\nA tiny game prototype made for a weekend jam.\n", encoding="utf-8")
         (folder / "project.godot").write_text("config_version=5\n", encoding="utf-8")
@@ -5356,6 +5357,15 @@ class TestProjectRegistry(unittest.TestCase):
             shutil.copyfile(ROOT_DIR / license_file, folder / license_file)
         (folder / "README.md").write_text(render_project_readme(name, licensed=True), encoding="utf-8")
         return folder
+
+    @staticmethod
+    def approve_media(folder, name="vault"):
+        # Publish's media gate runs before every later refusal, so tests that target a
+        # later stage start from reviewed brand assets.
+        manifest = {"schema": 1, "name": name, "assets": {
+            "logo": {"path": "assets/logo.svg", "status": "approved", "review": {}},
+            "social_preview": {"path": "assets/social.svg", "status": "approved", "review": {}}}}
+        (folder / ".aikit" / "media.json").write_text(json.dumps(manifest), encoding="utf-8")
 
     @staticmethod
     def git_head(commit="0123456789abcdef0123456789abcdef01234567", returncode=0):
@@ -5494,6 +5504,7 @@ class TestProjectRegistry(unittest.TestCase):
 
     def test_publish_refuses_the_template_description_placeholder(self):
         folder = self.make_licensed_project()
+        self.approve_media(folder)
         (folder / "README.md").write_text(
             "# Vault\n\n<FILL: one sentence on what this project does and for whom, "
             "10-350 characters>\n",
@@ -5504,6 +5515,63 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertEqual(code, 2, out + err)
         self.assertIn("placeholder", (out + err).lower())
         publish.assert_not_called()
+
+    def test_publish_seeds_missing_brand_candidates_before_refusing_review(self):
+        # A project with no media manifest (attached or legacy) cannot be reviewed;
+        # publish seeds local candidates first, then follows the normal review path.
+        folder = self.make_licensed_project()
+        self.assertFalse((folder / ".aikit" / "media.json").is_file())
+        with mock.patch("scripts.aikit_cli.publish_project") as publish:
+            code, out, err = self.run_cli("publish", "vault")
+        self.assertEqual(code, 1, out + err)
+        self.assertIn("unreviewed brand assets", out + err)
+        self.assertTrue((folder / ".aikit" / "media.json").is_file(),
+                        "publish must leave reviewable candidates behind")
+        self.assertTrue((folder / "assets" / "logo.svg").is_file())
+        publish.assert_not_called()
+
+    def test_publish_refuses_a_repository_without_recorded_topics(self):
+        # Publishing with the bare ["aikit"] default would leave the repo untagged;
+        # tags are AI-chosen, so publish refuses with candidates, never invents them.
+        folder = self.make_licensed_project()
+        manifest = {"schema": 1, "name": "vault", "assets": {
+            "logo": {"path": "assets/logo.svg", "status": "approved", "review": {}},
+            "social_preview": {"path": "assets/social.svg", "status": "approved", "review": {}}}}
+        (folder / ".aikit" / "media.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (folder / "README.md").write_text(
+            "# Vault\n\nA command-line vault that keeps secrets in sync across devices.\n",
+            encoding="utf-8")
+        from types import SimpleNamespace
+        gate = SimpleNamespace(passed=True, gate=SimpleNamespace(name="test"))
+        with mock.patch("scripts.aikit_cli.publish_project") as publish, \
+             mock.patch("scripts.aikit_cli.project_baseline_errors", return_value=[]), \
+             mock.patch("scripts.aikit_cli.run_gates", return_value=[gate]):
+            code, out, err = self.run_cli("publish", "vault")
+        self.assertEqual(code, 1, out + err)
+        self.assertIn("no recorded GitHub topics", out + err)
+        publish.assert_not_called()
+
+    def test_publish_accepts_recorded_topics_and_applies_them(self):
+        folder = self.make_licensed_project()
+        manifest = {"schema": 1, "name": "vault", "assets": {
+            "logo": {"path": "assets/logo.svg", "status": "approved", "review": {}},
+            "social_preview": {"path": "assets/social.svg", "status": "approved", "review": {}}}}
+        (folder / ".aikit" / "media.json").write_text(json.dumps(manifest), encoding="utf-8")
+        config_path = folder / ".aikit" / "project.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["topics"] = ["aikit", "python", "cli"]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        (folder / "README.md").write_text(
+            "# Vault\n\nA command-line vault that keeps secrets in sync across devices.\n",
+            encoding="utf-8")
+        from types import SimpleNamespace
+        gate = SimpleNamespace(passed=True, gate=SimpleNamespace(name="test"))
+        with mock.patch("scripts.aikit_cli.publish_project", return_value=(0, "ok")) as publish, \
+             mock.patch("scripts.aikit_cli.project_baseline_errors", return_value=[]), \
+             mock.patch("scripts.aikit_cli.run_gates", return_value=[gate]):
+            code, out, err = self.run_cli("publish", "vault")
+        self.assertEqual(code, 0, out + err)
+        self.assertEqual(publish.call_args.kwargs["topics"], ["aikit", "python", "cli"])
 
     def test_status_reports_the_license_tier(self):
         # ADR-214: a restricted project must be recognisable from `status`, not only `license`.
@@ -6335,6 +6403,11 @@ class TestProjectRegistry(unittest.TestCase):
             code, _, _ = self.run_cli("check", "uiapp", "--strict", "--no-push")
             self.assertEqual(code, 0)
 
+        self.approve_media(folder, "uiapp")
+        config_path = folder / ".aikit" / "project.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["topics"] = ["aikit", "ui", "cli"]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
         with mock.patch("scripts.aikit_cli.run_gates", return_value=[self._gate_result()]), \
              mock.patch("scripts.aikit_cli.resolve_gates",
                         return_value=[Gate("test", "dummy", "detected")]), \
@@ -6345,9 +6418,8 @@ class TestProjectRegistry(unittest.TestCase):
             code, _, _ = self.run_cli("publish", "uiapp")
         self.assertEqual(code, 0)
         publish.assert_called_once()
-        # ADR-200: a project.json without topics, from before ADR-199, still gets `aikit`.
-        self.assertEqual(publish.call_args.kwargs["topics"], ["aikit"],
-                         "an attached project's own license is not reinterpreted")
+        # Publish applies the recorded AI-chosen topics; the bare default is refused upstream.
+        self.assertEqual(publish.call_args.kwargs["topics"], ["aikit", "ui", "cli"])
         self.assertEqual(publish.call_args.kwargs["description"],
                          "A UI app that proves its delivery gates before it publishes.")
 
@@ -6390,6 +6462,11 @@ class TestProjectRegistry(unittest.TestCase):
         # the one description, sentence-cased before GitHub sees it.
         folder = self.make_folder()
         attach_project(folder, "nodescapp", workspace=self.kit)
+        self.approve_media(folder, "nodescapp")
+        config_path = folder / ".aikit" / "project.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["topics"] = ["aikit", "notes", "cli"]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
         with mock.patch("scripts.aikit_cli.publish_project") as publish:
             code, _, err = self.run_cli("publish", "nodescapp")
         self.assertEqual(code, 2)

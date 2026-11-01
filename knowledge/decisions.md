@@ -3332,3 +3332,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: The center template moves the mark, title, kicker and tagline to non-overlapping stations in both the SVG and HTML composers; Cairn gets a new crisp `code` chevron motif instead of stones; Aegean-TGE gains `display` and remote-matching `repo` overrides; Atlas gains a full catalogue identity (fold mark, AX monogram, own palette). All eleven sets were reseeded from the catalogue, render-verified, structurally reviewed and approved, and audit clean with zero pending reviews.
 - **Consequences**: Every catalogue-derived brand file matches its entry again; future center cards cannot overlap; pre-existing user-preferred banner pixels were left untouched by design and are listed in the audit report for their owners.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (renders viewed before approval), PRINCIPLE-014 (suite green) and PRINCIPLE-016 (recorded here); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-314: Publish seeds missing brand candidates and requires recorded topics
+- **Date**: 2026-11-02
+- **Status**: Accepted
+- **Context**: Attached and legacy projects could reach `publish` with no brand manifest at all (no candidates to review, so nothing was ever created) and with no recorded GitHub topics (the repository went out tagged only `aikit`).
+- **Decision**: `publish` seeds local brand candidates when the manifest is absent, then follows the normal review path; and it refuses when the recorded topics are empty or the bare `["aikit"]` default, printing the brief's candidate tags and the `topics --brief` then `--from-file` fix path. AIKit still never invents tags (ADR-236).
+- **Consequences**: No project publishes undescribed, untagged, or without reviewable brand; previously-passing publish tests now start from reviewed fixtures. `new --publish` is unchanged (it records its topics at creation).
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-003 (no silent defaults reach GitHub) and PRINCIPLE-011 (the refusal names the exact recovery); PRINCIPLE-000 R5 is unchanged.

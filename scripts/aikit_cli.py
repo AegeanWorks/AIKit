@@ -739,6 +739,20 @@ def cmd_publish(args: argparse.Namespace) -> int:
         refusal = public_remote_refusal(project.path, project.name)
         if refusal:
             return report_error(refusal)
+    if not project_media.media_path(project.path).is_file():
+        # A project without any brand manifest (attached or legacy) cannot be reviewed,
+        # so publish seeds local candidates first and then follows the normal review path.
+        try:
+            project_media.seed_media_assets(project.path, project.name)
+            print(f"     Local brand candidates generated for '{project.name}' "
+                  "(uncommitted; review before applying).")
+        except (ProjectError, OSError, ValueError) as exc:
+            return report_error(ProjectError(
+                f"'{project.name}' has no brand assets and none could be generated.",
+                str(exc),
+                f"run `python aikit.py media init {project.name}`, then publish again; "
+                "nothing was published.",
+            ))
     blockers = project_media.media_blockers(project.path)
     if blockers:
         return report_error(ProjectError(
@@ -837,7 +851,23 @@ def cmd_publish(args: argparse.Namespace) -> int:
               "detected.", file=sys.stderr)
         return 1
     # `new` records the topics; a project.json from before ADR-199 has none (ADR-200).
+    # Topics are AI-chosen and recorded; uploading with the bare ["aikit"] default would
+    # leave the repository effectively untagged (AIKit validates tags, never invents them).
     config = load_config(project.path)
+    recorded_topics = list(config.get("topics") or [])
+    if set(recorded_topics) <= {"aikit"}:
+        try:
+            brief = project_topics.ai_brief(project.path, project.name, [], [])
+            hints = ", ".join(brief.get("hint_tags") or [])
+        except (ProjectError, OSError, ValueError):
+            hints = ""
+        return report_error(ProjectError(
+            f"'{project.name}' has no recorded GitHub topics.",
+            "the repository would publish with only the fallback 'aikit' tag.",
+            f"pick tags{(' (candidates: ' + hints + ')') if hints else ''}, record the choice with "
+            f"`python aikit.py topics {project.name} --brief` then `--from-file`, and publish "
+            "again; nothing was published.",
+        ))
     code, report = publish_project(project.path, project.name, public=args.public,
                                    topics=publish_topics(config.get("topics") or ["aikit"]),
                                    owner=getattr(args, "owner", None), description=description)
