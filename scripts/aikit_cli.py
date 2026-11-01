@@ -492,6 +492,27 @@ def project_baseline_errors(project: Project, audit: dict) -> List[str]:
     return errors
 
 
+def default_topic_warning(project: Project) -> Optional[str]:
+    """The default-only topic warning, or None when the project has a domain topic."""
+    try:
+        config = load_config(project.path)
+    except (OSError, ValueError, KeyError, ProjectError):
+        return None
+    topics = list(config.get("topics") or [])
+    try:
+        state = license_state(project.path)
+        kind = state.kind
+        restricted = state.tier == TIER_RESTRICTED
+    except (OSError, ValueError, ProjectError):
+        kind, restricted = None, False
+    defaults = set(INTEGRATION_TOPICS) | set(license_topics(kind, restricted=restricted))
+    if any(topic not in defaults for topic in topics):
+        return None
+    return (f"[WARN] '{project.name}' only has default license topics; run "
+            f"`python aikit.py topics {project.name} --brief`, then record the choice with "
+            f"`--from-file` or `--set`.")
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
     # A restricted project may be pushed only to a private repository (ADR-214); checked before the
@@ -543,14 +564,9 @@ def cmd_check(args: argparse.Namespace) -> int:
               "`mechanics.core` and `mechanics.test` for a headless AI-testable core.")
     if not (project.path / ".aikit" / "media.json").is_file():
         print(f"[WARN] Brand media not initialized; run `python aikit.py media init {project.name}`.")
-    if config_path(project.path).is_file():
-        cfg = load_config(project.path)
-        topics = list(cfg.get("topics") or [])
-        license_kind = str(cfg.get("license") or "software")
-        default_tags = set(INTEGRATION_TOPICS) | set(license_topics(license_kind))
-        content_topics = [t for t in topics if t not in default_tags]
-        if not content_topics:
-            print(f"[WARN] '{project.name}' only has default license topics; run `python aikit.py topics {project.name} --suggest` to choose domain tags.")
+    warning = default_topic_warning(project)
+    if warning:
+        print(warning)
     if audit.get("ledger_error") or (strict and baseline_errors):
         print("Error: the project is not delivery-ready.", file=sys.stderr)
         print("Why: a passing gate run must describe the committed tree, not an unverified working copy.",
@@ -653,14 +669,9 @@ def cmd_fix(args: argparse.Namespace) -> int:
                     fixes.append("updated README.md with approved brand media")
         except (ProjectError, OSError, ValueError):
             pass
-    if config_path(project.path).is_file():
-        cfg = load_config(project.path)
-        topics = list(cfg.get("topics") or [])
-        license_kind = str(cfg.get("license") or state.kind or "software")
-        default_tags = set(INTEGRATION_TOPICS) | set(license_topics(license_kind))
-        content_topics = [t for t in topics if t not in default_tags]
-        if not content_topics:
-            print(f"[WARN] '{project.name}' only has default license topics; run `python aikit.py topics {project.name} --suggest` to choose domain tags.")
+    warning = default_topic_warning(project)
+    if warning:
+        print(warning)
     for fix in fixes:
         print(f"[FIXED] {fix}")
     print(f"Checking '{project.name}' after {len(fixes)} repair(s):")

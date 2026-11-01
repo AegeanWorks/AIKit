@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
-- **Total Top-Level Functions**: `828`
-- **Total Class Methods**: `967`
-- **Total Source Lines**: `36629`
+- **Total Top-Level Functions**: `829`
+- **Total Class Methods**: `968`
+- **Total Source Lines**: `36652`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1383` lines (`70071` bytes)
+**Size**: `1394` lines (`70082` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -660,6 +660,7 @@
 - `def cmd_complete(args)`
 - `def cmd_clean(args)`
 - `def project_baseline_errors(project, audit)` - *The delivery baseline `--strict` requires; ordinary check reports these as warnings.*
+- `def default_topic_warning(project)` - *The default-only topic warning, or None when the project has a domain topic.*
 - `def cmd_check(args)`
 - `def cmd_fix(args)` - *Repair what AIKit can repair mechanically, then run the gates: everything left is the*
 - `def cmd_publish(args)`
@@ -1615,7 +1616,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11205` lines (`622664` bytes)
+**Size**: `11217` lines (`623400` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2090,6 +2091,7 @@
   - Method `.test_fix_applies_approved_media_to_readme_when_missing()`
   - Method `.test_attach_seeds_local_brand_candidates_when_missing()`
   - Method `.test_check_warns_on_uninitialized_media_and_default_topics()`
+  - Method `.test_check_warns_when_a_game_project_has_only_license_topics()`
   - Method `.test_project_ledger_commands_keep_the_impact_gate()`
   - Method `.test_workspace_is_explicit_never_the_working_directory()`
   - Method `.test_new_with_publish_flag_calls_publish_project()`

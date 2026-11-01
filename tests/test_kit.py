@@ -5835,6 +5835,18 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("[WARN] Brand media not initialized; run `python aikit.py media init warnapp`", out)
         self.assertIn("[WARN] 'warnapp' only has default license topics", out)
 
+    def test_check_warns_when_a_game_project_has_only_license_topics(self):
+        create_project("space-quest", workspace=self.kit, git_start=lambda root: None,
+                       description="A small space game about repairing a broken moon.",
+                       license_kind="game")
+        gate_obj = mock.Mock(command="test", source="config")
+        gate_obj.name = "test"
+        gate_res = mock.Mock(gate=gate_obj, passed=True, seconds=0.1, output="")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[gate_res]):
+            code, out, _ = self.run_cli("check", "space-quest")
+        self.assertIn("[WARN] 'space-quest' only has default license topics", out)
+        self.assertIn("--brief", out)
+
     def test_project_ledger_commands_keep_the_impact_gate(self):
         folder = self.make_folder()
         attach_project(folder, "demo", workspace=self.kit)
