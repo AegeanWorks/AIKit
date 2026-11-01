@@ -88,9 +88,6 @@ portable_agent_kit/
 ├── .cursorrules                  <- Cursor IDE instructions
 ├── .windsurfrules                <- Codeium Windsurf IDE instructions
 ├── .clinerules                   <- Cline / Roo Code IDE instructions
-├── .entire/
-│   ├── .gitignore
-│   └── settings.json             <- Entire settings
 ├── .github/
 │   ├── copilot-instructions.md   <- GitHub Copilot instructions
 │   └── workflows/
@@ -118,9 +115,7 @@ portable_agent_kit/
 │   │   └── opencode_worker.md    <- OpenCode subagent spec for free models
 │   └── task_ledger.json          <- Disruption ledger for power-loss resilience (WAL)
 ├── .opencode/
-│   ├── agents/                   <- OpenCode subagent profiles (architect, coder, ...)
-│   └── plugins/
-│       └── entire.ts             <- Entire session plugin (generated)
+│   └── agents/                   <- OpenCode subagent profiles (architect, coder, ...)
 ├── opencode.jsonc                <- OpenCode provider, model & permission config
 ├── scripts/
 │   ├── sync_principles.py        <- Generates 8 Tier 1 files from GUIDELINES.md
