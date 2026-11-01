@@ -10,7 +10,7 @@
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `858`
 - **Total Class Methods**: `986`
-- **Total Source Lines**: `37580`
+- **Total Source Lines**: `37582`
 
 ---
 
@@ -922,7 +922,7 @@
 ### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
 > *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
 
-**Size**: `449` lines (`19241` bytes)
+**Size**: `451` lines (`19545` bytes)
 
 **Functions:**
 - `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*

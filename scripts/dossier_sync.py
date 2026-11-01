@@ -375,21 +375,23 @@ def _upsert_catalogue_set(dossier: Path, name: str) -> bool:
 def sync_entry(dossier: Path, entry: Dict[str, object], family: str,
                category: str) -> List[str]:
     """Upsert one catalogue entry everywhere the dossier records it; return changed files."""
-    _upsert_metadata(dossier, entry)
-    _upsert_snapshot(dossier, entry)
-    _upsert_license(dossier, str(entry["name"]), family)
-    _upsert_card(dossier, entry, family, category)
-    _upsert_jsonld(dossier, entry, family, category)
-    _upsert_readme(dossier, entry, category)
-    _upsert_catalogue_set(dossier, str(entry["name"]))
-    return [
-        "tests/metadata/repositories.json",
-        "docs/atlas-snapshot.json",
-        "docs/atlas-core.js",
-        "docs/index.html",
-        "README.md",
-        "tests/test_profile.py",
-    ]
+    changed: List[str] = []
+    if _upsert_metadata(dossier, entry):
+        changed.append("tests/metadata/repositories.json")
+    if _upsert_snapshot(dossier, entry):
+        changed.append("docs/atlas-snapshot.json")
+    if _upsert_license(dossier, str(entry["name"]), family):
+        changed.append("docs/atlas-core.js")
+    if _upsert_card(dossier, entry, family, category):
+        changed.append("docs/index.html")
+    # The JSON-LD block and the project counts share index.html with the card.
+    if _upsert_jsonld(dossier, entry, family, category) and "docs/index.html" not in changed:
+        changed.append("docs/index.html")
+    if _upsert_readme(dossier, entry, category):
+        changed.append("README.md")
+    if _upsert_catalogue_set(dossier, str(entry["name"])):
+        changed.append("tests/test_profile.py")
+    return changed
 
 
 def _refresh_media(dossier: Path, name: str) -> str:
