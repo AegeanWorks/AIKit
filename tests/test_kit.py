@@ -7275,23 +7275,25 @@ class TestProjectsStayOutOfKitState(unittest.TestCase):
         self.assertEqual([p.name for p in find_python_files(kit)], ["tool.py"])
         self.assertEqual([p.name for p in sweep_files(kit, "*.tmp_*")], ["s.json.tmp_1_2"])
 
-    def test_generated_bulk_directories_are_pruned_by_every_walker(self):
-        # The 35-second audit came from three walkers disagreeing about generated trees; pin the
-        # shared core so a new folder cannot be added to only one of them (ADR-300).
+    def test_generated_bulk_directories_agree_across_walkers(self):
+        # The 35-second audit came from three walkers disagreeing about generated trees. Compare
+        # the policies to each other, so a folder added to only one of them fails by name, while
+        # each walker keeps the entries that are deliberate for its own scope (ADR-300).
         from scripts import disruption_recovery, proof_gate
         from scripts.update_knowledge_base import IGNORE_DIRS
 
-        required = {"node_modules", "__pycache__", ".venv", "venv", "env", "build", "dist",
-                    "target", ".next", ".nuxt", ".cache", ".vite",
-                    ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox"}
+        deliberate = {".hg", ".svn", "references", "scratch", ".idea-catcher",
+                      ".github", ".agents", ".aikit"}
         policies = {
             "sweep": set(disruption_recovery.SWEEP_PRUNED_DIRS),
             "knowledge": set(IGNORE_DIRS),
             "proof copy": {name for name in proof_gate.COPY_IGNORE_PATTERNS if "*" not in name},
         }
+        shared = set().union(*policies.values()) - deliberate
         for walker, policy in policies.items():
             with self.subTest(walker=walker):
-                self.assertTrue(required <= policy, f"{walker} misses {sorted(required - policy)}")
+                self.assertEqual(shared, policy - deliberate,
+                                 f"{walker} disagrees on {sorted((policy - deliberate) ^ shared)}")
 
     def test_git_ignores_projects(self):
         lines = (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines()
@@ -8768,6 +8770,57 @@ class TestReforgeCore(unittest.TestCase):
     def test_no_test_command_is_invented_for_an_empty_repository(self):
         self.assertEqual(default_test_command(self.root()), "")
 
+    def test_test_commands_run_under_the_process_tree_supervisor(self):
+        # PRINCIPLE-015: a plain subprocess timeout kills only the direct shell. The runner
+        # must go through dogfood's supervisor so the real test runner cannot outlive it.
+        from contextlib import contextmanager
+        from reforge import verification
+
+        class _Proc:
+            returncode = 3
+
+            def communicate(self, timeout=None):
+                return "out\n", "err\n"
+
+        events = []
+
+        @contextmanager
+        def fake_supervised(argv, cwd):
+            events.append("supervised")
+            yield _Proc()
+
+        with mock.patch("scripts.dogfood.supervised", fake_supervised), \
+             mock.patch("scripts.dogfood.terminate_process_tree",
+                        side_effect=lambda proc: events.append("terminated")):
+            result = verification.run_test_command("echo hi", self.root(), timeout=5)
+        self.assertEqual(events, ["supervised"])
+        self.assertEqual(result["code"], 3)
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["output"], "out\nerr")
+
+    def test_a_timed_out_test_command_tears_down_the_process_tree(self):
+        from contextlib import contextmanager
+        from reforge import verification
+
+        class _Proc:
+            returncode = -9
+
+            def communicate(self, timeout=None):
+                raise subprocess.TimeoutExpired("cmd", timeout)
+
+        events = []
+
+        @contextmanager
+        def fake_supervised(argv, cwd):
+            yield _Proc()
+
+        with mock.patch("scripts.dogfood.supervised", fake_supervised), \
+             mock.patch("scripts.dogfood.terminate_process_tree",
+                        side_effect=lambda proc: events.append("terminated")):
+            result = verification.run_test_command("sleep", self.root(), timeout=5)
+        self.assertEqual(events, ["terminated"])
+        self.assertEqual(result["code"], -1)
+
     def project(self, name="demo", readme="An AI agent and local-first CLI for research."):
         root = self.root()
         (root / "README.md").write_text(f"# {name}\n\n{readme}\n", encoding="utf-8")
@@ -8930,6 +8983,30 @@ class TestReforgeCore(unittest.TestCase):
                 root, "model-demo", force=False, parts=("logo",))
         self.assertEqual(calls, [], "an approved logo was regenerated without --force")
         self.assertTrue(result.get("skipped"))
+        self.assertEqual(project_media.load_media(root)["assets"]["logo"]["status"], "approved")
+
+    def test_model_brand_regenerates_social_when_only_the_logo_is_approved(self):
+        # The approved-logo guard must only refuse a run that would touch the logo; a
+        # social-only regeneration does not replace the reviewed identity.
+        root = self.project("model-demo")
+        (root / "assets").mkdir(exist_ok=True)
+        project_media.save_media(root, {
+            "schema": project_media.MEDIA_SCHEMA,
+            "name": "model-demo",
+            "assets": {"logo": {"path": "assets/logo.jpg", "status": "approved",
+                                "commit": "abc", "generated_at": "2026-01-01T00:00:00",
+                                "review": {"decision": "approve"}}},
+            "screenshots": [],
+        })
+        calls = []
+        with mock.patch.object(project_artwork, "_download_url",
+                               side_effect=lambda url, target: calls.append(url)), \
+             mock.patch.object(project_artwork, "crop_letterboxed_social",
+                               return_value={"social": str(root / "assets" / "social-preview.png")}):
+            result = project_artwork.generate_model_brand(
+                root, "model-demo", force=False, parts=("social",))
+        self.assertFalse(result.get("skipped"))
+        self.assertEqual(len(calls), 1, "a social-only run must render the social asset")
         self.assertEqual(project_media.load_media(root)["assets"]["logo"]["status"], "approved")
 
     def test_generate_brand_does_not_fetch_artwork_twice(self):
@@ -9371,6 +9448,25 @@ class TestReforgeCore(unittest.TestCase):
         reopened = update_settings(root, state, run, stop=3)
         self.assertEqual(reopened["status"], "active")
         self.assertEqual(load_state(root)["active_run"], "run-1")
+
+    def test_update_settings_keeps_a_completed_unlimited_run_at_the_end_of_history(self):
+        # ADR-297: a settings change reopens a run only when it no longer meets the bar. An
+        # unlimited run needs the resolved total, so settle_run must consult the stored count
+        # when the caller passes none; otherwise every settings change reopened a finished run.
+        root = self.root()
+        state = new_state()
+        run = create_run(state, 2, 1, None)
+        entry = {"run": "run-1", "stage": 1, "window": 3, "commits": [], "new_commits": ["a"],
+                 "prior_commits": [], "findings": [], "repairs": [], "counts": {}, "tests": {},
+                 "gates": {}, "timestamp": "2026-10-28T00:00:00"}
+        record_stage(root, state, run, entry, total_commits=3)
+        self.assertEqual(run["status"], "completed")
+
+        reloaded = load_state(root)
+        reloaded_run = reloaded["runs"][0]
+        updated = update_settings(root, reloaded, reloaded_run, step=2)
+        self.assertEqual(updated["status"], "completed")
+        self.assertIsNone(load_state(root)["active_run"])
 
     def test_live_completion_total_wins_over_the_stored_count(self):
         from reforge.state import completion_total

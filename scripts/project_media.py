@@ -25,7 +25,13 @@ from urllib.parse import quote
 from xml.etree import ElementTree
 from xml.sax.saxutils import escape as xml_escape
 
-from scripts.disruption_recovery import ROOT_DIR, atomic_write_json, file_lock
+from scripts.disruption_recovery import (
+    ROOT_DIR,
+    atomic_write_bytes,
+    atomic_write_json,
+    atomic_write_text,
+    file_lock,
+)
 from scripts.marked_blocks import block_span, fenced, replace_block
 from scripts.project_license import license_state
 from scripts.project_publish import extract_readme_description, get_project_repo_url, run_command
@@ -64,40 +70,6 @@ PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 def media_path(root: Path) -> Path:
     return Path(root) / MEDIA_REL
-
-
-def _atomic_text(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + f".tmp_{os.getpid()}_{int(time.time() * 1000)}")
-    try:
-        with open(tmp, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        if tmp.exists():
-            try:
-                tmp.unlink()
-            except OSError:  # hygiene: allow temp cleanup cannot fail the completed write
-                pass
-
-
-def _atomic_bytes(path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + f".tmp_{os.getpid()}_{int(time.time() * 1000)}")
-    try:
-        with open(tmp, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        if tmp.exists():
-            try:
-                tmp.unlink()
-            except OSError:  # hygiene: allow temp cleanup cannot fail the completed write
-                pass
 
 
 def _head(root: Path) -> str:
@@ -402,13 +374,13 @@ def seed_media_assets(project_root: Path, name: str, force: bool = False,
     logo = LOGO_REL
     social = SOCIAL_REL
     if force or not (root / logo).is_file():
-        _atomic_text(root / logo, _logo_svg(name))
+        atomic_write_text(root / logo, _logo_svg(name))
     if force or not (root / social).is_file():
         try:
             topics = load_config(root).get("topics") or []
         except (OSError, ValueError, KeyError, ProjectError):
             topics = []
-        _atomic_text(root / social, _social_svg(
+        atomic_write_text(root / social, _social_svg(
             name, kind, description, f"github.com/AegeanWorks/{repository_name(name)}", topics))
     assets: Dict[str, object] = {
         "logo": _asset(logo, commit),
@@ -653,7 +625,7 @@ def _approved(asset: object) -> bool:
 
 def _copy_media(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    _atomic_bytes(target, source.read_bytes())
+    atomic_write_bytes(target, source.read_bytes())
 
 
 def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -> Dict[str, object]:
@@ -730,7 +702,7 @@ def apply_media(project_root: Path, name: str, dossier: Optional[Path] = None) -
         })
         applied.append(str(target))
     dossier["screenshots"] = approved_shots[:MAX_SCREENSHOTS]
-    _atomic_text(manifest_path, json.dumps(dossier, indent=2) + "\n")
+    atomic_write_text(manifest_path, json.dumps(dossier, indent=2) + "\n")
     applied.append(str(manifest_path))
     readme = root / "README.md"
     if readme.is_file():
@@ -836,7 +808,7 @@ def _update_readme(readme: Path, repo: str, data: Dict[str, object],
             text = text[:index] + section + "\n" + text[index:]
         else:
             text = text.rstrip("\n") + "\n\n" + section
-    _atomic_text(readme, text)
+    atomic_write_text(readme, text)
 
 
 def audit_media(project_root: Path, dossier: Optional[Path] = None) -> Dict[str, object]:

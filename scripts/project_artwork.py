@@ -196,8 +196,10 @@ def generate_model_brand(project_root: Path, name: str,
     social = root / "assets" / "social-preview.jpg"
     data = load_media(root)
     assets = dict(data.get("assets") or {})
-    if not force and (assets.get("logo") or {}).get("status") == "approved":
+    if (not force and "logo" in parts
+            and (assets.get("logo") or {}).get("status") == "approved"):
         # Same contract as `generate_brand`: an approved identity survives a plain re-run (ADR-298).
+        # A social-only regeneration does not touch the logo, so it must not be refused for it.
         return {"skipped": True, "reason": "approved assets already exist"}
     stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
     if "logo" in parts:

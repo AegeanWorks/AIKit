@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `61`
 - **Total Classes**: `134`
-- **Total Top-Level Functions**: `824`
-- **Total Class Methods**: `953`
-- **Total Source Lines**: `36328`
+- **Total Top-Level Functions**: `826`
+- **Total Class Methods**: `957`
+- **Total Source Lines**: `36416`
 
 ---
 
@@ -480,7 +480,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `473` lines (`20548` bytes)
+**Size**: `457` lines (`20042` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -500,8 +500,7 @@
 - `def _edits_for(text, finding, tree)`
 - `def _apply_edits(text, edits)`
 - `def _secret_hits(label, text)`
-- `def _write_text(path, text, newline)`
-- `def _local_atomic_write(path, text, newline)`
+- `def _write_text(path, text, newline)` - *Write a repair through AIKit's shared atomic writer (PRINCIPLE-013).*
 - `def _test_method_name(code, path)`
 - `def _test_body(code, relative)`
 - `def regression_test_path(root)`
@@ -547,7 +546,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `562` lines (`22102` bytes)
+**Size**: `546` lines (`21651` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -564,8 +563,7 @@
 - `def current_run(state, run_id)`
 - `def _migrate_v1(data)` - *A schema-1 state becomes run-1 without losing its stage, commits or history.*
 - `def load_state(root)` - *Read the state; a missing file is fresh, schema 1 migrates in memory, corrupt is refused.*
-- `def _local_atomic_write(path, text)`
-- `def save_state(root, data)` - *Persist through AIKit's atomic writer and lock when available, else a portable fallback.*
+- `def save_state(root, data)` - *Persist through AIKit's atomic writer under its advisory lock.*
 - `def entry_from_stage(plan, findings, repairs, tests, gates, skipped, reviewed, review)` - *One stage's durable record; `skipped` names binary files and `reviewed` counts the rest.*
 - `def run_complete(run, window, total_commits)`
 - `def completion_total(run, live)` - *The repository commit count that closes an unlimited run: live first, then the stored one.*
@@ -606,10 +604,11 @@
 ### [`reforge/verification.py`](reforge/verification.py)
 > *Patch review, repair re-checks and bounded test execution.*
 
-**Size**: `84` lines (`3699` bytes)
+**Size**: `99` lines (`4307` bytes)
 
 **Functions:**
 - `def _shell(command)`
+- `def _run_bounded(argv, cwd, timeout)` - *Run a command with a timeout that tears down its whole process tree.*
 - `def run_test_command(command, cwd, timeout)` - *Run a project command with stdin closed and the whole process tree bounded.*
 - `def python_command(*args)`
 - `def default_test_command(root)` - *The repository's own unittest discovery when it has tests; never a guessed runner.*
@@ -635,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1344` lines (`67550` bytes)
+**Size**: `1343` lines (`67497` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -821,7 +820,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2101` lines (`99729` bytes)
+**Size**: `2137` lines (`101527` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -842,7 +841,12 @@
 - `def _read_ledger_file(path)` - *Parse one ledger file, validate its version, then normalize it in memory.*
 - `def _quarantine_ledger(path)` - *Move a corrupt ledger aside without overwriting an earlier quarantine in the same second.*
 - `def migrate_ledger_schema(data)` - *Ensure recovered or loaded ledger conforms to current schema specification (PRINCIPLE-013).*
+- `def _replace_with_retries(tmp_path, file_path, max_retries)` - *Replace with a Windows lock-contention retry loop (PRINCIPLE-013 R2).*
+- `def _rotate_shadow_backup(file_path)` - *Keep the last durable content as `<file>.bak` before the replace (PRINCIPLE-013 R1).*
+- `def _atomic_write(file_path, mode, writer, *, newline, backup, max_retries, min_headroom_mb)` - *Write through a temp file, fsync, shadow backup and durable replace (PRINCIPLE-013 R1/R2).*
 - `def atomic_write_json(file_path, data, max_retries, min_headroom_mb)` - *Atomically write JSON data using fsync, shadow backup, and temporary replacement (PRINCIPLE-013).*
+- `def atomic_write_text(file_path, text, newline, backup, max_retries, min_headroom_mb)` - *Atomically write UTF-8 text with the same durability guarantees as JSON (PRINCIPLE-013).*
+- `def atomic_write_bytes(file_path, data, backup, max_retries, min_headroom_mb)` - *Atomically write raw bytes with the same durability guarantees as JSON (PRINCIPLE-013).*
 - `def load_ledger(ledger_file)` - *Safely load the task ledger with startup self-healing (PRINCIPLE-013).*
 - `def prune_checkpoints(checkpoints, active_task_id, max_history)` - *Prune checkpoints to maintain a bounded rolling memory window (PRINCIPLE-004).*
 - `def task_plan_checkpoint(task_checkpoints)` - *The task's plan (PRINCIPLE-004 R1): its latest Phase 2 checkpoint whose description starts*
@@ -925,7 +929,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `546` lines (`29466` bytes)
+**Size**: `548` lines (`29596` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -1024,7 +1028,7 @@
 ### [`scripts/project_media.py`](scripts/project_media.py)
 > *Project brand and screenshot media pipeline (ADR-235).*
 
-**Size**: `914` lines (`40660` bytes)
+**Size**: `886` lines (`39589` bytes)
 
 **Classes:**
 - `class _QuietHandler` - *Serve one capture directory without writing request logs.*
@@ -1032,8 +1036,6 @@
 
 **Functions:**
 - `def media_path(root)`
-- `def _atomic_text(path, text)`
-- `def _atomic_bytes(path, data)`
 - `def _head(root)`
 - `def _description(root, name)`
 - `def _palette(name)`
@@ -1611,7 +1613,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `10970` lines (`609258` bytes)
+**Size**: `11066` lines (`613891` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2194,7 +2196,7 @@
   - Method `.test_style_findings_are_off_without_declared_theme_paths()`
 - `class TestProjectsStayOutOfKitState` - *AIKit's map, gates and sweeps never read a project's files (ADR-119).*
   - Method `.test_codebase_scan_and_sweeps_prune_projects_and_bulk_trees()`
-  - Method `.test_generated_bulk_directories_are_pruned_by_every_walker()`
+  - Method `.test_generated_bulk_directories_agree_across_walkers()`
   - Method `.test_git_ignores_projects()`
 - `class TestSubagentDelegation` - *`aikit delegate`: bounded OpenCode sub-agent runs (ADR-126, ADR-128).*
   - Method `.setUp()`
@@ -2332,6 +2334,8 @@
   - Method `.test_delivery_refuses_a_non_conventional_message()`
   - Method `.test_a_finding_serializes_every_evidence_field()`
   - Method `.test_no_test_command_is_invented_for_an_empty_repository()`
+  - Method `.test_test_commands_run_under_the_process_tree_supervisor()`
+  - Method `.test_a_timed_out_test_command_tears_down_the_process_tree()`
   - Method `.project(name, readme)`
   - Method `.test_ui_identity_detects_web_game_and_cli_projects()`
   - Method `.test_ui_work_refreshes_the_identifier()`
@@ -2344,6 +2348,7 @@
   - Method `.test_model_brand_requires_an_environment_key()`
   - Method `.test_model_brand_reports_the_assets_it_wrote()`
   - Method `.test_model_brand_keeps_approved_assets_without_force()`
+  - Method `.test_model_brand_regenerates_social_when_only_the_logo_is_approved()`
   - Method `.test_generate_brand_does_not_fetch_artwork_twice()`
   - Method `.test_the_asset_disclosure_is_specific_and_honest()`
   - Method `.test_html_capture_is_served_over_http()`
@@ -2373,6 +2378,7 @@
   - Method `.test_runs_stop_resume_and_create_independent_histories()`
   - Method `.test_raising_the_stop_reopens_a_completed_run()`
   - Method `.test_update_settings_reopens_a_completed_run_with_a_pending_review()`
+  - Method `.test_update_settings_keeps_a_completed_unlimited_run_at_the_end_of_history()`
   - Method `.test_live_completion_total_wins_over_the_stored_count()`
   - Method `.test_a_later_fix_refreshes_the_history_entry_too()`
   - Method `.test_schema_one_migrates_to_an_independent_first_run()`

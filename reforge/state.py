@@ -1,7 +1,6 @@
 """Persistent audit runs, written atomically and isolated per project."""
 
 import json
-import os
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -238,32 +237,16 @@ def load_state(root: Path) -> Dict[str, object]:
     return data
 
 
-def _local_atomic_write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + f".tmp_{os.getpid()}_{int(time.time() * 1000)}")
-    try:
-        with open(tmp, "w", encoding="utf-8") as handle:
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    finally:
-        if tmp.exists():
-            try:
-                tmp.unlink()
-            except OSError:  # hygiene: allow temp cleanup cannot fail the completed write
-                pass
-
-
 def save_state(root: Path, data: Dict[str, object]) -> None:
-    """Persist through AIKit's atomic writer and lock when available, else a portable fallback."""
+    """Persist through AIKit's atomic writer under its advisory lock.
+
+    Reforge is an AIKit subsystem, so the locked writer is always available; a second,
+    weaker fallback would serialize concurrent writers in only one environment and skip
+    the `.bak` shadow that `load_state`'s recovery hint names (PRINCIPLE-013).
+    """
+    from scripts.disruption_recovery import atomic_write_json, file_lock
+
     path = state_path(root)
-    text = json.dumps(data, indent=2)
-    try:
-        from scripts.disruption_recovery import atomic_write_json, file_lock
-    except ImportError:
-        _local_atomic_write(path, text)
-        return
     with file_lock(path) as acquired:
         if not acquired:
             raise ReforgeError(
@@ -334,7 +317,8 @@ def settle_run(run: Dict[str, object], state: Dict[str, object],
     A review or settings change may also reopen a completed run that no longer meets that bar
     (`reopen=True`); recording a stage never does. Returns whether the status changed.
     """
-    finished = run_complete(run, int(run.get("window") or 0), total_commits) and review_is_ready(run)
+    total = completion_total(run, total_commits)
+    finished = run_complete(run, int(run.get("window") or 0), total) and review_is_ready(run)
     if finished and run.get("status") != "completed":
         run["status"] = "completed"
         run["updated"] = _now()

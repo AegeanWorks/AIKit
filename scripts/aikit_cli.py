@@ -1066,7 +1066,6 @@ def cmd_media(args: argparse.Namespace) -> int:
         project_ui.refresh_ui_identifier(project.path)
     if action == "init":
         if getattr(args, "art", False) and project_artwork.model_key():
-            ui = project_ui.ui_payload(project.path)
             result = project_artwork.generate_model_brand(
                 project.path, project.name, force=args.force)
         elif getattr(args, "art", False):

@@ -19,19 +19,34 @@ def _shell(command: str) -> object:
     return f'cmd /d /s /c "{command}"' if sys.platform == "win32" else ["/bin/sh", "-c", command]
 
 
+def _run_bounded(argv: object, cwd: Path, timeout: int) -> Tuple[int, str, str]:
+    """Run a command with a timeout that tears down its whole process tree.
+
+    `subprocess.run(timeout=...)` kills only the direct shell, leaving the real test runner
+    and anything it started alive as orphans. Reuse dogfood's supervised teardown, which
+    starts a POSIX session and kills the group (`killpg`) or the Windows tree (`taskkill /T`).
+    """
+    from scripts.dogfood import terminate_process_tree, supervised
+
+    with supervised(argv, cwd) as proc:
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            terminate_process_tree(proc)
+            raise
+    return proc.returncode, stdout, stderr
+
+
 def run_test_command(command: str, cwd: Path,
                      timeout: int = TEST_TIMEOUT_SECONDS) -> Dict[str, object]:
     """Run a project command with stdin closed and the whole process tree bounded."""
     try:
-        done = subprocess.run(
-            _shell(command), cwd=str(cwd), stdin=subprocess.DEVNULL, capture_output=True,
-            text=True, encoding="utf-8", errors="replace", timeout=timeout,
-        )
+        code, stdout, stderr = _run_bounded(_shell(command), cwd, timeout)
     except (OSError, subprocess.SubprocessError) as exc:
         return {"command": command, "code": -1, "passed": False, "output": str(exc), "tail": [str(exc)]}
-    output = (done.stdout + done.stderr).strip()
+    output = (stdout + stderr).strip()
     tail = [line for line in output.splitlines() if line.strip()][-TAIL_LINES:]
-    return {"command": command, "code": done.returncode, "passed": done.returncode == 0,
+    return {"command": command, "code": code, "passed": code == 0,
             "output": output, "tail": tail}
 
 

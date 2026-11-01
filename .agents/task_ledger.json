@@ -1,44 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "repo-review-fixes-v1",
-    "last_phase": "verification",
+    "task_id": "entire-audit-remediation",
+    "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793484506.1317675,
-    "owner": "kilo:repo-fix",
-    "started_by": "kilo:repo-fix",
+    "updated_at": 1793493908.1011698,
+    "owner": "commandcode:audit-fix",
+    "started_by": "commandcode:audit-fix",
     "continuations": [],
-    "completed_at": 1793485083.2564821
+    "impact_assessment": {
+      "why": "The recovered Entire audits report 8 defects in reforge, media, artwork, CLI and a drift test; each must be verified against the current tree and fixed where real.",
+      "benefits": "Restores ADR-297 completion semantics, makes every state write durable, bounds test process trees, removes dead code and duplicate writers, and turns the walker test into a real drift detector.",
+      "risks": "contract: settle_run and save_state behavior changes touch every Reforge entry point; dependency: process-tree teardown will reuse scripts.dogfood; concurrency: state writes keep the advisory lock; state: .aikit/reforge.json and generated knowledge files must stay consistent.",
+      "mitigation": "Failing-first tests per behavior change, full test budgets plus read-only gates, and an ADR recording the remediation."
+    },
+    "completed_at": 1793494433.0055814
   },
   "checkpoints": [
-    {
-      "task_id": "github-scan-batch4-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'github-scan-batch4-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793436143.8725965,
-      "timestamp_str": "2026-10-31 11:42:23",
-      "agent": "opencode:idea-scan-b4"
-    },
-    {
-      "task_id": "verify-tier-timeout-v1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Report a test-tier timeout as a clean, actionable failure and give verify_commit per-gate timeouts so the tiers gate can finish its own bound",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793437803.0616138,
-      "timestamp_str": "2026-10-31 12:10:03",
-      "agent": "kilo:1",
-      "impact_assessment": {
-        "why": "verify_commit.py reported the tiers gate as failed on commit aac4336 with a raw subprocess.TimeoutExpired traceback: scripts/check_test_budgets.py runs each tier with subprocess.run(timeout=300) and never catches the timeout, so a tier that overruns under host load crashes the gate instead of reporting it. The same commit's 786 tests pass in a clean worktree, so the gate, not the code, was the failing surface.",
-        "benefits": "A timed-out tier becomes a named [FAIL] with its own Why and Fix, exit 1, and no traceback; the 300s bound becomes an explicit hang detector rather than an accidental load limit; verify_commit gives the three-tier gate room to reach that clean report instead of being killed by one outer 600s cap shared with single-script gates.",
-        "risks": "contract: check_test_budgets gains a timeout result state and verify_commit's gate table gains a timeout column, both internal to their modules; dependency: stdlib only; concurrency: another session is editing scripts/project_media.py and tests/test_kit.py in this tree, so only the two script files are edited until its work is committed and explicit staging excludes it; state: none beyond stdout and exit codes",
-        "mitigation": "Failing-first unit tests for a timeout runner double and for a per-gate timeout table; keep the injected 2-argument runner contract; re-read tests/test_kit.py before writing and stage only my own hunks after the other session's edits are gone; both tiers plus every read-only gate before any commit"
-      }
-    },
     {
       "task_id": "verify-tier-timeout-v1",
       "phase": "implementation",
@@ -251,6 +230,33 @@
       "timestamp": 1793485083.2564833,
       "timestamp_str": "2026-11-01 01:18:03",
       "agent": "kilo:repo-fix"
+    },
+    {
+      "task_id": "entire-audit-remediation",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Remediate verified Entire audit findings in AIKit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793493908.1011698,
+      "timestamp_str": "2026-11-01 03:45:08",
+      "agent": "commandcode:audit-fix",
+      "impact_assessment": {
+        "why": "The recovered Entire audits report 8 defects in reforge, media, artwork, CLI and a drift test; each must be verified against the current tree and fixed where real.",
+        "benefits": "Restores ADR-297 completion semantics, makes every state write durable, bounds test process trees, removes dead code and duplicate writers, and turns the walker test into a real drift detector.",
+        "risks": "contract: settle_run and save_state behavior changes touch every Reforge entry point; dependency: process-tree teardown will reuse scripts.dogfood; concurrency: state writes keep the advisory lock; state: .aikit/reforge.json and generated knowledge files must stay consistent.",
+        "mitigation": "Failing-first tests per behavior change, full test budgets plus read-only gates, and an ADR recording the remediation."
+      }
+    },
+    {
+      "task_id": "entire-audit-remediation",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'entire-audit-remediation' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793494433.0055828,
+      "timestamp_str": "2026-11-01 03:53:53",
+      "agent": "commandcode:audit-fix"
     }
   ]
 }

@@ -341,8 +341,37 @@ def migrate_ledger_schema(data: Any) -> Dict[str, Any]:
     return data
 
 
-def atomic_write_json(file_path: Path, data: Any, max_retries: int = 5, min_headroom_mb: float = 10.0) -> None:
-    """Atomically write JSON data using fsync, shadow backup, and temporary replacement (PRINCIPLE-013)."""
+def _replace_with_retries(tmp_path: Path, file_path: Path, max_retries: int) -> None:
+    """Replace with a Windows lock-contention retry loop (PRINCIPLE-013 R2)."""
+    for attempt in range(max_retries):
+        try:
+            os.replace(tmp_path, file_path)
+            return
+        except PermissionError:
+            # Only lock contention is worth retrying (another process holds the file on
+            # Windows). A full or read-only disk fails the same way five times, so it raises
+            # at once and the caller sees the real cause (ADR-146).
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(0.02 * (2 ** attempt))
+
+
+def _rotate_shadow_backup(file_path: Path) -> None:
+    """Keep the last durable content as `<file>.bak` before the replace (PRINCIPLE-013 R1)."""
+    if not file_path.exists():
+        return
+    bak_path = file_path.with_suffix(file_path.suffix + ".bak")
+    try:
+        shutil.copy2(file_path, bak_path)
+    except OSError as e:
+        # The write still proceeds, but losing the PRINCIPLE-013 shadow copy is reported.
+        sys.stderr.write(f"[WARN] Shadow backup {bak_path.name} not written: {e}\n")
+
+
+def _atomic_write(file_path: Path, mode: str, writer: Callable[[Any], None], *,
+                  newline: Optional[str] = None, backup: bool = True,
+                  max_retries: int = 5, min_headroom_mb: float = 10.0) -> None:
+    """Write through a temp file, fsync, shadow backup and durable replace (PRINCIPLE-013 R1/R2)."""
     file_path.parent.mkdir(parents=True, exist_ok=True)
     if not check_disk_headroom(file_path.parent, min_mb=min_headroom_mb):
         sys.stderr.write(f"[WARN] Insufficient storage headroom for atomic write: {file_path.name}\n")
@@ -350,33 +379,19 @@ def atomic_write_json(file_path: Path, data: Any, max_retries: int = 5, min_head
 
     tmp_path = file_path.with_suffix(file_path.suffix + f".tmp_{os.getpid()}_{int(time.time() * 1000)}")
     try:
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-
-        # Rotate existing valid file to shadow backup (.bak) prior to replacement
-        if file_path.exists():
-            bak_path = file_path.with_suffix(file_path.suffix + ".bak")
-            try:
-                shutil.copy2(file_path, bak_path)
-            except OSError as e:
-                # The write still proceeds, but losing the PRINCIPLE-013 shadow copy is reported.
-                sys.stderr.write(f"[WARN] Shadow backup {bak_path.name} not written: {e}\n")
-
-        # Windows lock-contention retry loop on os.replace
-        for attempt in range(max_retries):
-            try:
-                os.replace(tmp_path, file_path)
-                break
-            except PermissionError:
-                # Only lock contention is worth retrying (another process holds the file on
-                # Windows). A full or read-only disk fails the same way five times, so it raises
-                # at once and the caller sees the real cause (ADR-146).
-                if attempt == max_retries - 1:
-                    raise
-                time.sleep(0.02 * (2 ** attempt))
-
+        if "b" in mode:
+            with open(tmp_path, mode) as f:
+                writer(f)
+                f.flush()
+                os.fsync(f.fileno())
+        else:
+            with open(tmp_path, mode, encoding="utf-8", newline=newline) as f:
+                writer(f)
+                f.flush()
+                os.fsync(f.fileno())
+        if backup:
+            _rotate_shadow_backup(file_path)
+        _replace_with_retries(tmp_path, file_path, max_retries)
         # Durability barrier: make the rename itself survive a power cut (PRINCIPLE-013 R1)
         fsync_dir(file_path.parent)
     except Exception:
@@ -386,6 +401,27 @@ def atomic_write_json(file_path: Path, data: Any, max_retries: int = 5, min_head
             except OSError:  # hygiene: allow temp cleanup only; the original failure re-raises
                 pass
         raise
+
+
+def atomic_write_json(file_path: Path, data: Any, max_retries: int = 5, min_headroom_mb: float = 10.0) -> None:
+    """Atomically write JSON data using fsync, shadow backup, and temporary replacement (PRINCIPLE-013)."""
+    _atomic_write(Path(file_path), "w", lambda f: json.dump(data, f, indent=2),
+                  max_retries=max_retries, min_headroom_mb=min_headroom_mb)
+
+
+def atomic_write_text(file_path: Path, text: str, newline: Optional[str] = "\n",
+                      backup: bool = True, max_retries: int = 5,
+                      min_headroom_mb: float = 10.0) -> None:
+    """Atomically write UTF-8 text with the same durability guarantees as JSON (PRINCIPLE-013)."""
+    _atomic_write(Path(file_path), "w", lambda f: f.write(text), newline=newline,
+                  backup=backup, max_retries=max_retries, min_headroom_mb=min_headroom_mb)
+
+
+def atomic_write_bytes(file_path: Path, data: bytes, backup: bool = True,
+                       max_retries: int = 5, min_headroom_mb: float = 10.0) -> None:
+    """Atomically write raw bytes with the same durability guarantees as JSON (PRINCIPLE-013)."""
+    _atomic_write(Path(file_path), "wb", lambda f: f.write(data), backup=backup,
+                  max_retries=max_retries, min_headroom_mb=min_headroom_mb)
 
 
 def load_ledger(ledger_file: Optional[Path] = None) -> Dict[str, Any]:
