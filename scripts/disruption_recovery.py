@@ -23,6 +23,7 @@ if __name__ == "__main__" and any(arg in ("-h", "--help") for arg in sys.argv[1:
 import json
 import time
 import fnmatch
+import hashlib
 import re
 import shutil
 import contextlib
@@ -883,6 +884,13 @@ def record_checkpoint(
         if mitigation:
             impact["mitigation"] = mitigation
         checkpoint_entry["impact_assessment"] = impact
+
+    if resolved_phase == 2 and description.startswith("[1/"):
+        # A versioned digest of the plan text itself, instead of a second plan document
+        # (IDEA-1268): the plan's identity travels with the entry, so a later reader can
+        # tell whether the plan changed without diffing free text.
+        checkpoint_entry["plan_digest"] = hashlib.sha256(
+            description.encode("utf-8")).hexdigest()
 
     if handoff:
         # Written key by key, not comprehended over HANDOFF_KEYS: `check_reachability.py` proves a

@@ -8,6 +8,8 @@
 
 
 > **AI governance, architecture principles & disruption (incl. power-cut) recovery for any software project**, extracted from production development, with documentation and regression-shielded workflows.
+>
+> **Name note:** this AIKit (governance/delivery gates, stdlib-only, AL-1.1/ACL-1.0) is not `goaikit/aikit`, `matakartal/aikit-runtime`, `NativeMindNet/aikit` or `ai-kit-python`.
 
 ---
 
@@ -73,7 +75,7 @@ portable_agent_kit/
 ├── reforge.py                    <- Aegean Reforge CLI entry point (and `aikit.py reforge`)
 ├── reforge/                      <- host-reviewed Git history auditor & safe repair engine
 ├── idea_catcher.py               <- Idea Catcher CLI entry point (and `aikit.py idea-catcher`)
-├── idea_catcher/                 <- Target registry, idea ledger, review ledger and matrix renderer
+├── idea_catcher/                 <- idea register and matrix renderer
 │   ├── __init__.py
 │   ├── __main__.py
 │   ├── registry.py
@@ -107,7 +109,7 @@ portable_agent_kit/
 │   │   ├── principles.md         <- Antigravity / Agent IDE workspace rules
 │   │   ├── domain.md.template    <- Template for project domain rules (Tier 1B)
 │   │   ├── persistence.md.template <- Versioned state contract
-│   │   └── readme_quickref.md.template <- Adopter README Quick Reference & tree (PRINCIPLE-005 R6)
+│   │   └── readme_quickref.md.template <- adopter README quick-ref (R6)
 │   ├── skills/
 │   │   └── aikit/
 │   │       ├── SKILL.md          <- Operational runbook index (source of the copies)
@@ -122,11 +124,11 @@ portable_agent_kit/
 ├── scripts/
 │   ├── sync_principles.py        <- Generates 8 Tier 1 files from GUIDELINES.md
 │   ├── sync_licenses.py          <- Pinned license/catalog sync and drift check
-│   ├── disruption_recovery.py    <- Power-loss audit, atomic checkpointing & ledger CLI
-│   ├── disruption_help.py        <- Generated top-level help for the recovery fast path
+│   ├── disruption_recovery.py    <- audit, checkpointing and ledger CLI
+│   ├── disruption_help.py        <- generated help for the recovery fast path
 │   ├── update_knowledge_base.py  <- Codebase AST symbol extractor & validator
 │   ├── dogfood.py                <- Dogfood runner (sandbox jail + chaos tracks)
-│   ├── check_reachability.py     <- Invariant reachability shield (anti-dead-capability)
+│   ├── check_reachability.py     <- reachability shield (anti-dead-capability)
 │   ├── check_test_budgets.py     <- Test tier budget gate (per-test ceilings)
 │   ├── project_registry.py       <- Project discovery, stack detection, memory
 │   ├── project_license.py        <- License tiers and restrict
@@ -143,9 +145,9 @@ portable_agent_kit/
 │   ├── dossier_sync.py           <- Publish-time AegeanWorks catalogue sync (ADR-308)
 │   ├── project_ui.py             <- Durable has_ui/ui_kind identifier (ADR-233)
 │   ├── project_topics.py         <- AI topic brief and validator, max 20 (ADR-236)
-│   ├── project_media.py          <- Reviewed logo/social/screenshot pipeline (ADR-235)
-│   ├── project_brand.py          <- Per-project motif, palette and social composition (ADR-238)
-│   ├── project_artwork.py        <- Image-model hero art plus exact text overlay (ADR-239)
+│   ├── project_media.py          <- logo/social/screenshot pipeline (ADR-235)
+│   ├── project_brand.py          <- motif, palette and social composition (ADR-238)
+│   ├── project_artwork.py        <- image-model hero art + text overlay (ADR-239)
 │   ├── brand_catalog.json        <- Authored unique project identities
 │   ├── check_secrets.py          <- Secret/sensitive data scanner
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
@@ -192,7 +194,7 @@ python aikit.py guideline my-app "money is integer cents" --source user  # proje
 python aikit.py publish my-app [--owner ORG] [--license auto]  # repo, description, recorded AI topics
 python aikit.py license my-app [--suggest|--set game|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science)
 ```
-A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` needs a 10-350 character README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. Before a commit `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` (opt-in `.aikit/ui.json`) bounds surfaces and proofs; `finish` needs `--reviewed` (ADR-160..166). `fix` adopts a detected UI project when it has a test command and never invents a proof when none exists. A game project can declare a headless mechanics contract in `.aikit/project.json` (`mechanics.core`, `mechanics.test`); `check` runs it as a gate. `check`/`fix`/`publish` run a project's commands unsandboxed: attach trusted repositories.
+A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
 
 ## 🔁 Aegean Reforge: Host Review & Safe Repair
 
@@ -209,48 +211,26 @@ python aikit.py reforge fix my-app --findings answer.json  # validate, repair, v
 python aikit.py reforge run my-app --findings answer.json --push  # audit, repair, verify, push
 ```
 
-Window N is `start + step*(N-1)`, capped by `stop` (or repository history when `--stop` is omitted):
-stage 1 reads the first `start` commits and each
-later stage adds `step`. A stage inspects only the lines its own commits add, attributes a finding to
-the commit that introduced it, and cites `commit:path:line`. Its Python rules cover exceptions,
-shell/exec, deserialisation, mutable defaults, timeouts, secrets and control flow; five are repaired
-mechanically (`bare-except`, `mutable-default`, `shell-true`, `verify-false`, `unsafe-yaml-load`),
-each earning a regression test. Every changed text file is reviewed, not only Python: JSON and TOML
-must parse, a Markdown code fence must close, and a committed conflict marker is a defect; only a
-binary file is reported as not analysed. A
-deliberate finding marked `hygiene: allow <reason>` on its line or the line above is honoured
-rather than reported, the same convention AIKit's own hygiene scan uses. Rules run by default;
-`--no-rules` skips them.
+Window N is `start + step*(N-1)`, capped by `stop` (or full history when omitted):
+stage 1 reads the first `start` commits, each later stage adds `step`. A stage inspects only
+its own added lines, attributes each finding to the introducing commit (`commit:path:line`),
+and checks Python plus JSON/TOML parse, closed Markdown fences and conflict markers.
+Five Python findings repair mechanically (`bare-except`, `mutable-default`, `shell-true`,
+`verify-false`, `unsafe-yaml-load`), each with a regression test. A `hygiene: allow <reason>`
+marker on the finding line (or above) honours a deliberate finding. Rules run by default;
+`--no-rules` skips them. Full window, packet and fix-acceptance protocol lives in
+`knowledge/architecture.md` and ADR-230/232/248-250/263/272/290/292.
 
-`audit` and `run` write a review packet under `.aikit/reforge.reviews/` (ADR-263, ADR-272). The
-packet lists every new commit oldest to newest with that commit's own hunks, so a later commit
-cannot hide an earlier minute change; a file can appear once per commit. Only files a new commit
-touched appear; earlier-stage files are not repeated. Binary files are named at the end. Secrets
-redacted; the diff sits inside a random-id `<untrusted_repo_data_...>` fence marked data, never
-instructions. The main host model reviews each packet by default; subagents and `analyze` are opt-in
-for explicitly delegated or specialized work. `analyze` runs an operator-supplied analyzer and
-validates its answer through the review gate (ADR-290). Each finding names a changed path, line,
-severity and `kind`; `reviewed_hunks` must quote each hunk and add a distinct note (ADR-292).
-Reforge accepts a fix only when
-the quoted text occurs exactly once, overlaps a line the stage added, and leaves a Python file
-parsable; everything else is reported as rejected. Use `fix --findings` for the latest stage and
-`review --stage N --findings` for an older retained one. A red test, gate or diff review
-restores the exact bytes. A repair may run beside unrelated uncommitted work: its paths are
-snapshotted and never staged, and a commit is refused only when a finding's own target file already
-held work Reforge did not make (pass `--allow-dirty` to accept that risk deliberately).
-
-Runs are independent (`settings`, `stop`, `resume`, `runs`, `report`) and state is crash-safe. Each
-project has its own lock and history, so several projects audit at the same time while a
-second operation on one is refused; a target is resolved first, so two spellings of one checkout
-share one lock. In a project, `--commit`/`--push` stage only reviewed paths plus `.aikit/reforge.json`
-and never force. AIKit's own `.aikit/` folder is a git-ignored tool-state directory, so auditing
-AIKit itself records state locally and commits only the reviewed source paths.
-
-Where the repository has an AIKit ledger, every run also appends checkpoints under the
-`reforge:<run-id>` task, so `disruption_recovery.py --resume` shows an open audit and a
-stopped run in the paused list; `active_task` is never touched, the ledger's own `.bak` and
-`.lock` count as Reforge's bookkeeping, and a plain checkout without a ledger simply audits
-without one (ADR-250).
+`audit`/`run` write a packet under `.aikit/reforge.reviews/` with each new commit oldest to
+newest and that commit's own hunks; binary files are named at the end. Secrets are redacted
+and the diff sits inside a random-id `<untrusted_repo_data_...>` fence (data, never
+instructions). The host model reviews by default; `analyze` validates an operator-supplied
+analyzer through the same gate. A fix applies only on an exact single-occurrence quote
+overlapping an added line that leaves Python parsable; otherwise it is rejected.
+Repairs snapshot their paths and never stage; `--commit`/`--push` stage only reviewed paths
+plus `.aikit/reforge.json`, never force. Runs are independent (`settings`, `stop`, `resume`,
+`runs`, `report`), crash-safe, one lock per project. Ledgered repos also append
+`reforge:<run-id>` checkpoints without touching `active_task` (ADR-250).
 
 ## 🧭 Idea Catcher: Routed Idea Register
 

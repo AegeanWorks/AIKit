@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -37,6 +38,10 @@ COMPARE_MUTATIONS = {"==": "!=", "!=": "==", "<": ">=", "<=": ">", ">": "<=", ">
 BINOP_MUTATIONS = {"+": "-", "-": "+"}
 
 Runner = Callable[[Sequence[str], Path, float], Tuple[int, str]]
+
+# Proof runs are derandomized by default: an unset PYTHONHASHSEED randomizes hash order
+# per process, so the same test run can pass and fail on different machines (IDEA-1157).
+PROOF_HASH_SEED = "0"
 
 # The generated and dependency trees no mutation run may copy. Kept beside the copy so the audit
 # and knowledge walkers can be pinned to the same core set by a unit test (ADR-300).
@@ -58,6 +63,7 @@ def run_command(argv: Sequence[str], cwd: Path, timeout: float) -> Tuple[int, st
         done = subprocess.run(
             list(argv), cwd=str(cwd), stdin=subprocess.DEVNULL, capture_output=True,
             text=True, encoding="utf-8", errors="replace", timeout=timeout,
+            env={**os.environ, "PYTHONHASHSEED": PROOF_HASH_SEED},
         )
     except subprocess.TimeoutExpired:
         return 124, f"timed out after {timeout:g}s"
@@ -268,6 +274,13 @@ def mutation_suite(
             mutants.append((path, mutant))
 
     waived_keys = set(waive)
+    generated_keys = {mutant_key(mutant) for _, mutant in mutants}
+    unknown = sorted(waived_keys - generated_keys)
+    if unknown:
+        raise ProofError(
+            f"waiver(s) match no generated mutant: {', '.join(unknown)}. "
+            "Why: a waiver that binds to nothing silently weakens the proof. "
+            "Fix: waive a key from the run's mutant list, or drop the waiver.")
     active = [(path, mutant) for path, mutant in mutants
               if mutant_key(mutant) not in waived_keys]
     waived = len(mutants) - len(active)
@@ -276,13 +289,36 @@ def mutation_suite(
         original = path.read_bytes()
         mutated = apply_mutation(original.decode("utf-8"), mutant)
         try:
+            ast.parse(mutated)
+        except SyntaxError as exc:
+            # A splice that breaks syntax is generator garbage, not a survived mutant:
+            # record it as an error without running the suite (IDEA-1112).
+            records.append({
+                "file": mutant["file"],
+                "line": mutant["line"],
+                "operator": mutant["operator"],
+                "replacement": mutant["replacement"],
+                "status": "error",
+                "exit": None,
+                "output": f"mutant does not parse: {exc}",
+            })
+            continue
+        try:
             path.write_bytes(mutated.encode("utf-8"))
             code, output = _run_declared_tests(current, tests, timeout, runner)
         finally:
             path.write_bytes(original)
-        status = "killed" if code != 0 else "survived"
-        if code == 124:
+        # Only an assertion failure is a kill: import/collection errors and timeouts are
+        # recorded, never counted as kills (IDEA-1112, IDEA-1170).
+        kind = classify_run(code, output)
+        if kind == "assertion":
+            status = "killed"
+        elif kind == "timeout":
             status = "timeout"
+        elif code == 0:
+            status = "survived"
+        else:
+            status = "error"
         records.append({
             "file": mutant["file"],
             "line": mutant["line"],
@@ -293,8 +329,10 @@ def mutation_suite(
             "output": tail(output),
         })
 
-    killed = sum(1 for row in records if row["status"] in {"killed", "timeout"})
-    survived = len(records) - killed
+    killed = sum(1 for row in records if row["status"] == "killed")
+    survived = sum(1 for row in records if row["status"] == "survived")
+    errors = sum(1 for row in records if row["status"] == "error")
+    timeouts = sum(1 for row in records if row["status"] == "timeout")
     threshold = min(min_killed, len(records)) if records else 0
     return {
         "generated": len(mutants),
@@ -302,6 +340,8 @@ def mutation_suite(
         "scored": len(records),
         "killed": killed,
         "survived": survived,
+        "errors": errors,
+        "timeouts": timeouts,
         "threshold": threshold,
         "passed": killed >= threshold,
         "mutants": records,
@@ -416,9 +456,14 @@ def prove(
                 min_killed=min_killed, waive=waive, timeout=timeout, runner=runner,
             )
             if require_mutation and not mutation["passed"]:
+                extra = ""
+                if mutation["errors"]:
+                    extra += f", {mutation['errors']} error(s)"
+                if mutation["timeouts"]:
+                    extra += f", {mutation['timeouts']} timeout(s)"
                 failures.append(
                     f"mutation: {mutation['killed']}/{mutation['scored']} killed, "
-                    f"threshold {mutation['threshold']}"
+                    f"threshold {mutation['threshold']}{extra}"
                 )
     finally:
         if added:

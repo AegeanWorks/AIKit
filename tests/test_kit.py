@@ -173,7 +173,7 @@ import scripts.project_topics as project_topics
 import scripts.project_ui as project_ui
 
 
-from scripts.project_gates import Gate, failure_tail, resolve_gates, run_gates
+from scripts.project_gates import Gate, _rewritten_paths, failure_tail, resolve_gates, run_gates
 from scripts.marked_blocks import block_span, fenced, replace_block
 from scripts.project_license import (
     _licensed_readme,
@@ -2595,6 +2595,12 @@ class TestPrinciple003Unambiguity(unittest.TestCase):
         # ledger, and a failed audit scan reported "clean".
         import ast
         for script in sorted((ROOT_DIR / "scripts").glob("*.py")):
+            # Underscore-prefixed files are fixtures, not shipped scripts (same convention as
+            # the annotation audit below): the integration tier's AST-gate probe is deliberately
+            # broken syntax that exists only while its test runs, and parallel tiers share the
+            # tree, so parsing it here would race a fixture that the AST gate itself refuses.
+            if script.stem.startswith("_"):
+                continue
             # The shared content-keyed cache: the knowledge-base tests parse these same files.
             tree = parse_source(script.read_text(encoding="utf-8"), str(script))
             for node in ast.walk(tree):
@@ -2886,6 +2892,21 @@ class TestPrinciple004Unambiguity(unittest.TestCase):
         record_checkpoint("t", "implementation", "milestone 3", phase_num=3, ledger_file=ledger)
         written = json.loads(ledger.read_text(encoding="utf-8"))
         self.assertNotIn("handoff", written["checkpoints"][-1])
+
+    def test_plan_checkpoints_carry_a_versioned_text_digest(self):
+        # IDEA-1268: the plan's identity is bound to the entry, not a second document.
+        workspace = Path(tempfile.mkdtemp(prefix="test_plandigest_"))
+        self.addCleanup(shutil.rmtree, workspace, ignore_errors=True)
+        ledger = workspace / ".agents" / "task_ledger.json"
+        record_checkpoint("t", "planning", "[1/2] model; [2/2] cli", phase_num=2,
+                          ledger_file=ledger)
+        written = json.loads(ledger.read_text(encoding="utf-8"))
+        self.assertEqual(written["checkpoints"][-1]["plan_digest"],
+                         hashlib.sha256("[1/2] model; [2/2] cli".encode("utf-8")).hexdigest())
+        # A non-plan checkpoint carries no key at all, so old readers see an unchanged shape.
+        record_checkpoint("t", "implementation", "milestone 3", phase_num=3, ledger_file=ledger)
+        written = json.loads(ledger.read_text(encoding="utf-8"))
+        self.assertNotIn("plan_digest", written["checkpoints"][-1])
 
     def test_parse_handoff_keeps_colons_inside_a_value(self):
         packet, errors = parse_handoff("next: run `aikit check app`: it gates the commit")
@@ -3488,6 +3509,37 @@ class TestSecretHygieneScanner(unittest.TestCase):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
         self.assertEqual(scan_text("fixture.py", line), [],
                          "explicit pragma did not suppress the finding")
+
+    def test_a_scoped_pragma_suppresses_only_the_named_detector(self):
+        # IDEA-1115: least-privilege suppressions name detectors from the registry.
+        # Shapes below are escaped so this file stays clean under the scanner itself.
+        scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
+                  '  # aikit:allow-secret[github token]')
+        self.assertEqual(scan_text("fixture.py", scoped), [])
+        scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
+                  '  # aikit:allow-secret[slack token]')
+        findings = scan_text("fixture.py", scoped)
+        self.assertEqual([f[2] for f in findings], ["GitHub token"])
+        scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
+                  '  # aikit:allow-secret[no-such-detector]')
+        findings = scan_text("fixture.py", scoped)
+        self.assertEqual([f[2] for f in findings], ["GitHub token"])
+
+    def test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name(self):
+        note = ('note = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE0Q2W4E6a\x42"'
+                '  # aikit:allow-secret[high-entropy-literal]')
+        self.assertEqual(scan_text("fixture.py", note), [])
+        note = ('note = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE0Q2W4E6a\x42"'
+                '  # aikit:allow-secret[high-entropy-value]')
+        findings = scan_text("fixture.py", note)
+        self.assertEqual([f[2] for f in findings], ["high-entropy string literal"])
+
+    def test_every_detector_has_a_vocabulary_entry(self):
+        # IDEA-1115: the vocabulary is the pragma's language; a new detector adds its name.
+        from scripts import check_secrets
+        tabled = {name for name, _ in check_secrets.SECRET_PATTERNS}
+        self.assertEqual(tabled | {"high-entropy-value", "high-entropy-literal"},
+                         set(check_secrets.DETECTOR_NAMES))
 
     def test_entropy_separates_random_from_prose(self):
         self.assertGreater(shannon_entropy("f3a9c81e2b7d45069af13c2e8b5d7049"), 3.5)
@@ -4809,7 +4861,9 @@ class TestProjectRegistry(unittest.TestCase):
         folder = Path(tempfile.mkdtemp(prefix="test_projects_ext_"))
         self.addCleanup(shutil.rmtree, folder, ignore_errors=True)
         for name, text in files:
-            (folder / name).write_text(text, encoding="utf-8")
+            path = folder / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
         return folder
 
     def test_detects_every_stack_and_its_test_command(self):
@@ -4826,6 +4880,34 @@ class TestProjectRegistry(unittest.TestCase):
     def test_npm_placeholder_is_not_a_test_command(self):
         folder = self.make_folder(
             ("package.json", '{"scripts": {"test": "echo \\"Error: no test specified\\" && exit 1"}}'))
+        self.assertEqual(detect_stacks(folder), (Stack("node", None),))
+
+    def test_detects_python_from_test_folder_and_top_level_script(self):
+        folder = self.make_folder(
+            ("run.py", "print('hi')\n"),
+            ("tests/test_app.py", "import unittest\n"),
+        )
+        self.assertEqual([s.name for s in detect_stacks(folder)], ["python"])
+
+    def test_detects_cpp_with_cmake_and_project_test_script(self):
+        folder = self.make_folder(
+            ("CMakeLists.txt", "cmake_minimum_required(VERSION 3.28)\n"),
+            ("CMakePresets.json", "{}\n"),
+            ("scripts/test.cmd", "@echo off\n"),
+        )
+        stacks = {s.name: s.test_command for s in detect_stacks(folder)}
+        self.assertEqual(stacks.get("cpp"), "scripts/test.cmd")
+
+    def test_detects_cpp_with_ctest_preset_when_no_project_script(self):
+        folder = self.make_folder(
+            ("CMakeLists.txt", "cmake_minimum_required(VERSION 3.28)\n"),
+            ("CMakePresets.json", "{}\n"),
+        )
+        stacks = {s.name: s.test_command for s in detect_stacks(folder)}
+        self.assertEqual(stacks.get("cpp"), "ctest --preset release")
+
+    def test_detects_node_from_lockfile_without_inventing_a_command(self):
+        folder = self.make_folder(("yarn.lock", ""))
         self.assertEqual(detect_stacks(folder), (Stack("node", None),))
 
     def test_name_must_be_one_portable_segment(self):
@@ -6735,10 +6817,47 @@ class TestProjectGates(unittest.TestCase):
         def runner(command, cwd, timeout):
             calls.append(command)
             return (1, "x\n\nerror: broken\n") if command == "fail" else (0, "")
-        results = run_gates(Path("."), gates, runner=runner)
+        results = run_gates(Path("."), gates, runner=runner,
+                            snapshotter=lambda root: None)
         self.assertEqual(calls, ["fail", "pass"])
         self.assertEqual([r.passed for r in results], [False, True])
         self.assertEqual(failure_tail(results[0].output), ["x", "error: broken"])
+
+    def test_a_gate_that_rewrites_tracked_files_fails(self):
+        snapshots = iter([{"f.txt": "aaa"}, {"f.txt": "bbb"}])
+        results = run_gates(Path("."), [Gate("t", "pass", "t")],
+                            runner=lambda c, d, t: (0, "ok"),
+                            snapshotter=lambda root: next(snapshots))
+        self.assertFalse(results[0].passed)
+        self.assertIn("f.txt", results[0].output)
+
+    def test_a_gate_that_changes_nothing_passes_as_before(self):
+        snap = {"f.txt": "aaa"}
+        results = run_gates(Path("."), [Gate("t", "pass", "t")],
+                            runner=lambda c, d, t: (0, "ok"),
+                            snapshotter=lambda root: dict(snap))
+        self.assertTrue(results[0].passed)
+        self.assertEqual(results[0].output, "ok")
+
+    def test_without_a_snapshot_there_is_no_rewrite_verdict(self):
+        results = run_gates(Path("."), [Gate("t", "pass", "t")],
+                            runner=lambda c, d, t: (0, "ok"),
+                            snapshotter=lambda root: None)
+        self.assertTrue(results[0].passed)
+
+    def test_a_failing_gate_keeps_its_code_and_gains_the_rewrite_note(self):
+        snapshots = iter([{"f.txt": "aaa"}, {"f.txt": "bbb"}])
+        results = run_gates(Path("."), [Gate("t", "fail", "t")],
+                            runner=lambda c, d, t: (1, "boom"),
+                            snapshotter=lambda root: next(snapshots))
+        self.assertEqual(results[0].returncode, 1)
+        self.assertIn("boom", results[0].output)
+        self.assertIn("f.txt", results[0].output)
+
+    def test_rewritten_paths_compares_content_hashes(self):
+        self.assertEqual(_rewritten_paths({"a": "1"}, {"a": "1"}), [])
+        self.assertEqual(_rewritten_paths({"a": "1"}, {"a": "2"}), ["a"])
+        self.assertEqual(_rewritten_paths(None, {"a": "1"}), [])
 
 class TestProjectHygieneScan(unittest.TestCase):
     """The hygiene scan decides from the AST and from lines what the project gates could not (ADR-137)."""
@@ -6828,6 +6947,34 @@ class TestProjectHygieneScan(unittest.TestCase):
     def test_inline_allow_marker_needs_a_reason(self):
         self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow bootstrapper\n"), set())
         self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow x\n"), {"os-system"})
+
+    def test_a_typed_allow_marker_scopes_suppression_to_its_rule(self):
+        # IDEA-1119: a typed marker suppresses only the rule it names. Bare markers keep
+        # working (100+ existing sites); an unknown code suppresses nothing, fail-closed.
+        self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow [os-system] bootstrapper\n"),
+                          set())
+        self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow [shell-true] bootstrapper\n"),
+                          {"os-system"})
+        self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow [nope] bootstrapper\n"),
+                          {"os-system"})
+
+    def test_every_emitted_rule_code_is_registered(self):
+        # IDEA-1235: the registry is the code's vocabulary; a new rule adds its row here.
+        import ast as _ast
+        from scripts import check_project_hygiene as hygiene
+        source = Path(hygiene.__file__).read_text(encoding="utf-8")
+        emitted = set()
+        for node in _ast.walk(_ast.parse(source)):
+            if isinstance(node, _ast.Call) and getattr(node.func, "id", "") == "Finding":
+                if len(node.args) >= 3 and isinstance(node.args[2], _ast.Constant):
+                    emitted.add(node.args[2].value)
+        # The tracked-artifact code travels in a variable from _artifact_rule, not a literal.
+        emitted.add("tracked-artifact")
+        self.assertEqual(emitted, set(hygiene.RULE_CODES))
+        for code, meaning in hygiene.RULE_CODES.items():
+            self.assertRegex(code, r"^[a-z0-9-]+$")
+            self.assertTrue(meaning.strip(), f"rule {code} has no documented meaning")
+            self.assertIn(code, hygiene.HELP_TEXT, f"rule {code} missing from --help")
 
     def test_asset_urls_skip_loopback_namespaces_and_marked_lines(self):
         local = '<script src="http://localhost:8000/app.js"></script>\n'
@@ -8409,6 +8556,20 @@ class TestTestTierBudgetGate(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("runs 25.00ms, 25.00ms", out)
 
+    def test_parallel_and_sequential_modes_agree_and_keep_order(self):
+        table = {self.UNIT: self.ok(100, 0.9), self.INTEG: self.ok(45, 1.0)}
+        table.setdefault(self.AUTO, self.ok(1, 0.01))
+        parallel_buf, sequential_buf = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(parallel_buf):
+            parallel_code = run_budget_check(runner=self.fake_runner(table), retry_delay=0)
+        with contextlib.redirect_stdout(sequential_buf):
+            sequential_code = run_budget_check(
+                runner=self.fake_runner(table), retry_delay=0, sequential=True)
+        self.assertEqual((parallel_code, sequential_code), (0, 0))
+        for out in (parallel_buf.getvalue(), sequential_buf.getvalue()):
+            self.assertLess(out.index(self.UNIT), out.index(self.AUTO))
+            self.assertLess(out.index(self.AUTO), out.index(self.INTEG))
+
     def test_a_red_tier_is_not_retried(self):
         calls = {"unit": 0}
 
@@ -8683,6 +8844,15 @@ class TestPostCommitVerification(unittest.TestCase):
         self.assertIn("tests/test_x.py", command)
         (root / ".aikit" / "proof.json").unlink()
         self.assertIsNone(proof_gate_command(root, "HEAD", lambda argv, cwd: (0, "parentsha")))
+
+    def test_a_proof_declaration_with_unknown_keys_is_refused(self):
+        # IDEA-1114 + IDEA-1203 (merged): the schema is closed on PROOF_DEFAULTS; a
+        # misspelled key fails loudly instead of silently disabling the proof.
+        with self.assertRaises(ValueError):
+            proof_command_from_declaration(
+                {"tests": ["tests/test_x.py"], "mutants": 1, "min-killed": 1},
+                worktree=Path("/worktree"), parent="abc",
+                script=Path("/worktree/scripts/proof_gate.py"))
 
     def test_a_proof_declaration_without_tests_or_required_sources_is_refused(self):
         with self.assertRaises(ValueError):
@@ -11110,6 +11280,16 @@ class TestProofGateHelpers(unittest.TestCase):
         mutant = {"file": "app.py", "line": 3, "operator": "+"}
         self.assertEqual(proof_gate.mutant_key(mutant), "app.py:3:+")
 
+    def test_proof_runs_pin_pythonhashseed(self) -> None:
+        from scripts import proof_gate
+
+        with mock.patch.object(proof_gate.subprocess, "run") as run:
+            run.return_value = mock.Mock(returncode=0, stdout="ok", stderr="")
+            code, _ = proof_gate.run_command(["python", "-V"], Path("/repo"), 5.0)
+        self.assertEqual(code, 0)
+        env = run.call_args.kwargs.get("env") or {}
+        self.assertEqual(env.get("PYTHONHASHSEED"), proof_gate.PROOF_HASH_SEED)
+
     def test_apply_mutation_uses_the_exact_operator_span(self) -> None:
         from scripts import proof_gate
 
@@ -11155,6 +11335,96 @@ class TestProofGateHelpers(unittest.TestCase):
         self.addCleanup(outside.unlink)
         with self.assertRaises(proof_gate.ProofError):
             proof_gate._copy_tests(root, worktree, [outside])
+
+    def test_only_assertion_failures_count_as_kills(self) -> None:
+        # IDEA-1112 + IDEA-1170: import errors and timeouts are recorded, never kills.
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="proof_kinds_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        repo = root / "repo"
+        repo.mkdir()
+        (repo / "app.py").write_text("a = 1\nb = 2\nif a == b:\n    pass\n", encoding="utf-8")
+
+        def run(kind, tree):
+            if kind == "error":
+                return lambda *_: (1, "ModuleNotFoundError: No module named 'x'")
+            if kind == "timeout":
+                return lambda *_: (124, "timed out after 1s")
+            return lambda *_: (1, "FAILED (failures=1)")
+
+        for kind, field in (("error", "errors"), ("timeout", "timeouts")):
+            report = proof_gate.mutation_suite(
+                repo, root / kind, tests=[Path("tests/test_app.py")], sources=[Path("app.py")],
+                limit=10, min_killed=0, timeout=1.0, runner=run(kind, root / kind))
+            self.assertEqual(report["killed"], 0, kind)
+            self.assertGreater(report[field], 0, kind)
+            self.assertEqual(
+                report["killed"] + report["errors"] + report["timeouts"]
+                + report["survived"], report["scored"], kind)
+        report = proof_gate.mutation_suite(
+            repo, root / "kill", tests=[Path("tests/test_app.py")], sources=[Path("app.py")],
+            limit=10, min_killed=0, timeout=1.0, runner=run("kill", root / "kill"))
+        self.assertEqual(report["killed"], report["scored"])
+        self.assertGreater(report["killed"], 0)
+
+    def test_a_mutant_that_breaks_syntax_is_an_error_not_a_kill(self) -> None:
+        # IDEA-1112: the splice is reparsed before the suite runs; garbage never runs.
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="proof_reparse_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        repo = root / "repo"
+        repo.mkdir()
+        (repo / "app.py").write_text("a = 1\nb = 2\nif a == b:\n    pass\n", encoding="utf-8")
+        with mock.patch.object(proof_gate, "apply_mutation", return_value="def broken(:\n"):
+            report = proof_gate.mutation_suite(
+                repo, root / "tree", tests=[Path("tests/test_app.py")], sources=[Path("app.py")],
+                limit=10, min_killed=0, timeout=1.0,
+                runner=lambda *_: self.fail("unparseable mutants must not run"))
+        self.assertEqual(report["killed"], 0)
+        self.assertGreater(report["errors"], 0)
+
+    def test_every_generated_mutant_reparses(self) -> None:
+        # The reparse guard above must hold for every operator the generator knows.
+        import ast as _ast
+        from scripts import proof_gate
+
+        sources = [
+            "a = 1\nb = 2\nif a == b:\n    pass\n",
+            "x = a + b - c\n",
+            "if a and b or c:\n    pass\n",
+            "if not done:\n    pass\n",
+            "flag = True\n",
+        ]
+        bad = []
+        for index, text in enumerate(sources):
+            for mutant in proof_gate.mutations_for_source(text, f"s{index}.py", 10):
+                mutated = proof_gate.apply_mutation(text, mutant)
+                try:
+                    _ast.parse(mutated)
+                except SyntaxError as exc:
+                    bad.append(f"{proof_gate.mutant_key(mutant)}: {exc}")
+        self.assertEqual(bad, [])
+
+    def test_a_waiver_must_bind_to_a_generated_mutant(self) -> None:
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="proof_waive_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        repo = root / "repo"
+        repo.mkdir()
+        (repo / "app.py").write_text("a = 1\nb = 2\nif a == b:\n    pass\n", encoding="utf-8")
+        killing = lambda *_: (1, "FAILED (failures=1)")
+        report = proof_gate.mutation_suite(
+            repo, root / "tree", tests=[], sources=[Path("app.py")], limit=10,
+            min_killed=0, waive=["app.py:3:=="], timeout=1.0, runner=killing)
+        self.assertEqual(report["waived"], 1)
+        with self.assertRaises(proof_gate.ProofError):
+            proof_gate.mutation_suite(
+                repo, root / "tree2", tests=[], sources=[Path("app.py")], limit=10,
+                min_killed=0, waive=["app.py:99:+"], timeout=1.0,
+                runner=lambda *_: self.fail("runner must not run"))
 
     def test_mutation_sources_cannot_escape_the_repository(self) -> None:
         from scripts import proof_gate

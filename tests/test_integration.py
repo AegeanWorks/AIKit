@@ -608,6 +608,9 @@ class TestAstGateCli(unittest.TestCase):
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             stdin=subprocess.DEVNULL, timeout=PROC_TIMEOUT,
         )
+        # The probe lives in the shared tree that parallel tiers also audit: remove it the
+        # moment the subprocess returns instead of leaving it until test teardown.
+        probe.unlink(missing_ok=True)
         self.assertEqual(res.returncode, 1)
         self.assertIn("_ast_gate_probe.py", res.stderr)
         self.assertIn("line 1", res.stderr)
@@ -1276,6 +1279,24 @@ class TestProjectGateShell(unittest.TestCase):
         results = run_gates(folder, [Gate("q", quoted, "t")], timeout=PROC_TIMEOUT)
         self.assertEqual(results[0].returncode, 3)
         self.assertEqual(Path(results[0].output.strip()).resolve(), folder.resolve())
+
+    def test_a_gate_that_rewrites_tracked_files_fails(self):
+        folder = Path(tempfile.mkdtemp(prefix="test_gate_rewrite_"))
+        self.addCleanup(remove_tree, folder)
+        git = lambda *args: subprocess.run(
+            ["git", *args], cwd=folder, capture_output=True, timeout=PROC_TIMEOUT)
+        git("init")
+        (folder / "f.txt").write_text("v1\n", encoding="utf-8")
+        git("add", "f.txt")
+        git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-m", "base")
+        rewrite = (f'"{sys.executable}" -c "import pathlib; '
+                   f'pathlib.Path(\'f.txt\').write_text(\'v2\')"')
+        results = run_gates(folder, [Gate("w", rewrite, "t")], timeout=PROC_TIMEOUT)
+        self.assertFalse(results[0].passed)
+        self.assertIn("f.txt", results[0].output)
+        read = f'"{sys.executable}" -c "print(open(\'f.txt\').read())"'
+        clean = run_gates(folder, [Gate("r", read, "t")], timeout=PROC_TIMEOUT)
+        self.assertTrue(clean[0].passed)
 
 
 class TestProjectPublishLifecycle(unittest.TestCase):

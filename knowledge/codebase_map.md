@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
-- **Total Top-Level Functions**: `859`
-- **Total Class Methods**: `991`
-- **Total Source Lines**: `37731`
+- **Total Top-Level Functions**: `864`
+- **Total Class Methods**: `1014`
+- **Total Source Lines**: `38292`
 
 ---
 
@@ -706,7 +706,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `708` lines (`33981` bytes)
+**Size**: `755` lines (`36881` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -735,7 +735,7 @@
 - `def _direct_arguments(call)` - *Positional and keyword argument expressions of a call.*
 - `def check_absolute_paths(rel, tree)` - *PRINCIPLE-003 R4: a machine-specific path reaching file access breaks every other machine.*
 - `def check_asset_source(rel, source)` - *PRINCIPLE-003 R3: a static asset that loads from a third party is a hidden dependency.*
-- `def _marked(lines, line)` - *Whether a deliberated `hygiene: allow <reason>` marker covers the finding's line.*
+- `def _marked(lines, line, rule)` - *Whether a deliberated `hygiene: allow` marker excuses this finding.*
 - `def check_python_source(rel, source)` - *Every Python finding in one source text; findings on `hygiene: allow` lines are dropped.*
 - `def _read_source(rel, path)` - *The file's UTF-8 text, or the finding that replaces it (PRINCIPLE-000 R5: no silent skip).*
 - `def _is_root_test_module(path)` - *Whether `path` is a test module at the project root, where default runners import it.*
@@ -771,12 +771,14 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `522` lines (`24599` bytes)
+**Size**: `570` lines (`27133` bytes)
 
 **Functions:**
 - `def shannon_entropy(value)` - *Bits of entropy per character; random credentials score high, English prose low.*
 - `def is_strongly_allowlisted(line)` - *An explicit pragma or an unambiguous placeholder suppresses every detector.*
 - `def is_weakly_allowlisted(line)` - *A hint like "example" suppresses only the low-confidence entropy fallback.*
+- `def pragma_scope(line)` - *The detector names a scoped pragma excuses, or None for a bare pragma or none.*
+- `def detector_in_scope(detector, scope)` - *Whether a finding label is excused by a scoped pragma's names.*
 - `def scan_text(label, text)` - *Return (label, line_no, detector, excerpt) for every finding in a blob of text.*
 - `def looks_random(value)` - *A token shaped like a generated key: mixed case and digits, and high entropy. Hex digests*
 - `def redact(line, start, end)` - *The line with the secret span cut to its first 4 characters plus `***` (PRINCIPLE-019 R4).*
@@ -796,7 +798,7 @@
 ### [`scripts/check_test_budgets.py`](scripts/check_test_budgets.py)
 > *Test Tier Budget Gate (PRINCIPLE-010 Rule 6, PRINCIPLE-014 Rule 3)*
 
-**Size**: `286` lines (`12094` bytes)
+**Size**: `305` lines (`13269` bytes)
 
 **Classes:**
 - `class TierResult` - *One tier's measured outcome; frozen so a report cannot edit what was measured.*
@@ -812,7 +814,7 @@
 - `def default_runner(module, timeout)` - *Run one tier the way the runbook documents it, so the gate measures the real command.*
 - `def run_tier(module, runner, attempts, retry_delay)` - *Measure one tier, or None when its output carried no summary. A green run over the ceiling is*
 - `def budget_errors(results)` - *One line per tier that is over its ceiling; empty when every tier fits.*
-- `def run_check(runner, verbose, retry_delay)`
+- `def run_check(runner, verbose, retry_delay, sequential)`
 
 ---
 
@@ -826,7 +828,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2137` lines (`101527` bytes)
+**Size**: `2145` lines (`101960` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -1025,7 +1027,7 @@
 ### [`scripts/project_gates.py`](scripts/project_gates.py)
 > *Project gates: the checks a project's own configuration declares, run as its Phase 4 (ADR-122).*
 
-**Size**: `211` lines (`9389` bytes)
+**Size**: `290` lines (`12786` bytes)
 
 **Classes:**
 - `class Gate` - *A named check and the shell command that runs it; `source` says where it came from.*
@@ -1033,6 +1035,8 @@
   - Property `.passed`
 
 **Functions:**
+- `def _tracked_snapshot(root)` - *Content hashes of the dirty tracked files, or None when git cannot answer.*
+- `def _rewritten_paths(before, after)` - *Tracked paths whose content identity changed between two snapshots.*
 - `def _python_gates(root)`
 - `def _node_gates(root)`
 - `def _go_gates(root)`
@@ -1041,7 +1045,7 @@
 - `def secrets_gate(project_root)` - *The built-in secret scan of the project's repository.*
 - `def resolve_gates(project)` - *The project's gates in run order: test, detected extras, `gates` overrides, hygiene,*
 - `def run_shell(command, cwd, timeout)` - *Run `command` through the platform shell with stdin closed; on timeout the whole process*
-- `def run_gates(project_root, gates, runner, timeout)` - *Run every gate, even after a failure, so one report lists all of them.*
+- `def run_gates(project_root, gates, runner, timeout, snapshotter)` - *Run every gate, even after a failure, so one report lists all of them.*
 - `def failure_tail(output, lines)` - *The last `lines` non-empty lines of a gate's output, where its error normally is.*
 
 ---
@@ -1138,7 +1142,7 @@
 ### [`scripts/project_registry.py`](scripts/project_registry.py)
 > *Project registry: the projects AIKit builds (cockpit model, ADR-119).*
 
-**Size**: `1215` lines (`56362` bytes)
+**Size**: `1228` lines (`56987` bytes)
 
 **Classes:**
 - `class ProjectError` - *A request AIKit cannot carry out, with its reason and remedy (PRINCIPLE-011 R6).*
@@ -1173,6 +1177,7 @@
 - `def node_runner(root)` - *The package manager the project's lockfile names: pnpm, yarn, or npm by default.*
 - `def _node_test(root)`
 - `def _gradle_test(root)`
+- `def _cpp_test(root)` - *The project's canonical test entry: its own script when present, else CTest.*
 - `def _fixed(command)`
 - `def detect_stacks(root)` - *Every stack whose marker file sits in the project's top folder (polyglot repos list several).*
 - `def validate_name(name)` - *Reject names that are not one portable folder name.*
@@ -1202,7 +1207,7 @@
 ### [`scripts/project_topics.py`](scripts/project_topics.py)
 > *GitHub topic policy (ADR-234, revised by ADR-236): an AI agent chooses the tags; AIKit validates,*
 
-**Size**: `306` lines (`13845` bytes)
+**Size**: `306` lines (`13859` bytes)
 
 **Functions:**
 - `def _read_readme(root)`
@@ -1248,7 +1253,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `518` lines (`21247` bytes)
+**Size**: `563` lines (`23304` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1455,7 +1460,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `388` lines (`18754` bytes)
+**Size**: `399` lines (`19501` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1503,7 +1508,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `1966` lines (`101377` bytes)
+**Size**: `1987` lines (`102596` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1610,6 +1615,7 @@
   - Method `.test_scan_reads_the_projects_staged_changes_and_ledger()`
 - `class TestProjectGateShell` - *Gates run through the platform shell in the project folder (ADR-122).*
   - Method `.test_shell_keeps_quotes_and_reports_exit_codes()`
+  - Method `.test_a_gate_that_rewrites_tracked_files_fails()`
 - `class TestProjectPublishLifecycle` - *Publishing visibility and check --no-push with real processes and git checkouts (ADR-134, ADR-135).*
   - Method `.test_project_status_list_repo_and_check_no_push()`
 - `class TestProjectPolicyCLI` - *PRINCIPLE-014: the UI, topic and media commands reach the registry and write real files.*
@@ -1655,7 +1661,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11628` lines (`648022` bytes)
+**Size**: `11898` lines (`662836` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1886,6 +1892,7 @@
   - Method `.test_resume_prints_the_handoff_and_its_next_action()`
   - Method `.test_resume_keeps_the_generic_next_action_without_a_handoff()`
   - Method `.test_handoff_round_trips_through_a_version_1_ledger()`
+  - Method `.test_plan_checkpoints_carry_a_versioned_text_digest()`
   - Method `.test_parse_handoff_keeps_colons_inside_a_value()`
   - Method `.test_checkpoint_refuses_a_credential_in_free_text_unless_redacting()`
   - Method `.test_checkpoint_scrubs_the_description_too()`
@@ -1945,6 +1952,9 @@
   - Method `.test_weak_allowlist_cannot_veto_a_pattern_match()`
   - Method `.test_weak_allowlist_still_suppresses_entropy_fallback()`
   - Method `.test_explicit_pragma_suppresses_everything()`
+  - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
+  - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`
+  - Method `.test_every_detector_has_a_vocabulary_entry()`
   - Method `.test_entropy_separates_random_from_prose()`
   - Method `.test_agent_memory_free_text_is_scanned()`
   - Method `.test_gitignore_carries_the_credential_baseline()`
@@ -2057,6 +2067,10 @@
   - Method `.make_folder(*files)`
   - Method `.test_detects_every_stack_and_its_test_command()`
   - Method `.test_npm_placeholder_is_not_a_test_command()`
+  - Method `.test_detects_python_from_test_folder_and_top_level_script()`
+  - Method `.test_detects_cpp_with_cmake_and_project_test_script()`
+  - Method `.test_detects_cpp_with_ctest_preset_when_no_project_script()`
+  - Method `.test_detects_node_from_lockfile_without_inventing_a_command()`
   - Method `.test_name_must_be_one_portable_segment()`
   - Method `.test_name_is_not_a_windows_device()`
   - Method `.test_attach_writes_memory_once_and_lists_the_project()`
@@ -2182,6 +2196,11 @@
   - Method `.test_project_json_adds_replaces_and_disables_gates()`
   - Method `.test_invalid_gate_config_is_refused()`
   - Method `.test_every_gate_runs_after_a_failure()`
+  - Method `.test_a_gate_that_rewrites_tracked_files_fails()`
+  - Method `.test_a_gate_that_changes_nothing_passes_as_before()`
+  - Method `.test_without_a_snapshot_there_is_no_rewrite_verdict()`
+  - Method `.test_a_failing_gate_keeps_its_code_and_gains_the_rewrite_note()`
+  - Method `.test_rewritten_paths_compares_content_hashes()`
 - `class TestProjectHygieneScan` - *The hygiene scan decides from the AST and from lines what the project gates could not (ADR-137).*
   - Method `.rules(source)`
   - Method `.test_allow_marker_is_read_on_the_line_above_the_finding()`
@@ -2191,6 +2210,8 @@
   - Method `.test_any_handler_that_only_discards_is_flagged()`
   - Method `.test_absolute_paths_only_when_they_reach_file_access()`
   - Method `.test_inline_allow_marker_needs_a_reason()`
+  - Method `.test_a_typed_allow_marker_scopes_suppression_to_its_rule()`
+  - Method `.test_every_emitted_rule_code_is_registered()`
   - Method `.test_asset_urls_skip_loopback_namespaces_and_marked_lines()`
   - Method `.test_scan_tree_skips_vendored_dirs_and_reports_unreadable_files()`
   - Method `.test_artifact_classifier_flags_root_tests_outputs_and_source()`
@@ -2334,6 +2355,7 @@
   - Method `.test_a_tier_over_its_per_test_average_fails_and_names_the_tier()`
   - Method `.test_a_load_skewed_first_run_is_measured_once_more()`
   - Method `.test_a_real_regression_fails_both_runs_and_reports_both()`
+  - Method `.test_parallel_and_sequential_modes_agree_and_keep_order()`
   - Method `.test_a_red_tier_is_not_retried()`
   - Method `.test_both_tiers_inside_budget_pass_and_report_the_average()`
   - Method `.test_a_failing_tier_fails_the_gate_whatever_its_speed()`
@@ -2359,6 +2381,7 @@
   - Method `.test_a_green_commit_passes_and_every_gate_runs_in_the_worktree()`
   - Method `.test_a_proof_declaration_builds_the_bounded_gate_command()`
   - Method `.test_proof_gate_command_reads_the_declaration_and_parent()`
+  - Method `.test_a_proof_declaration_with_unknown_keys_is_refused()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`
   - Method `.test_verify_commit_fails_when_the_declared_proof_gate_fails()`
@@ -2527,9 +2550,14 @@
   - Method `.test_tail_bounds_a_long_run()`
   - Method `.test_mutations_for_source_finds_supported_operators()`
   - Method `.test_mutant_key_is_stable_for_a_waiver()`
+  - Method `.test_proof_runs_pin_pythonhashseed()`
   - Method `.test_apply_mutation_uses_the_exact_operator_span()`
   - Method `.test_mutations_skip_multiline_and_chained_expressions()`
   - Method `.test_copy_tests_refuses_missing_and_outside_paths()`
+  - Method `.test_only_assertion_failures_count_as_kills()`
+  - Method `.test_a_mutant_that_breaks_syntax_is_an_error_not_a_kill()`
+  - Method `.test_every_generated_mutant_reparses()`
+  - Method `.test_a_waiver_must_bind_to_a_generated_mutant()`
   - Method `.test_mutation_sources_cannot_escape_the_repository()`
   - Method `.test_mutation_copy_prunes_dependency_and_generated_trees()`
 - `class ReuseMetadataTest` - *A same-license refresh must not erase project-specific annotations.*

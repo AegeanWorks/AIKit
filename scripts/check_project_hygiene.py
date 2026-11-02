@@ -44,6 +44,9 @@ ROOT_OUTPUT_SUFFIXES = frozenset({".txt", ".log", ".tmp", ".bak", ".orig", ".rej
 GIT_TIMEOUT_SECONDS = 30
 
 ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+\S{3,}")
+# A scoped marker names the one registered rule it excuses: `hygiene: allow [rule] reason`.
+TYPED_ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+\[([a-z0-9-]+)\]\s+\S{3,}")
+TYPED_ALLOW_ATTEMPT = re.compile(r"hygiene:\s*allow\s*\[")
 SUBPROCESS_FUNCS = frozenset({"run", "call", "check_call", "check_output", "Popen"})
 # Popen does not accept `timeout=`; its caller bounds the wait with communicate(timeout=...) or
 # wait(timeout=...). Requiring the keyword on the constructor made the rule unsatisfiable.
@@ -75,6 +78,34 @@ class Finding:
     def render(self) -> str:
         """The one-line report form: `path:line [rule] message`."""
         return f"   - {self.path}:{self.line} [{self.rule}] {self.message}"
+
+
+# Every rule code the scan can emit, with its one-line meaning (IDEA-1235). The registry is
+# the scan's vocabulary: typed `hygiene: allow [rule]` markers name a key here, and a unit
+# test pins the emitted set to these keys, so a new rule adds its row in the same commit.
+RULE_CODES: Dict[str, str] = {
+    "absolute-path": "machine-specific absolute path reaching a filesystem call",
+    "environ-index": "os.environ[...] hard index that raises KeyError when unset",
+    "eval-exec": "eval()/exec() executing data as code",
+    "external-url": "static asset loading from a third-party host",
+    "git-unavailable": "artifact scan needs git on PATH in a git work tree",
+    "open-context": "open() outside a with block can leak the handle",
+    "open-encoding": "text-mode open() without encoding=",
+    "os-system": "os.system breaks on spaced paths",
+    "popen-wait-timeout": "Popen without communicate(timeout=)/wait(timeout=)",
+    "root-test-module": "root test module collected by the default runner",
+    "shell-true": "a shell command line parses through the platform shell",
+    "silent-except": "broad except discarding the error",
+    "subprocess-argv": "subprocess arguments as one string instead of a list",
+    "subprocess-timeout": "subprocess call without timeout=",
+    "sys-executable": "bare python name instead of sys.executable",
+    "tracked-artifact": "tracked cache, build output or AIKit temp buffer",
+    "unparseable": "syntax error blocks the scan of the file",
+    "unreadable": "file could not be read as UTF-8 text",
+    "untracked-output": "untracked root output not in .gitignore",
+    "untracked-readme": "project README not tracked",
+    "untracked-root-source": "untracked source at the project root",
+}
 
 
 def _keyword(call: ast.Call, name: str) -> Optional[ast.expr]:
@@ -384,7 +415,7 @@ def check_asset_source(rel: str, source: str) -> List[Finding]:
     findings: List[Finding] = []
     lines = source.splitlines()
     for number, line in enumerate(lines, start=1):
-        if _marked(lines, number):
+        if _marked(lines, number, "external-url"):
             continue
         for match in EXTERNAL_URL.finditer(line):
             host = URL_HOST.match(match.group(0))
@@ -396,10 +427,14 @@ def check_asset_source(rel: str, source: str) -> List[Finding]:
     return findings
 
 
-def _marked(lines: Sequence[str], line: int) -> bool:
+def _marked(lines: Sequence[str], line: int, rule: str) -> bool:
     """
-    Whether a deliberated `hygiene: allow <reason>` marker covers the finding's line.
+    Whether a deliberated `hygiene: allow` marker excuses this finding.
 
+    Two forms: bare `hygiene: allow <reason>` excuses any rule on the line (the legacy
+    form every existing site uses), and scoped `hygiene: allow [rule] <reason>` excuses
+    only the rule it names (IDEA-1119). A bracketed attempt never falls back to bare:
+    a marker naming another rule or an unregistered code suppresses nothing, fail-closed.
     The marker is read on the finding's own line or the line directly above it: a long call or a
     line already at the width limit has no room for a trailing comment, and forcing one there was
     the reason deliberate exceptions went unmarked (ADR-171). One line above only, never further,
@@ -407,9 +442,18 @@ def _marked(lines: Sequence[str], line: int) -> bool:
     """
     if not 1 <= line <= len(lines):
         return False
-    if ALLOW_MARKER.search(lines[line - 1]):
-        return True
-    return line >= 2 and bool(ALLOW_MARKER.search(lines[line - 2]))
+    candidates = [lines[line - 1]]
+    if line >= 2:
+        candidates.append(lines[line - 2])
+    for candidate in candidates:
+        if TYPED_ALLOW_ATTEMPT.search(candidate):
+            typed = TYPED_ALLOW_MARKER.search(candidate)
+            if typed is not None and typed.group(1) == rule \
+                    and typed.group(1) in RULE_CODES:
+                return True
+        elif ALLOW_MARKER.search(candidate):
+            return True
+    return False
 
 
 PYTHON_CHECKS: Tuple[Callable[[str, ast.Module], Iterable[Finding]], ...] = (
@@ -433,7 +477,7 @@ def check_python_source(rel: str, source: str) -> List[Finding]:
     raw: List[Finding] = []
     for check in PYTHON_CHECKS:
         raw.extend(check(rel, tree))
-    return [finding for finding in raw if not _marked(lines, finding.line)]
+    return [finding for finding in raw if not _marked(lines, finding.line, finding.rule)]
 
 
 def _read_source(rel: str, path: Path) -> Tuple[Optional[str], List[Finding]]:
@@ -643,6 +687,7 @@ Rules (Python):
   eval-exec           eval() and exec() execute data as code
   subprocess-argv     subprocess arguments must be a list, not a string
   subprocess-timeout  subprocess call without timeout= can hang a gate
+  popen-wait-timeout  Popen without communicate(timeout=)/wait(timeout=)
   sys-executable      start Python with sys.executable, not a bare interpreter name
   environ-index       os.environ[...] raises KeyError when the variable is unset
   open-encoding       text-mode open() without encoding= reads the locale's encoding
@@ -650,6 +695,7 @@ Rules (Python):
   silent-except       a broad except whose whole body is pass hides the error
   absolute-path       a machine-specific path literal reaching file access
   unparseable         a syntax error blocks the scan of the file
+  unreadable          the file could not be read as UTF-8 text
 
 Rules (static assets .html, .css, .js):
   external-url        the asset loads code, fonts or data from a third party
@@ -660,6 +706,7 @@ Rules (--artifacts, decided from git's tracked and untracked file lists):
   untracked-readme    the root README is not tracked, so the gates and publish cannot see it
   untracked-output    an untracked root .txt/.log/.tmp/.bak/.orig/.rej/.out file is drift
   tracked-artifact    a cache, coverage file or build output is tracked by git
+  git-unavailable     the artifact scan needs git on PATH in a git work tree
 
 Exceptions:
   Mark a deliberate line with `hygiene: allow <reason>`, on that line or the one directly

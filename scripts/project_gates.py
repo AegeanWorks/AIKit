@@ -9,6 +9,7 @@ with `null`. The hygiene scan, the guidelines check and the secret scan are buil
 cannot be replaced (ADR-137).
 """
 
+import hashlib
 import shlex
 import subprocess
 import sys
@@ -37,6 +38,63 @@ GUIDELINES_GATE = "guidelines"
 GATE_TIMEOUT_SECONDS = 1800
 # Lines of a failing gate's output shown (PRINCIPLE-012 R7: terse, the end holds the error).
 FAILURE_TAIL_LINES = 20
+# A tracked-file snapshot is one bounded git call plus hashing only the dirty files.
+SNAPSHOT_TIMEOUT_SECONDS = 30
+SNAPSHOT_CHUNK_BYTES = 1 << 20
+REWRITE_LIST_LIMIT = 5
+
+
+def _tracked_snapshot(root: Path) -> Optional[Dict[str, str]]:
+    """Content hashes of the dirty tracked files, or None when git cannot answer.
+
+    The porcelain status lists only dirty files, so clean files cost nothing; hashing
+    catches editing an already-dirty file again, which the status text alone would miss.
+    Untracked files are never snapshotted: build output is not a rewrite. None is a
+    documented default (non-git project, git missing): no observation, no verdict.
+    """
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=no"],
+            cwd=str(root), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=SNAPSHOT_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if status.returncode != 0:
+        return None
+    paths: List[str] = []
+    fields = status.stdout.split("\0")
+    index = 0
+    while index < len(fields):
+        entry = fields[index]
+        index += 1
+        if not entry:
+            continue
+        paths.append(entry[3:])
+        if entry[0] in "RC" or entry[1] in "RC":
+            # Rename/copy in -z order: the next field is the source path, which shares
+            # no status prefix and must not be hashed as entry[3:].
+            index += 1
+    snapshot: Dict[str, str] = {}
+    for relative in paths:
+        try:
+            digest = hashlib.sha256()
+            with (root / relative).open("rb") as handle:
+                while chunk := handle.read(SNAPSHOT_CHUNK_BYTES):
+                    digest.update(chunk)
+            snapshot[relative] = digest.hexdigest()
+        except OSError:
+            snapshot[relative] = "<unreadable>"
+    return snapshot
+
+
+def _rewritten_paths(before: Optional[Dict[str, str]],
+                     after: Optional[Dict[str, str]]) -> List[str]:
+    """Tracked paths whose content identity changed between two snapshots."""
+    if before is None or after is None:
+        return []
+    return sorted(path for path in set(before) | set(after)
+                  if before.get(path) != after.get(path))
 
 
 @dataclass(frozen=True)
@@ -195,14 +253,35 @@ def run_shell(command: str, cwd: Path, timeout: float) -> Tuple[int, str]:
 
 def run_gates(project_root: Path, gates: List[Gate],
               runner: Optional[Callable[[str, Path, float], Tuple[int, str]]] = None,
-              timeout: float = GATE_TIMEOUT_SECONDS) -> List[GateResult]:
-    """Run every gate, even after a failure, so one report lists all of them."""
+              timeout: float = GATE_TIMEOUT_SECONDS,
+              snapshotter: Optional[Callable[[Path], Optional[Dict[str, str]]]] = None
+              ) -> List[GateResult]:
+    """Run every gate, even after a failure, so one report lists all of them.
+
+    A gate that rewrites tracked files fails even when its command exits 0: a check
+    that edits the tree is not a check (IDEA-1117). The snapshot is content hashes,
+    so touching an already-dirty file is caught; untracked build output is ignored.
+    """
     runner = runner or run_shell
+    snapshot = snapshotter or _tracked_snapshot
     results = []
     for gate in gates:
+        before = snapshot(project_root)
         start = time.perf_counter()
         code, output = runner(gate.command, project_root, timeout)
-        results.append(GateResult(gate, code, time.perf_counter() - start, output))
+        elapsed = time.perf_counter() - start
+        rewritten = _rewritten_paths(before, snapshot(project_root))
+        if rewritten:
+            shown = ", ".join(rewritten[:REWRITE_LIST_LIMIT])
+            if len(rewritten) > REWRITE_LIST_LIMIT:
+                shown += ", ..."
+            output += (f"\n[REWRITE] gate '{gate.name}' rewrote tracked files: {shown}. "
+                       "Why: a check that edits the tree is not a check. "
+                       "Fix: run the command's write step outside the gate, or point the gate "
+                       "at a copy.")
+            if code == 0:
+                code = 1
+        results.append(GateResult(gate, code, elapsed, output))
     return results
 
 

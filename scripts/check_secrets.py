@@ -17,6 +17,8 @@ It scans two surfaces that AI agents leak through in practice:
 Detection is pattern-first (known credential shapes have near-zero false-positive rates) with a
 conservative high-entropy fallback for assignment-shaped lines only. Deliberate exceptions use an
 inline `# aikit:allow-secret` pragma or the ALLOWLIST_SUBSTRINGS set - never a silenced scanner.
+The pragma accepts an optional scope, `# aikit:allow-secret[detector, ...]`, naming DETECTOR_NAMES
+entries to excuse; every other detector on the same line still reports.
 
 Zero external dependencies (standard library only).
 
@@ -31,7 +33,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 # Agent working memory, relative to the scanned repository: AIKit's ledger and dogfood log, or a
@@ -117,6 +119,18 @@ WEAK_ALLOWLIST = frozenset({"example", "sample", "dummy", "fake", "test-token"})
 # Retained for callers and tests that want the full token set.
 ALLOWLIST_SUBSTRINGS = STRONG_ALLOWLIST | WEAK_ALLOWLIST
 
+# Every detector the scan can report, and the only names a scoped pragma may use (IDEA-1115).
+# Pattern detectors report their table name verbatim; the two entropy fallbacks report a
+# per-line label, so they bind to canonical names instead.
+DETECTOR_NAMES: FrozenSet[str] = (
+    frozenset(name for name, _ in SECRET_PATTERNS)
+    | frozenset({"high-entropy-value", "high-entropy-literal"})
+)
+HIGH_ENTROPY_VALUE = "high-entropy-value"
+HIGH_ENTROPY_LITERAL = "high-entropy-literal"
+# A scoped pragma names the detectors it excuses: `aikit:allow-secret[name, ...]`.
+SCOPED_PRAGMA_RE = re.compile(r"aikit:allow-secret\s*\[([^\]]+)\]")
+
 # Only the scanner's own pattern table is exempt. Documentation and instruction files can carry a
 # pasted credential, so skipping them made `--all`'s "every tracked file" claim false (ADR-163).
 SKIP_PATH_PARTS = ("scripts/check_secrets.py",)
@@ -150,11 +164,41 @@ def is_weakly_allowlisted(line: str) -> bool:
     return any(token in lowered for token in WEAK_ALLOWLIST)
 
 
+def pragma_scope(line: str) -> Optional[FrozenSet[str]]:
+    """The detector names a scoped pragma excuses, or None for a bare pragma or none.
+
+    A scoped pragma (`aikit:allow-secret[name, ...]`) suppresses only findings whose
+    detector is named, case-insensitively; an unknown name matches nothing, fail-closed.
+    A bare pragma keeps its legacy meaning: it suppresses everything on the line.
+    """
+    match = SCOPED_PRAGMA_RE.search(line.lower())
+    if match is None:
+        return None
+    return frozenset(part.strip() for part in match.group(1).split(",") if part.strip())
+
+
+def detector_in_scope(detector: str, scope: FrozenSet[str]) -> bool:
+    """Whether a finding label is excused by a scoped pragma's names."""
+    lowered = detector.lower()
+    for name in scope:
+        if name == HIGH_ENTROPY_VALUE and lowered.startswith("high-entropy value for "):
+            return True
+        if name == HIGH_ENTROPY_LITERAL and lowered == "high-entropy string literal":
+            return True
+        if name == lowered:
+            return True
+    return False
+
+
 def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
     """Return (label, line_no, detector, excerpt) for every finding in a blob of text."""
     findings: List[Tuple[str, int, str, str]] = []
     for lineno, line in enumerate(text.splitlines(), 1):
-        if is_strongly_allowlisted(line):
+        # A bare pragma keeps its legacy meaning and suppresses everything on the line; a
+        # scoped pragma (`aikit:allow-secret[name, ...]`) suppresses only the detectors it
+        # names, so every other detector on the same line still reports (IDEA-1115).
+        scope = pragma_scope(line)
+        if scope is None and is_strongly_allowlisted(line):
             continue
         stripped = line.strip()
         if not stripped:
@@ -167,7 +211,8 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
         for detector, pattern in SECRET_PATTERNS:
             hit = re.search(pattern, line)
             if hit:
-                findings.append((label, lineno, detector, redact(line, hit.start(), hit.end())))
+                if scope is None or not detector_in_scope(detector, scope):
+                    findings.append((label, lineno, detector, redact(line, hit.start(), hit.end())))
                 matched = True
                 break
         if matched:
@@ -185,15 +230,18 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
                     or "os.getenv" in line or "os.environ" in line:
                 pass  # an indirection or call result, not a literal; still check bare literals
             elif len(value) >= 20 and shannon_entropy(value) >= 3.8:
-                findings.append((label, lineno, f"high-entropy value for {name}",
-                                 redact(line, match.start(2), match.end(2))))
-                continue
+                if scope is None or not detector_in_scope(
+                        f"high-entropy value for {name}", scope):
+                    findings.append((label, lineno, f"high-entropy value for {name}",
+                                     redact(line, match.start(2), match.end(2))))
+                    continue
         # A long random-looking string literal with no key name beside it: a real Gemini key, split
         # in two inside a test, passed every check above and was committed (ADR-133).
         bare = BARE_LITERAL_RE.search(line)
         if bare and looks_random(bare.group(1)):
-            findings.append((label, lineno, "high-entropy string literal",
-                             redact(line, bare.start(1), bare.end(1))))
+            if scope is None or not detector_in_scope("high-entropy string literal", scope):
+                findings.append((label, lineno, "high-entropy string literal",
+                                 redact(line, bare.start(1), bare.end(1))))
     return findings
 
 

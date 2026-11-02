@@ -112,6 +112,17 @@ def proof_command_from_declaration(
     """Build the proof-gate command from a parsed `.aikit/proof.json` object."""
     if not isinstance(declaration, dict):
         raise ValueError(f"{PROOF_FILE} must hold a JSON object")
+    # Closed schema (IDEA-1114, IDEA-1203): the readable keys are exactly PROOF_DEFAULTS.
+    # An unknown key fails loudly with the known list, so a typo cannot silently disable
+    # the proof it meant to configure. No live declaration carries unknown keys, so there
+    # is no legacy set to grandfather; adding one later means editing this literal.
+    unknown = sorted(key for key in declaration if key not in PROOF_DEFAULTS)
+    if unknown:
+        raise ValueError(
+            f"{PROOF_FILE} has unknown key(s): {', '.join(unknown)}. "
+            f"Known keys: {', '.join(sorted(PROOF_DEFAULTS))}. "
+            "Why: a misspelled key silently disables the proof it meant to configure. "
+            "Fix: rename the key, or remove it.")
     tests = _string_list(declaration.get("tests"), "tests", required=True)
     sources = _string_list(declaration.get("sources", PROOF_DEFAULTS["sources"]), "sources")
     waive = _string_list(declaration.get("waive", PROOF_DEFAULTS["waive"]), "waive")

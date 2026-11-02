@@ -193,15 +193,32 @@ def budget_errors(results: List[TierResult]) -> List[str]:
 
 
 def run_check(runner: Optional[Callable[[str, int], Tuple[int, str]]] = None,
-              verbose: bool = False, retry_delay: float = RETRY_DELAY_SECONDS) -> int:
+              verbose: bool = False, retry_delay: float = RETRY_DELAY_SECONDS,
+              sequential: bool = False) -> int:
     print("=" * 58)
     print("TEST TIER BUDGET GATE (PRINCIPLE-010 R6)")
     print("=" * 58)
 
+    modules = list(TIER_BUDGETS_MS)
+    if sequential or len(modules) <= 1:
+        measured: List[Optional[TierResult]] = [
+            run_tier(module, runner=runner, retry_delay=retry_delay) for module in modules
+        ]
+    else:
+        # Tiers are independent subprocess runs of several seconds each, so threads only
+        # parallelize the wait (PRINCIPLE-010 R3); reporting below stays in registry order.
+        # The tiers share the working tree, so a tier test that mutates it races a tier test
+        # that audits it: tree fixtures must be underscore-prefixed and tree auditors must
+        # skip them (the convention the annotation audit already uses).
+        from concurrent.futures import ThreadPoolExecutor  # lazy: --help stays fast (PRINCIPLE-010)
+        with ThreadPoolExecutor(max_workers=len(modules)) as pool:
+            futures = [pool.submit(run_tier, module, runner, TIER_ATTEMPTS, retry_delay)
+                       for module in modules]
+            measured = [future.result() for future in futures]
+
     results: List[TierResult] = []
     failures: List[str] = []
-    for module in TIER_BUDGETS_MS:
-        result = run_tier(module, runner=runner, retry_delay=retry_delay)
+    for module, result in zip(modules, measured):
         if result is None:
             failures.append(f"{module}: produced no test summary, so it could not be measured")
             print(f"[FAIL] {module}: no 'Ran N tests in Xs' summary; the tier did not run")
@@ -249,7 +266,7 @@ def run_check(runner: Optional[Callable[[str, int], Tuple[int, str]]] = None,
     return 1 if (failures or over) else 0
 
 
-KNOWN_FLAGS = {"--verbose", "-v", "--help", "-h"}
+KNOWN_FLAGS = {"--verbose", "-v", "--sequential", "--help", "-h"}
 
 HELP_TEXT = """AIKit Test Tier Budget Gate (PRINCIPLE-010 Rule 6)
 
@@ -262,6 +279,7 @@ it replaces running them by hand rather than adding a second run.
 
 Options:
   --verbose, -v   Print each tier's ceiling and remaining headroom
+  --sequential    Run tiers one after another (default runs them concurrently)
   -h, --help      Show this help message and exit
 
 Exit codes:
@@ -283,4 +301,5 @@ if __name__ == "__main__":
               file=sys.stderr)
         sys.exit(2)
 
-    sys.exit(run_check(verbose=("--verbose" in argv or "-v" in argv)))
+    sys.exit(run_check(verbose=("--verbose" in argv or "-v" in argv),
+                      sequential=("--sequential" in argv)))

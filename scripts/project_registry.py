@@ -779,6 +779,15 @@ def _gradle_test(root: Path) -> str:
     return "./gradlew test" if (root / "gradlew").exists() else "gradle test"
 
 
+def _cpp_test(root: Path) -> str:
+    """The project's canonical test entry: its own script when present, else CTest."""
+    if (root / "scripts" / "test.cmd").is_file():
+        return "scripts/test.cmd"
+    if (root / "CMakePresets.json").is_file():
+        return "ctest --preset release"
+    return "ctest"
+
+
 def _fixed(command: str) -> Callable[[Path], str]:
     return lambda root: command
 
@@ -786,13 +795,17 @@ def _fixed(command: str) -> Callable[[Path], str]:
 # (stack, marker globs, test-command resolver), in report order. Data, not branches: a new stack
 # is one row (PRINCIPLE-009).
 DETECTORS: Tuple[Tuple[str, Tuple[str, ...], Callable[[Path], Optional[str]]], ...] = (
-    ("python", ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"), _python_test),
-    ("node", ("package.json",), _node_test),
+    ("python", ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "pytest.ini",
+                "conftest.py", "tox.ini", "tests/*.py", "*.py", "*.pyw"), _python_test),
+    ("node", ("package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+              "pnpm-workspace.yaml"), _node_test),
     ("rust", ("Cargo.toml",), _fixed("cargo test")),
     ("go", ("go.mod",), _fixed("go test ./...")),
     ("java-maven", ("pom.xml",), _fixed("mvn -q test")),
     ("java-gradle", ("build.gradle", "build.gradle.kts"), _gradle_test),
-    ("dotnet", ("*.sln", "*.csproj", "*.fsproj"), _fixed("dotnet test")),
+    ("dotnet", ("*.sln", "*.csproj", "*.fsproj", "*.vbproj"), _fixed("dotnet test")),
+    ("cpp", ("CMakeLists.txt", "CMakePresets.json", "vcpkg.json", "conanfile.txt",
+             "conanfile.py"), _cpp_test),
 )
 
 

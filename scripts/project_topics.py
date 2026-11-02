@@ -61,7 +61,7 @@ TOPIC_HINTS: Tuple[Tuple[Tuple[str, ...], Tuple[str, ...]], ...] = (
 )
 BASE_TAGS = ("aikit", "aikit-integrated", "aegeanworks", "software")
 STACK_TAGS = {"python": "python", "node": "javascript", "rust": "rust", "go": "golang",
-              "java-maven": "java", "java-gradle": "java", "dotnet": "dotnet"}
+              "java-maven": "java", "java-gradle": "java", "dotnet": "dotnet", "cpp": "cpp"}
 CHOICE_SCHEMA = {
     "topics": ["aikit", "aegeanworks", "software", "python"],
     "reason": "one short sentence on why this list fits the repository",
