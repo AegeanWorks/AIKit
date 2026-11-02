@@ -1,0 +1,36 @@
+{
+  "boss_id": "boss_ashen_warden_s42",
+  "loot": {
+    "item_id": "hammer_thunder"
+  },
+  "name": "Ashen Warden",
+  "pack_version": "1.0",
+  "phases": [
+    {
+      "effect": "summon_skeletons",
+      "tell": "Ashen Warden splits the dark and calls its risen servants.",
+      "threshold_pct": 50
+    },
+    {
+      "effect": "enrage",
+      "tell": "Ashen Warden burns with ending wrath. Finish it fast.",
+      "threshold_pct": 25
+    }
+  ],
+  "spawn": {
+    "anchor": "stairs",
+    "depth": 3,
+    "replaces": "boss_lich",
+    "seeds": [
+      42
+    ]
+  },
+  "stats": {
+    "attack": 15,
+    "defense": 7,
+    "gold_reward": 112,
+    "hp": 157,
+    "xp_reward": 153
+  },
+  "target_game": "crypt-crawler"
+}
