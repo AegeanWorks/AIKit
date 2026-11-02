@@ -1,268 +1,252 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "dossier-catalogue-sync-v1",
-    "last_phase": "verification",
+    "task_id": "schema-strict-v1",
+    "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793552166.3318079,
+    "updated_at": 1793648756.549793,
     "owner": "kilo:main",
     "started_by": "kilo:main",
-    "continuations": [
-      {
-        "agent": "kilo:review",
-        "from": "kilo:main",
-        "at": 1793548126.8151836
-      },
-      {
-        "agent": "kilo:main",
-        "from": "kilo:review",
-        "at": 1793550965.9534395
-      }
-    ],
-    "completed_at": 1793552166.6365287
+    "continuations": [],
+    "completed_at": 1793648802.92965
   },
   "checkpoints": [
     {
-      "task_id": "media-topics-review-v1",
-      "phase": "implementation",
+      "task_id": "batch1-gates-v1",
+      "phase": "in_progress",
       "phase_num": 3,
-      "description": "[2/4] Implemented default_topic_warning in aikit_cli to accurately detect personal license kinds and advise topic commands",
+      "description": "[2/6] Implemented IDEA-1157 seed-pinned proof runs with failing-first test",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793521714.0904121,
-      "timestamp_str": "2026-11-01 11:28:34",
-      "agent": "antigravity:goal",
-      "continued_from": "kilo:review"
+      "timestamp": 1793644628.4525092,
+      "timestamp_str": "2026-11-02 21:37:08",
+      "agent": "kilo:main"
     },
     {
-      "task_id": "media-topics-review-v1",
-      "phase": "verification",
+      "task_id": "batch1-gates-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/6] Implemented IDEA-1117 rewrite-detecting gate with unit plus real-git integration tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793644796.5859387,
+      "timestamp_str": "2026-11-02 21:39:56",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch1-gates-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[4/6] Implemented IDEA-1113 waiver-mutant binding with failing-first test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793644876.0599837,
+      "timestamp_str": "2026-11-02 21:41:16",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch1-gates-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[5/6] Implemented IDEA-1268 plan digest binding with failing-first test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793644936.3805015,
+      "timestamp_str": "2026-11-02 21:42:16",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch1-gates-v1",
+      "phase": "in_progress",
       "phase_num": 4,
-      "description": "[3/4] Verified 835 tests in 3 tiers pass within budgets, dogfood 5/5, reachability and secrets clean; checklists: passed",
+      "description": "[6/6] Verify: focused classes green, running full Phase 4 triad and read-only gates; checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793521795.130345,
-      "timestamp_str": "2026-11-01 11:29:55",
-      "agent": "antigravity:goal"
+      "timestamp": 1793644936.5151825,
+      "timestamp_str": "2026-11-02 21:42:16",
+      "agent": "kilo:main"
     },
     {
-      "task_id": "media-topics-review-v1",
+      "task_id": "batch1-gates-v1",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'media-topics-review-v1' completed successfully.",
+      "description": "Task 'batch1-gates-v1' completed successfully.",
       "status": "completed",
-      "timestamp": 1793521795.296035,
-      "timestamp_str": "2026-11-01 11:29:55",
-      "agent": "antigravity:goal"
+      "timestamp": 1793645197.5007167,
+      "timestamp_str": "2026-11-02 21:46:37",
+      "agent": "kilo:main"
     },
     {
-      "task_id": "adr-304-repair-v1",
-      "phase": "planning",
+      "task_id": "batch2-aikit-v1",
+      "phase": "in_progress",
       "phase_num": 2,
-      "description": "[1/2] Repair ADR-304 control characters and record ADR-305 for the default-topic license-kind correction",
+      "description": "[1/5] Plan AIKit Batch 2: error-code registry (1235), failure-signature kills (1112+1170), typed allow markers (1119)",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793522329.3600986,
-      "timestamp_str": "2026-11-01 11:38:49",
-      "agent": "kilo:review",
-      "impact_assessment": {
-        "why": "ADR-304 was committed with BEL and form-feed characters that hide letters, and its warning correction needs a durable decision record",
-        "benefits": "Readable decision history and ADR-305 pinning the corrected warning behavior",
-        "risks": "contract: documentation only; dependency: none; concurrency: another agent committed the code fix; state: decisions.md only",
-        "mitigation": "Check knowledge integrity, secret scan and focused tests, then commit and push docs alone"
-      }
-    },
-    {
-      "task_id": "adr-304-repair-v1",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/2] Repaired ADR-304 BEL/form-feed characters and added ADR-305 for the license-kind warning correction",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793522487.5741045,
-      "timestamp_str": "2026-11-01 11:41:27",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "adr-304-repair-v1",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] Verified: 744+13+78 tests inside budget, rules/map/licenses/secrets/reachability/dogfood 5/5 clean, capability-showcase 4/4 gates and 12 tests clean; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793522487.794102,
-      "timestamp_str": "2026-11-01 11:41:27",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "adr-304-repair-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'adr-304-repair-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793522487.970765,
-      "timestamp_str": "2026-11-01 11:41:27",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "media-selfheal-followup-v1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: close the follow-up gaps in the media/topic self-healing feature (readme-only failure path, attach/fix resilience, single topic warning, docs)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793527993.6960053,
-      "timestamp_str": "2026-11-01 13:13:13",
+      "timestamp": 1793647210.6455941,
+      "timestamp_str": "2026-11-02 22:20:10",
       "agent": "kilo:main",
       "impact_assessment": {
-        "why": "The self-healing feature silently succeeds when media apply --readme-only has no README, attach and fix can crash on a failed candidate write, check and fix can print the same topic warning twice, and the new behaviour is undocumented",
-        "benefits": "Every new path either reports an actionable error or a single warning, attach cannot be aborted by an unwritable assets folder, and the command matrix documents the self-healing and readme-only paths",
-        "risks": "contract: check output order and media apply exit codes; dependency: standard library only; concurrency: none; state: project README and .aikit/media.json writes only",
-        "mitigation": "Failing-first unit tests for the readme-only gap and single-warning output, focused test runs, then the full Phase 4 triad and read-only gates"
-      }
+        "why": "Rule codes are unregistered free strings, mutation scoring counts errors as kills, allow markers accept any 3+ chars",
+        "benefits": "Registered codes with stable docs, kills mean assertion failures only, scoped suppressions",
+        "risks": "contract: hygiene Finding codes validated, mutation report gains error/timeout counts, marker format tightened; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "Failing-first tests per idea, focused runs, then full Phase 4 triad"
+      },
+      "plan_digest": "0ce9eb0e5b8f7822aff87e37a7de1a05314c81c4644abfe7cf98c59e31fbc4c3"
     },
     {
-      "task_id": "media-selfheal-followup-v1",
-      "phase": "implementation",
+      "task_id": "batch2-aikit-v1",
+      "phase": "in_progress",
       "phase_num": 3,
-      "description": "[2/4] Implemented: readme-only ProjectError, resilient attach/fix seeding, single media/topic warning before the gate-failure return, screenshot-driven README repair, docs and ADR-306",
+      "description": "[2/5] Implemented IDEA-1235 error-code registry with pinning test",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793529621.143141,
-      "timestamp_str": "2026-11-01 13:40:21",
+      "timestamp": 1793647402.3454947,
+      "timestamp_str": "2026-11-02 22:23:22",
       "agent": "kilo:main"
     },
     {
-      "task_id": "media-selfheal-followup-v1",
-      "phase": "verification",
+      "task_id": "batch2-aikit-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/5] Implemented IDEA-1119 typed allow markers, backward compatible, with scoped-suppression tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793647586.4459276,
+      "timestamp_str": "2026-11-02 22:26:26",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch2-aikit-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[4/5] Implemented IDEA-1112+1170 failure-signature kills with reparse guard and kind-separated tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793647586.623281,
+      "timestamp_str": "2026-11-02 22:26:26",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch2-aikit-v1",
+      "phase": "in_progress",
       "phase_num": 4,
-      "description": "[3/4] Verify: 747 unit + 13 auto-register + 78 integration tests and budgets pass; sync, AST map, licenses, secrets, reachability and dogfood 5/5 pass; checklists: passed",
+      "description": "[5/5] Verify: focused classes green, running full Phase 4 triad and read-only gates; checklists: passed",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793529621.2787013,
-      "timestamp_str": "2026-11-01 13:40:21",
+      "timestamp": 1793647592.4022286,
+      "timestamp_str": "2026-11-02 22:26:32",
       "agent": "kilo:main"
     },
     {
-      "task_id": "media-selfheal-followup-v1",
+      "task_id": "batch2-aikit-v1",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'media-selfheal-followup-v1' completed successfully.",
+      "description": "Task 'batch2-aikit-v1' completed successfully.",
       "status": "completed",
-      "timestamp": 1793529665.2750616,
-      "timestamp_str": "2026-11-01 13:41:05",
+      "timestamp": 1793647779.0769567,
+      "timestamp_str": "2026-11-02 22:29:39",
       "agent": "kilo:main"
     },
     {
-      "task_id": "aikit-review-push-v1",
-      "phase": "planning",
+      "task_id": "batch3-secrets-v1",
+      "phase": "in_progress",
       "phase_num": 2,
-      "description": "[1/3] Review the last three AIKit pushes, surface the swallowed media-read failure in fix, verify every gate, then push",
+      "description": "[1/3] Plan IDEA-1115: detector vocabulary plus scoped aikit:allow-secret[detector] suppressions",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793535750.950479,
-      "timestamp_str": "2026-11-01 15:22:30",
-      "agent": "kilo:review",
-      "impact_assessment": {
-        "why": "cmd_fix wraps the approved-media README step in a bare except that silently drops a corrupt or unsupported media manifest, so fix reports success while media stays unrepaired",
-        "benefits": "A failed media read is reported as one actionable warning, matching the seeding path that ADR-306 already hardened",
-        "risks": "contract: fix output gains one WARN line; dependency: none; concurrency: none; state: .aikit/media.json is read only, never rewritten",
-        "mitigation": "Failing-first unit test for an unsupported schema, full budget gate plus read-only gates, then push"
-      }
-    },
-    {
-      "task_id": "aikit-review-push-v1",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/3] fix now prints one [WARN] when the media manifest cannot be read, replacing the silent pass; ADR-307 recorded and the map regenerated",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793536495.1389496,
-      "timestamp_str": "2026-11-01 15:34:55",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "aikit-review-push-v1",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/3] Verified: 748 unit + 13 auto-register + 78 integration inside budget; rules, map, licenses, secrets, reachability, dogfood 5/5 clean; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793536495.2836215,
-      "timestamp_str": "2026-11-01 15:34:55",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "aikit-review-push-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-review-push-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793536495.4252667,
-      "timestamp_str": "2026-11-01 15:34:55",
-      "agent": "kilo:review"
-    },
-    {
-      "task_id": "dossier-catalogue-sync-v1",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Plan: add a dossier catalogue sync module, invoked automatically after a successful publish, that upserts metadata, snapshot, license ledger, site card/JSON-LD, README row and the catalogue set, then rebuilds the repo media",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793543657.9304812,
-      "timestamp_str": "2026-11-01 17:34:17",
+      "timestamp": 1793648284.0800662,
+      "timestamp_str": "2026-11-02 22:38:04",
       "agent": "kilo:main",
       "impact_assessment": {
-        "why": "Publishing a project left the AegeanWorks dossier catalogue stale, so newly published repositories had no site card, README row, license family or media and their manifests were assembled by hand",
-        "benefits": "One publish keeps the dossier consistent: catalogue data, site card, README atlas, license ledger and schema-2 media are generated from the repository's own GitHub facts",
-        "risks": "contract: publish output and dossier files; dependency: gh CLI already used by publish; concurrency: dossier writes are atomic and the dossier stays uncommitted for review; state: dossier files and media",
-        "mitigation": "Unit tests against a synthetic dossier fixture plus an idempotency check on an existing catalogue entry, then the dossier's own 95-test suite and AIKit Phase 4 gates"
-      }
+        "why": "Global pragma suppresses every detector at once; a stale pragma hides unrelated findings",
+        "benefits": "Least-privilege suppressions, documented detector vocabulary, bare pragma unchanged",
+        "risks": "contract: pragma gains optional scope syntax, finding labels unchanged; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "Failing-first tests per behavior, focused runs, then full Phase 4 triad"
+      },
+      "plan_digest": "fd9940f12d009ac33ce42a1b4d8936f0c677f0b1e2259d08525cc228aa2a2a5f"
     },
     {
-      "task_id": "dossier-catalogue-sync-v1",
-      "phase": "implementation",
+      "task_id": "batch3-secrets-v1",
+      "phase": "in_progress",
       "phase_num": 3,
-      "description": "[2/4] Take-over review: add a private-repository guard and keep the inline JSON-LD CSP hash valid when the catalogue entry changes",
+      "description": "[2/3] Implemented IDEA-1115 scoped pragma suppressions with vocabulary pinning tests",
       "files_affected": [],
       "status": "in_progress",
-      "timestamp": 1793548126.8151836,
-      "timestamp_str": "2026-11-01 18:48:46",
-      "agent": "kilo:review",
-      "continued_from": "kilo:main"
-    },
-    {
-      "task_id": "dossier-catalogue-sync-v1",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] Implemented dossier_sync upserts (metadata, snapshot, license ledger, card, CSP-hashed JSON-LD, README atlas, catalogue set), publish/new hooks, media rebuild, tests and docs",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793550965.9534395,
-      "timestamp_str": "2026-11-01 19:36:05",
-      "agent": "kilo:main",
-      "continued_from": "kilo:review"
-    },
-    {
-      "task_id": "dossier-catalogue-sync-v1",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/4] Verify: 756 unit + 13 auto-register + 78 integration tests and budgets pass; sync, AST map, licenses, secrets, reachability and dogfood 5/5 pass; real catalogue entry rebuilds byte-identically; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793552166.3318079,
-      "timestamp_str": "2026-11-01 19:56:06",
+      "timestamp": 1793648421.577513,
+      "timestamp_str": "2026-11-02 22:40:21",
       "agent": "kilo:main"
     },
     {
-      "task_id": "dossier-catalogue-sync-v1",
+      "task_id": "batch3-secrets-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Verify: secrets tests green, running full Phase 4 triad and read-only gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793648424.4047518,
+      "timestamp_str": "2026-11-02 22:40:24",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "batch3-secrets-v1",
       "phase": "completed",
       "phase_num": 5,
-      "description": "Task 'dossier-catalogue-sync-v1' completed successfully.",
+      "description": "Task 'batch3-secrets-v1' completed successfully.",
       "status": "completed",
-      "timestamp": 1793552166.6365304,
-      "timestamp_str": "2026-11-01 19:56:06",
+      "timestamp": 1793648605.045163,
+      "timestamp_str": "2026-11-02 22:43:25",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "schema-strict-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Plan merged 1114+1203: refuse unknown proof-declaration keys against the PROOF_DEFAULTS schema literal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793648708.088127,
+      "timestamp_str": "2026-11-02 22:45:08",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "A misspelled declaration key silently disables the proof it meant to configure; no live declarations exist so strict refusal breaks nothing",
+        "benefits": "Closed declaration schema, typo'd keys fail loudly with known-keys list",
+        "risks": "contract: unknown keys now raise ValueError naming them; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "Failing-first refusal test, focused runs, then full Phase 4 triad"
+      },
+      "plan_digest": "27edb9f19190a51152740d1b82ebed1f080acf6e27af2d40cb1f5c6dca240c38"
+    },
+    {
+      "task_id": "schema-strict-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/3] Implemented merged 1114+1203 closed declaration schema with refusal test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793648753.587004,
+      "timestamp_str": "2026-11-02 22:45:53",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "schema-strict-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Verify: post-commit tests green, running full Phase 4 triad and read-only gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793648756.549793,
+      "timestamp_str": "2026-11-02 22:45:56",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "schema-strict-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'schema-strict-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793648802.9296517,
+      "timestamp_str": "2026-11-02 22:46:42",
       "agent": "kilo:main"
     }
   ]
