@@ -147,7 +147,7 @@ def proof_command_from_declaration(
         command += ["--sources", *sources]
     if mutants:
         command += ["--mutants", str(mutants)]
-    if min_killed != 3:
+    if min_killed != PROOF_DEFAULTS["min_killed"]:
         command += ["--min-killed", str(min_killed)]
     if require:
         command.append("--require-mutation")

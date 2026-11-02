@@ -9,8 +9,8 @@
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `864`
-- **Total Class Methods**: `1014`
-- **Total Source Lines**: `38292`
+- **Total Class Methods**: `1015`
+- **Total Source Lines**: `38308`
 
 ---
 
@@ -1460,7 +1460,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `399` lines (`19501` bytes)
+**Size**: `399` lines (`19528` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1661,7 +1661,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11898` lines (`662836` bytes)
+**Size**: `11914` lines (`663732` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2382,6 +2382,7 @@
   - Method `.test_a_proof_declaration_builds_the_bounded_gate_command()`
   - Method `.test_proof_gate_command_reads_the_declaration_and_parent()`
   - Method `.test_a_proof_declaration_with_unknown_keys_is_refused()`
+  - Method `.test_min_killed_flag_follows_the_schema_default()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`
   - Method `.test_verify_commit_fails_when_the_declared_proof_gate_fails()`

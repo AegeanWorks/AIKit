@@ -129,6 +129,7 @@ from scripts.disruption_recovery import (
 )
 from scripts.aikit_cli import build_parser, main as aikit_main
 from scripts.verify_commit import (
+    PROOF_DEFAULTS,
     proof_command_from_declaration,
     proof_gate_command,
     scanned_range,
@@ -8848,11 +8849,26 @@ class TestPostCommitVerification(unittest.TestCase):
     def test_a_proof_declaration_with_unknown_keys_is_refused(self):
         # IDEA-1114 + IDEA-1203 (merged): the schema is closed on PROOF_DEFAULTS; a
         # misspelled key fails loudly instead of silently disabling the proof.
+        # misspelled key fails loudly instead of silently disabling the proof.
         with self.assertRaises(ValueError):
             proof_command_from_declaration(
                 {"tests": ["tests/test_x.py"], "mutants": 1, "min-killed": 1},
                 worktree=Path("/worktree"), parent="abc",
                 script=Path("/worktree/scripts/proof_gate.py"))
+
+    def test_min_killed_flag_follows_the_schema_default(self):
+        # The --min-killed flag is emitted only when the declaration differs from
+        # PROOF_DEFAULTS, so a future default change cannot silently diverge the gate.
+        base = {"tests": ["tests/test_x.py"], "mutants": 1}
+        plain = proof_command_from_declaration(
+            dict(base), worktree=Path("/worktree"), parent="abc",
+            script=Path("/worktree/scripts/proof_gate.py"))
+        self.assertNotIn("--min-killed", plain)
+        explicit = proof_command_from_declaration(
+            dict(base, min_killed=PROOF_DEFAULTS["min_killed"] + 1),
+            worktree=Path("/worktree"), parent="abc",
+            script=Path("/worktree/scripts/proof_gate.py"))
+        self.assertIn("--min-killed", explicit)
 
     def test_a_proof_declaration_without_tests_or_required_sources_is_refused(self):
         with self.assertRaises(ValueError):
