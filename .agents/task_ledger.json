@@ -1,66 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "kilo-state-v1",
+    "task_id": "snapshot-tests-v1",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793652050.2686293,
+    "updated_at": 1793652503.8466282,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "batch2-aikit-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'batch2-aikit-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793647779.0769567,
-      "timestamp_str": "2026-11-02 22:29:39",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "batch3-secrets-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan IDEA-1115: detector vocabulary plus scoped aikit:allow-secret[detector] suppressions",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648284.0800662,
-      "timestamp_str": "2026-11-02 22:38:04",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Global pragma suppresses every detector at once; a stale pragma hides unrelated findings",
-        "benefits": "Least-privilege suppressions, documented detector vocabulary, bare pragma unchanged",
-        "risks": "contract: pragma gains optional scope syntax, finding labels unchanged; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "Failing-first tests per behavior, focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "fd9940f12d009ac33ce42a1b4d8936f0c677f0b1e2259d08525cc228aa2a2a5f"
-    },
-    {
-      "task_id": "batch3-secrets-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Implemented IDEA-1115 scoped pragma suppressions with vocabulary pinning tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648421.577513,
-      "timestamp_str": "2026-11-02 22:40:21",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "batch3-secrets-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: secrets tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648424.4047518,
-      "timestamp_str": "2026-11-02 22:40:24",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "batch3-secrets-v1",
       "phase": "completed",
@@ -259,6 +209,56 @@
       "status": "in_progress",
       "timestamp": 1793652050.2686293,
       "timestamp_str": "2026-11-02 23:40:50",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "kilo-state-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'kilo-state-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793652181.6298652,
+      "timestamp_str": "2026-11-02 23:43:01",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "snapshot-tests-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Plan: pin _tracked_snapshot rename, unreadable, and git-failure paths with mocked-subprocess tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793652482.2640784,
+      "timestamp_str": "2026-11-02 23:48:02",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "The R/C skip and unreadable branches shipped in Batch 1 with only integration coverage; a regression would silently misattribute rewrites",
+        "benefits": "Unit-speed pins on every snapshot branch",
+        "risks": "contract: none, tests only; dependency: none; concurrency: none; state: none",
+        "mitigation": "Mocked subprocess (no spawns), focused runs, then full Phase 4 triad"
+      },
+      "plan_digest": "4216ad20fa9d4f5907c51765f80453119323bad3c839616ffd5662adc479fafb"
+    },
+    {
+      "task_id": "snapshot-tests-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/3] Pinned snapshot rename, unreadable, and git-failure branches; all green, no behavior change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793652498.4412568,
+      "timestamp_str": "2026-11-02 23:48:18",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "snapshot-tests-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Verify: focused tests green, running full Phase 4 triad and read-only gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793652503.8466282,
+      "timestamp_str": "2026-11-02 23:48:23",
       "agent": "kilo:main"
     }
   ]
