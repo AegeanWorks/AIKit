@@ -9,8 +9,8 @@
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `859`
-- **Total Class Methods**: `990`
-- **Total Source Lines**: `37706`
+- **Total Class Methods**: `991`
+- **Total Source Lines**: `37731`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1490` lines (`75532` bytes)
+**Size**: `1490` lines (`75569` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1655,7 +1655,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11603` lines (`646477` bytes)
+**Size**: `11628` lines (`648022` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2109,6 +2109,7 @@
   - Method `.test_publish_refuses_the_template_description_placeholder()`
   - Method `.test_publish_seeds_missing_brand_candidates_before_refusing_review()`
   - Method `.test_publish_refuses_a_repository_without_recorded_topics()`
+  - Method `.test_publish_refuses_case_variants_of_the_default_tag()`
   - Method `.test_publish_accepts_recorded_topics_and_applies_them()`
   - Method `.test_status_reports_the_license_tier()`
   - Method `.test_a_restricted_project_pushes_only_to_a_private_remote()`

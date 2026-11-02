@@ -5551,6 +5551,31 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("no recorded GitHub topics", out + err)
         publish.assert_not_called()
 
+    def test_publish_refuses_case_variants_of_the_default_tag(self):
+        # "AIKIT" normalizes to the bare default, so the refusal compares
+        # normalized tags instead of raw strings.
+        folder = self.make_licensed_project()
+        manifest = {"schema": 1, "name": "vault", "assets": {
+            "logo": {"path": "assets/logo.svg", "status": "approved", "review": {}},
+            "social_preview": {"path": "assets/social.svg", "status": "approved", "review": {}}}}
+        (folder / ".aikit" / "media.json").write_text(json.dumps(manifest), encoding="utf-8")
+        config_path = folder / ".aikit" / "project.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["topics"] = [" AIKIT "]
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        (folder / "README.md").write_text(
+            "# Vault\n\nA command-line vault that keeps secrets in sync across devices.\n",
+            encoding="utf-8")
+        from types import SimpleNamespace
+        gate = SimpleNamespace(passed=True, gate=SimpleNamespace(name="test"))
+        with mock.patch("scripts.aikit_cli.publish_project") as publish, \
+             mock.patch("scripts.aikit_cli.project_baseline_errors", return_value=[]), \
+             mock.patch("scripts.aikit_cli.run_gates", return_value=[gate]):
+            code, out, err = self.run_cli("publish", "vault")
+        self.assertEqual(code, 1, out + err)
+        self.assertIn("no recorded GitHub topics", out + err)
+        publish.assert_not_called()
+
     def test_publish_accepts_recorded_topics_and_applies_them(self):
         folder = self.make_licensed_project()
         manifest = {"schema": 1, "name": "vault", "assets": {

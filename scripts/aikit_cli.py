@@ -855,7 +855,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
     # leave the repository effectively untagged (AIKit validates tags, never invents them).
     config = load_config(project.path)
     recorded_topics = list(config.get("topics") or [])
-    if set(recorded_topics) <= {"aikit"}:
+    if {str(topic).strip().lower() for topic in recorded_topics} <= {"aikit"}:
         try:
             brief = project_topics.ai_brief(project.path, project.name, [], [])
             hints = ", ".join(brief.get("hint_tags") or [])
