@@ -1,66 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "magic-default-v1",
+    "task_id": "single-source-v1",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793650199.8541772,
+    "updated_at": 1793651315.4246867,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "batch1-gates-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[5/6] Implemented IDEA-1268 plan digest binding with failing-first test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644936.3805015,
-      "timestamp_str": "2026-11-02 21:42:16",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "batch1-gates-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[6/6] Verify: focused classes green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793644936.5151825,
-      "timestamp_str": "2026-11-02 21:42:16",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "batch1-gates-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'batch1-gates-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793645197.5007167,
-      "timestamp_str": "2026-11-02 21:46:37",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "batch2-aikit-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/5] Plan AIKit Batch 2: error-code registry (1235), failure-signature kills (1112+1170), typed allow markers (1119)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793647210.6455941,
-      "timestamp_str": "2026-11-02 22:20:10",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Rule codes are unregistered free strings, mutation scoring counts errors as kills, allow markers accept any 3+ chars",
-        "benefits": "Registered codes with stable docs, kills mean assertion failures only, scoped suppressions",
-        "risks": "contract: hygiene Finding codes validated, mutation report gains error/timeout counts, marker format tightened; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "Failing-first tests per idea, focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "0ce9eb0e5b8f7822aff87e37a7de1a05314c81c4644abfe7cf98c59e31fbc4c3"
-    },
     {
       "task_id": "batch2-aikit-v1",
       "phase": "in_progress",
@@ -253,6 +203,56 @@
       "status": "in_progress",
       "timestamp": 1793650199.8541772,
       "timestamp_str": "2026-11-02 23:09:59",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "magic-default-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'magic-default-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793650347.253415,
+      "timestamp_str": "2026-11-02 23:12:27",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "single-source-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Plan: single-source min-killed default in proof_gate, referenced by verify_commit schema",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793651263.319205,
+      "timestamp_str": "2026-11-02 23:27:43",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Two literals for the same default remain in proof_gate.py after the schema fix; a future change to one silently diverges the gate",
+        "benefits": "One literal for the default across both modules",
+        "risks": "contract: none, identical behavior; dependency: none new, same-package import; concurrency: none; state: none",
+        "mitigation": "Cross-module pinning test, focused runs, then full Phase 4 triad"
+      },
+      "plan_digest": "bd65df287bff7f18d3c79d8031cdfacc0a820baba431145313f2880e938a174e"
+    },
+    {
+      "task_id": "single-source-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/3] Implemented single-source min-killed default with cross-module pinning test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793651312.442944,
+      "timestamp_str": "2026-11-02 23:28:32",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "single-source-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Verify: focused tests green, running full Phase 4 triad and read-only gates; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793651315.4246867,
+      "timestamp_str": "2026-11-02 23:28:35",
       "agent": "kilo:main"
     }
   ]
