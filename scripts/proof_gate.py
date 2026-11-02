@@ -43,6 +43,11 @@ Runner = Callable[[Sequence[str], Path, float], Tuple[int, str]]
 # per process, so the same test run can pass and fail on different machines (IDEA-1157).
 PROOF_HASH_SEED = "0"
 
+# The single source of truth for the default kill threshold: prove(), the CLI below, and
+# verify_commit's declaration schema all derive from this literal, so a future change
+# cannot silently diverge the gate.
+DEFAULT_MIN_KILLED = 3
+
 # The generated and dependency trees no mutation run may copy. Kept beside the copy so the audit
 # and knowledge walkers can be pinned to the same core set by a unit test (ADR-300).
 COPY_IGNORE_PATTERNS = (
@@ -386,7 +391,7 @@ def prove(
     tests: Sequence[Path],
     sources: Sequence[Path] = (),
     mutants: int = 0,
-    min_killed: int = 3,
+    min_killed: int = DEFAULT_MIN_KILLED,
     require_mutation: bool = False,
     waive: Sequence[str] = (),
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
@@ -524,8 +529,9 @@ def build_parser() -> argparse.ArgumentParser:
                         help="changed source file(s) to mutate; enables mutation scoring")
     parser.add_argument("--mutants", type=int, default=0,
                         help="maximum mutants to generate (default: 0, mutation off)")
-    parser.add_argument("--min-killed", type=int, default=3,
-                        help="mutants that must be killed; capped by generated count (default: 3)")
+    parser.add_argument("--min-killed", type=int, default=DEFAULT_MIN_KILLED,
+                        help="mutants that must be killed; capped by generated count "
+                             f"(default: {DEFAULT_MIN_KILLED})")
     parser.add_argument("--require-mutation", action="store_true",
                         help="make the mutation threshold part of the pass/fail proof")
     parser.add_argument("--waive", action="append", default=[], metavar="FILE:LINE:OPERATOR",

@@ -8859,6 +8859,8 @@ class TestPostCommitVerification(unittest.TestCase):
     def test_min_killed_flag_follows_the_schema_default(self):
         # The --min-killed flag is emitted only when the declaration differs from
         # PROOF_DEFAULTS, so a future default change cannot silently diverge the gate.
+        from scripts import proof_gate
+        self.assertEqual(PROOF_DEFAULTS["min_killed"], proof_gate.DEFAULT_MIN_KILLED)
         base = {"tests": ["tests/test_x.py"], "mutants": 1}
         plain = proof_command_from_declaration(
             dict(base), worktree=Path("/worktree"), parent="abc",

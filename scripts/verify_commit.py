@@ -33,7 +33,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 ROOT_DIR = Path(__file__).resolve().parent.parent
 PROOF_FILE = Path(".aikit") / "proof.json"
 # The declaration schema: these are the keys the reader below consumes, kept in one literal so
-# the reachability shield can see every persisted key has a producer.
+# the reachability shield can see every persisted key has a producer. This file runs directly
+# (`python scripts/verify_commit.py`), so it takes no `from scripts` imports; the min_killed
+# default is pinned to proof_gate.DEFAULT_MIN_KILLED by a unit test instead of an import.
 PROOF_DEFAULTS = {
     "tests": [],
     "sources": [],

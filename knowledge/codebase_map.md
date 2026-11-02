@@ -10,7 +10,7 @@
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `864`
 - **Total Class Methods**: `1015`
-- **Total Source Lines**: `38308`
+- **Total Source Lines**: `38318`
 
 ---
 
@@ -1253,7 +1253,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `563` lines (`23304` bytes)
+**Size**: `569` lines (`23625` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1460,7 +1460,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `399` lines (`19528` bytes)
+**Size**: `401` lines (`19735` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1661,7 +1661,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11914` lines (`663732` bytes)
+**Size**: `11916` lines (`663857` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
