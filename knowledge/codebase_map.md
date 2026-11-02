@@ -10,7 +10,7 @@
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `859`
 - **Total Class Methods**: `990`
-- **Total Source Lines**: `37703`
+- **Total Source Lines**: `37706`
 
 ---
 
@@ -1503,7 +1503,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `1963` lines (`101176` bytes)
+**Size**: `1966` lines (`101377` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*

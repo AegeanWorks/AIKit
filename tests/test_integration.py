@@ -1871,6 +1871,8 @@ class TestIdeaAutoRegistration(unittest.TestCase):
             mock.patch("scripts.aikit_cli.present_project", return_value=project),
             mock.patch("scripts.aikit_cli.get_project_repo_url", return_value=""),
             mock.patch("scripts.aikit_cli.project_media.media_blockers", return_value=[]),
+            mock.patch("scripts.aikit_cli.project_media.media_path",
+                       return_value=mock.Mock(**{"is_file.return_value": True})),
             mock.patch("scripts.aikit_cli.extract_readme_description",
                        return_value="A project that builds things."),
             mock.patch("scripts.aikit_cli.license_state",
@@ -1882,7 +1884,8 @@ class TestIdeaAutoRegistration(unittest.TestCase):
             mock.patch("scripts.aikit_cli.project_baseline_errors", return_value=[]),
             mock.patch("scripts.aikit_cli.run_gates", return_value=[gate]),
             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[]),
-            mock.patch("scripts.aikit_cli.load_config", return_value={}),
+            mock.patch("scripts.aikit_cli.load_config",
+                       return_value={"topics": ["demo", "tools"]}),
             mock.patch("scripts.aikit_cli.publish_topics", return_value=["aikit"]),
             mock.patch("scripts.aikit_cli.publish_project", return_value=(0, "Published")),
         )
