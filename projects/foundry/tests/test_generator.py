@@ -51,6 +51,17 @@ class TestGenerator(unittest.TestCase):
                 atk = generate(seed)["stats"]["attack"]
                 self.assertLessEqual(max_theoretical_hit(atk), ONE_HIT_CAP)
 
+    def test_empty_loot_pool_fails_loud(self):
+        import generators.boss as boss_mod
+
+        old = boss_mod.ITEM_IDS
+        boss_mod.ITEM_IDS = frozenset()
+        try:
+            with self.assertRaises(ValueError):
+                generate(42)
+        finally:
+            boss_mod.ITEM_IDS = old
+
     def test_spawn_claims_own_seed(self):
         for seed in BASELINE_SEEDS:
             with self.subTest(seed=seed):

@@ -65,3 +65,14 @@
 - Consequences: Bot clears prove the shipped game. Pre-existing harness
   selftest failures (2 omen checks, unrelated to bosses) are baselined, not
   fixed here.
+
+## ADR-007: empty loot overlap fails loud at generation time
+- Date: 2026-11-03. Status: accepted.
+- Decision: If no LOOT_POOL id resolves in the consumer ITEM_CATALOG,
+  generate() raises ValueError naming the cause instead of crashing in
+  random.choice with a bare IndexError. The non-empty path is untouched
+  (same list, same single choice), so baselined packs regenerate
+  byte-identically.
+- Consequences: A game-side catalog edit that drops every pool id surfaces
+  as `loot pool has no ITEM_CATALOG overlap` with a fix direction, covered
+  by test_empty_loot_pool_fails_loud.

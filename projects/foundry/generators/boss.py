@@ -82,7 +82,13 @@ def generate(seed: int) -> Dict:
     defense = rng.randint(*def_band)
     xp_reward = _clamp(hp // 2 + attack * 5, 20, 400)
     gold_reward = _clamp(hp // 3 + attack * 4, 10, 300)
-    loot_id = rng.choice([i for i in LOOT_POOL if i in ITEM_IDS]) or "amulet_bloodstone"
+    loot_pool = [i for i in LOOT_POOL if i in ITEM_IDS]
+    if not loot_pool:
+        raise ValueError(
+            "loot pool has no ITEM_CATALOG overlap; "
+            "add a LOOT_POOL id to the consumer catalog"
+        )
+    loot_id = rng.choice(loot_pool)
     adj = rng.choice(NAME_ADJS)
     noun = rng.choice(NAME_NOUNS)
     # Seed suffix: guarantees registry uniqueness and traces a pack to
