@@ -174,7 +174,7 @@ import scripts.project_topics as project_topics
 import scripts.project_ui as project_ui
 
 
-from scripts.project_gates import Gate, _rewritten_paths, failure_tail, resolve_gates, run_gates
+from scripts.project_gates import Gate, _rewritten_paths, _tracked_snapshot, failure_tail, resolve_gates, run_gates
 from scripts.marked_blocks import block_span, fenced, replace_block
 from scripts.project_license import (
     _licensed_readme,
@@ -6872,6 +6872,47 @@ class TestProjectGates(unittest.TestCase):
         self.assertEqual(_rewritten_paths({"a": "1"}, {"a": "1"}), [])
         self.assertEqual(_rewritten_paths({"a": "1"}, {"a": "2"}), ["a"])
         self.assertEqual(_rewritten_paths(None, {"a": "1"}), [])
+
+    def test_snapshot_consumes_rename_sources_and_hashes_targets(self):
+        from scripts import project_gates
+        root = Path(tempfile.mkdtemp(prefix="test_snapshot_rename_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        (root / "new.txt").write_text("one\n", encoding="utf-8")
+        (root / ".txt").write_text("one\n", encoding="utf-8")
+
+        def rename_status(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, " R new.txt\0old.txt\0", "")
+
+        with mock.patch.object(project_gates.subprocess, "run", side_effect=rename_status):
+            snap = _tracked_snapshot(root)
+        self.assertIn("new.txt", snap or {})
+        self.assertNotIn("old.txt", snap or {},
+                         "the rename source must be consumed, not read as a path")
+        self.assertNotIn("d.txt", snap or {})
+        self.assertNotIn(".txt", snap or {},
+                         "the decoy file is untouched by the rename entry")
+
+    def test_snapshot_marks_unreadable_files_without_failing(self):
+        from scripts import project_gates
+        root = Path(tempfile.mkdtemp(prefix="test_snapshot_gone_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+
+        def deleted_status(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, " D gone.txt\0", "")
+
+        with mock.patch.object(project_gates.subprocess, "run", side_effect=deleted_status):
+            snap = _tracked_snapshot(root)
+        self.assertEqual(snap, {"gone.txt": "<unreadable>"})
+
+    def test_snapshot_returns_none_when_git_cannot_answer(self):
+        from scripts import project_gates
+        root = Path(tempfile.mkdtemp(prefix="test_snapshot_nogit_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        with mock.patch.object(project_gates.subprocess, "run",
+                               return_value=subprocess.CompletedProcess([], 128, "", "fatal")):
+            self.assertIsNone(_tracked_snapshot(root))
+        with mock.patch.object(project_gates.subprocess, "run", side_effect=OSError("no git")):
+            self.assertIsNone(_tracked_snapshot(root))
 
 class TestProjectHygieneScan(unittest.TestCase):
     """The hygiene scan decides from the AST and from lines what the project gates could not (ADR-137)."""
