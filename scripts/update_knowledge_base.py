@@ -39,6 +39,7 @@ IGNORE_DIRS = {
     ".github",
     ".agents",
     ".aikit",
+    ".kilo",
     "__pycache__",
     ".pytest_cache",
     ".ruff_cache",

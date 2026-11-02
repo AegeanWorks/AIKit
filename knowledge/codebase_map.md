@@ -9,8 +9,8 @@
 - **Total Python Modules**: `62`
 - **Total Classes**: `135`
 - **Total Top-Level Functions**: `864`
-- **Total Class Methods**: `1015`
-- **Total Source Lines**: `38318`
+- **Total Class Methods**: `1016`
+- **Total Source Lines**: `38334`
 
 ---
 
@@ -706,7 +706,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `755` lines (`36881` bytes)
+**Size**: `756` lines (`36913` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -828,7 +828,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2145` lines (`101960` bytes)
+**Size**: `2145` lines (`101989` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -1253,7 +1253,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `569` lines (`23625` bytes)
+**Size**: `570` lines (`23638` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1414,7 +1414,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1211` lines (`57313` bytes)
+**Size**: `1212` lines (`57326` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1661,7 +1661,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11916` lines (`663857` bytes)
+**Size**: `11929` lines (`664652` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1768,6 +1768,7 @@
   - Method `.test_a_repository_under_an_ignored_name_is_still_scanned()`
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`
   - Method `.test_this_repository_ignores_references()`
+  - Method `.test_this_repository_ignores_kilo_state()`
   - Method `.test_temporary_python_buffers_are_not_catalogued()`
 - `class TestOpenCodePermissionBoundaries` - *PRINCIPLE-008 R6 / PRINCIPLE-009 R6 (ADR-116): replay OpenCode v2's documented evaluation*
   - Method `.decide(rules, action, resource)`

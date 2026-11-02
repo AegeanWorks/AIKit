@@ -1341,6 +1341,19 @@ class TestPythonFileDiscovery(unittest.TestCase):
     def test_this_repository_ignores_references(self):
         self.assertIn("references/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
 
+    def test_this_repository_ignores_kilo_state(self):
+        # Kilo's Agent Manager keeps worktrees, plans and UI state in .kilo/: IDE state,
+        # not AIKit memory (same precedent as /.aikit/). Untracked checkouts must stay out
+        # of git, and every tree walker must skip them.
+        self.assertIn("/.kilo/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
+        from scripts.update_knowledge_base import IGNORE_DIRS
+        from scripts import disruption_recovery, proof_gate
+        from scripts.check_project_hygiene import SKIP_DIRS
+        self.assertIn(".kilo", IGNORE_DIRS)
+        self.assertIn(".kilo", SKIP_DIRS)
+        self.assertIn(".kilo", disruption_recovery.SWEEP_PRUNED_DIRS)
+        self.assertIn(".kilo", proof_gate.COPY_IGNORE_PATTERNS)
+
     def test_temporary_python_buffers_are_not_catalogued(self):
         # A crashed agent leaves `.tmp_*` probes behind; they are not codebase modules and may be
         # intentionally invalid, so the AST map must not fail on them.

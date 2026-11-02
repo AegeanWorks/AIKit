@@ -52,6 +52,7 @@ DEFAULT_MIN_KILLED = 3
 # and knowledge walkers can be pinned to the same core set by a unit test (ADR-300).
 COPY_IGNORE_PATTERNS = (
     ".git", ".hg", ".svn", "projects", "references", "scratch", ".idea-catcher",
+    ".kilo",
     "node_modules", "__pycache__", "*.pyc", "*.pyo",
     ".pytest_cache", ".ruff_cache", ".mypy_cache", ".tox", ".nox",
     ".venv", "venv", "env", "build", "dist", "target", ".next", ".nuxt", ".cache", ".vite",

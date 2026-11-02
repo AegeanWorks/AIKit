@@ -28,8 +28,9 @@ from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tupl
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # Directories whose contents answer to a tool, not to this repository (PRINCIPLE-003 R2).
-SKIP_DIRS = frozenset({".git", ".aikit", "__pycache__", ".venv", "venv", "env", "node_modules",
-                       "dist", "build", ".mypy_cache", ".ruff_cache", ".pytest_cache"})
+SKIP_DIRS = frozenset({".git", ".aikit", ".kilo", "__pycache__", ".venv", "venv", "env",
+                       "node_modules", "dist", "build", ".mypy_cache", ".ruff_cache",
+                       ".pytest_cache"})
 
 PY_SUFFIX = ".py"
 ASSET_SUFFIXES = frozenset({".html", ".css", ".js"})

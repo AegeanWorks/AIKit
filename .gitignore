@@ -63,6 +63,10 @@ scratch/
 # Reforge's own audit state at the AIKit root: a tool state folder, not AIKit memory (ADR-253).
 /.aikit/
 
+# Kilo's Agent Manager state at the AIKit root: worktrees, plans and UI state.
+# IDE state, not AIKit memory; worktree checkouts must never be staged or mapped.
+/.kilo/
+
 # Entire hosted-review exports: per-repo findings, reports, event logs and agent analysis.
 # Local-only audit evidence; never committed or published.
 /entire_audits/

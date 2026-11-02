@@ -1110,12 +1110,12 @@ def resume_task(task_id: str, ledger_file: Optional[Path] = None,
 
 TEMP_STALE_SECONDS = 60
 # Not AIKit's state: VCS internals, the projects AIKit builds (ADR-119), reference checkouts,
-# and generated or dependency trees. Atomic state writes never land in these folders, so pruning
-# them cannot hide a recoverable buffer; descending them made `--audit` take 35s on this repo's
-# ignored scratch checkouts and raised on their long paths.
+# IDE worktree state, and generated or dependency trees. Atomic state writes never land in
+# these folders, so pruning them cannot hide a recoverable buffer; descending them made
+# `--audit` take 35s on this repo's ignored scratch checkouts and raised on their long paths.
 SWEEP_PRUNED_DIRS = frozenset({
     ".git", ".hg", ".svn",
-    "projects", "references", "scratch",
+    "projects", "references", "scratch", ".kilo",
     "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache",
     ".tox", ".nox", ".venv", "venv", "env",
     "build", "dist", "target", ".next", ".nuxt", ".cache", ".vite",
