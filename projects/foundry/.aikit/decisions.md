@@ -87,3 +87,15 @@
   byte-identically; no schema or pack change.
 - Consequences: Six new TestValidatorHardening tests lock the fixes;
   validator stays the shipping gate with field+reason lines.
+
+## ADR-009: attach to AIKit and conform README to the scaffold
+- Date: 2026-11-03. Status: accepted.
+- Decision: Register the existing folder via `aikit attach` (badge under
+  the README title) so `aikit check foundry` runs; rename README headings
+  to `Cold-Start Quick Reference` / `What's Inside` with a `text` tree and
+  keep every cold-start command byte-identical. Mark the bot teleport probe
+  `except` with `hygiene: allow` instead of refactoring it: failed offsets
+  are expected probes, and recording them as errors would wrongly fail fair
+  runs (`fair` requires an empty error list).
+- Consequences: All four `aikit check` gates run; README stays the
+  cold-start contract with scaffold headings.

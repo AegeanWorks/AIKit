@@ -134,7 +134,7 @@ def clear_pack(pack_path: Path) -> Dict[str, Any]:
                 )
                 placed = True
                 break
-            except Exception:
+            except Exception:  # hygiene: allow teleport probing; failed offsets are not errors, the unplaced outcome is recorded below
                 continue
         if not placed:
             report["errors"].append("no walkable tile beside the boss")

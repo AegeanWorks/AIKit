@@ -1,14 +1,19 @@
 # foundry
 
+[![AIKit Integrated](https://img.shields.io/badge/AIKit-integrated-6f42c1)](https://github.com/AegeanWorks/AIKit)
+
 Shared content pipeline for the game portfolio (Dustline, crypt-crawler,
 Voidfarer, MemoryReconstruction): validated schemas plus a generator that
 emits per-game data packs, with the fairness validator as gatekeeper.
 Slice 1 targets crypt-crawler bosses. Python stdlib only, like the engines.
 
-## Cold start
+## Cold-Start Quick Reference
 
-Prerequisites: Python 3.10+ (Playwright + Edge only for `tools/bot_clear.py`;
-everything else is stdlib).
+- **Runtime Prerequisites**: Python 3.10+ (Playwright + Edge only for `tools/bot_clear.py`; everything else is stdlib).
+- **Canonical Regression Shield Gate**:
+  ```bash
+  python -m unittest discover tests
+  ```
 
 ```powershell
 cd projects/foundry
@@ -23,7 +28,35 @@ Consumer side (crypt-crawler): install packs by copying the JSON files
 into `projects/crypt-crawler/packs/` (data install, no code change), then
 `python -m unittest discover tests` from `projects/crypt-crawler/`.
 
-## Layout
+## What's Inside
+
+```text
+foundry/
+├── README.md
+├── .aikit/
+│   └── decisions.md
+├── adapters/
+│   ├── __init__.py
+│   └── crypt_crawler.py
+├── generators/
+│   ├── __init__.py
+│   └── boss.py
+├── schemas/
+│   └── boss.schema.json
+├── tests/
+│   ├── test_generator.py
+│   └── test_validator.py
+├── tools/
+│   └── bot_clear.py
+├── validators/
+│   ├── __init__.py
+│   └── boss.py
+└── packs/
+    └── crypt-crawler/
+        ├── boss_ashen_warden_s42.json
+        ├── boss_pale_warden_s1337.json
+        └── boss_ruin_vesper_s777.json
+```
 
 - `schemas/boss.schema.json` — canonical boss format (slice-1 envelope).
 - `validators/boss.py` — gatekeeper: every pack validates, failures name
