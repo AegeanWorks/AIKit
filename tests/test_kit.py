@@ -1712,6 +1712,50 @@ class TestDogfoodFingerprint(unittest.TestCase):
              mock.patch("scripts.dogfood.subprocess.run", side_effect=status_only):
             self.assertEqual(repo_fingerprint(), fingerprint_of(snapshot_tree()))
 
+    def test_readonly_gates_retry_a_timeout_once_then_pass(self) -> None:
+        from scripts import dogfood
+
+        calls: list = []
+
+        def runner(script, args, cwd):
+            calls.append(Path(script).name)
+            if len(calls) == 6:
+                return 0, "ok", ""
+            if Path(script).name == "update_knowledge_base.py" and len(calls) <= 5:
+                return 124, "", "timed out"
+            return 0, "ok", ""
+
+        log: list = []
+        ok, _ = dogfood.track_readonly_gates(Path("."), log, runner=runner)
+        self.assertTrue(ok)
+        self.assertTrue(any("retry" in line for line in log))
+
+    def test_readonly_gates_still_fail_on_double_timeout(self) -> None:
+        from scripts import dogfood
+
+        def runner(script, args, cwd):
+            return 124, "", "timed out"
+
+        log: list = []
+        ok, detail = dogfood.track_readonly_gates(Path("."), log, runner=runner)
+        self.assertFalse(ok)
+        self.assertIn("rc=124", detail)
+
+    def test_readonly_gates_never_retry_a_real_failure(self) -> None:
+        from scripts import dogfood
+
+        calls: list = []
+
+        def runner(script, args, cwd):
+            calls.append(Path(script).name)
+            return 1, "", "real failure"
+
+        log: list = []
+        ok, _ = dogfood.track_readonly_gates(Path("."), log, runner=runner)
+        self.assertFalse(ok)
+        self.assertEqual(len(calls), 5)
+        self.assertFalse(any("retry" in line for line in log))
+
 
 class TestAdrRegister(unittest.TestCase):
     """PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069)."""
@@ -11322,6 +11366,45 @@ class TestIdeaCatcherBlockedPolicy(unittest.TestCase):
                 decided_by="tester",
             )
 
+    def test_a_superseded_idea_refuses_review(self) -> None:
+        root = self._register()
+        with self.assertRaises(idea_registry.RegistryError) as caught:
+            idea_registry.review_idea(
+                root, "IDEA-007", verdict="confirmed", evidence=self.EVIDENCE, by="tester"
+            )
+        self.assertIn("will not be reviewed again", str(caught.exception))
+
+    def test_a_superseded_idea_refuses_a_status_change(self) -> None:
+        root = self._register()
+        with self.assertRaises(idea_registry.RegistryError):
+            idea_registry.set_status(
+                root, "IDEA-007", status="Approved",
+                reason="A later review claims the duplicate is now useful alone.",
+                decided_by="tester",
+            )
+
+    def test_a_superseded_idea_accepts_repointing_to_another_canonical(self) -> None:
+        root = self._register()
+        idea = idea_registry.set_status(
+            root, "IDEA-007", status="Superseded", superseded_by="IDEA-006",
+            reason="The merge pointed at the wrong canonical idea.",
+            decided_by="tester",
+        )
+        self.assertEqual(idea["status"], "Superseded")
+        self.assertEqual(idea["superseded_by"], "IDEA-006")
+
+    def test_auto_registration_does_not_reopen_a_superseded_idea(self) -> None:
+        root = self._register()
+        updated = idea_registry.register_from_commits(
+            root, "aikit", [("sha", "feat: IDEA-007 delivered", "")]
+        )
+        self.assertEqual(updated, [])
+        superseded = next(
+            idea for idea in idea_registry.load_ideas(root)["ideas"]
+            if idea["id"] == "IDEA-007"
+        )
+        self.assertEqual(superseded["status"], "Superseded")
+
     def test_review_idea_defer_twice_blocks(self) -> None:
         root = self._register()
         idea = idea_registry.review_idea(
@@ -11780,7 +11863,9 @@ class TestProjectCompatHelpers(unittest.TestCase):
         project_compat.scaffold_compat(root, "ui")
         def runner(cmd: str, _root: Path, timeout: float = 30.0):
             if "inventory" in cmd:
-                return 0, "button|Save|save-btn"
+                return 0, "button|Save|save-btn\ninput|Name|name-field\nhandler|save|on-save"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
             return 0, "WORLD-DELTA: counter=0->1"
         self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
         (root / project_compat.SCREENSHOT_DIR / project_compat.BEFORE_NAME).unlink()
@@ -11854,6 +11939,58 @@ class TestProjectCompatHelpers(unittest.TestCase):
         record = json.loads((root / project_compat.EVIDENCE_REL).read_text(encoding="utf-8"))
         self.assertEqual(record["schema"], project_compat.EVIDENCE_SCHEMA)
         self.assertTrue(any(link["gate"] == "compat" for link in record["links"]))
+
+    def test_ui_scaffold_writes_distinct_before_after_screenshots(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "ui")
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "button|Save|save-btn\ninput|Name|name-field\nhandler|save|on-save"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+            return 0, "WORLD-DELTA: counter=0->1"
+        self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
+        before = (root / project_compat.SCREENSHOT_DIR / project_compat.BEFORE_NAME).read_bytes()
+        after = (root / project_compat.SCREENSHOT_DIR / project_compat.AFTER_NAME).read_bytes()
+        self.assertNotEqual(before, after)
+
+    def test_ui_verify_fires_on_byte_identical_screenshots(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "ui")
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "button|Save|save-btn\ninput|Name|name-field\nhandler|save|on-save"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+            return 0, "WORLD-DELTA: counter=0->1"
+        before = (root / project_compat.SCREENSHOT_DIR / project_compat.BEFORE_NAME).read_bytes()
+        (root / project_compat.SCREENSHOT_DIR / project_compat.AFTER_NAME).write_bytes(before)
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("byte-identical" in line for line in findings))
+
+    def test_ui_verify_fires_on_layout_controls_missing_from_inventory(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "ui")
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "button|Save|save-btn"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+            return 0, "WORLD-DELTA: counter=0->1"
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("missing from inventory" in line for line in findings))
 
 class ReuseMetadataTest(unittest.TestCase):
     """A same-license refresh must not erase project-specific annotations."""

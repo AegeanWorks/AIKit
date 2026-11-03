@@ -131,7 +131,9 @@ STATUS_SPECS: dict[str, StatusSpec] = {
         ("reason", "decided_by"),
     ),
     "Superseded": StatusSpec(
-        "Superseded", "57606a", "Replaced by another idea in this register.", ("superseded_by",)
+        "Superseded", "57606a",
+        "Replaced by another idea in this register; closed and never reviewed again.",
+        ("superseded_by",)
     ),
 }
 
@@ -1165,6 +1167,12 @@ def _apply_status(
         raise RegistryError(
             f"{idea.get('id')} is Blocked after two deferrals and will not be reviewed again"
         )
+    if previous == "Superseded" and status != "Superseded":
+        replacement = str(idea.get("superseded_by", "") or "").strip()
+        follow = f" by {replacement}" if replacement else ""
+        raise RegistryError(
+            f"{idea.get('id')} is Superseded{follow} and will not be reviewed again"
+        )
     at = decided_at or datetime.date.today().isoformat()
     effective_deferrals = deferrals_before + (1 if new_deferral else 0)
     auto_blocked = False
@@ -1301,9 +1309,12 @@ def review_idea(
 ) -> dict[str, Any]:
     """Record one second-pass review and apply its decision.
 
-    A second ``defer`` verdict blocks the idea permanently. A ``Blocked`` idea is refused, which
-    is the executable form of "won't be reviewed again".
+    A second ``defer`` verdict blocks the idea permanently. A ``Blocked`` or
+    ``Superseded`` idea is refused, which is the executable form of
+    "won't be reviewed again".
     """
+    if verdict not in REVIEW_VERDICTS:
+        raise RegistryError(f"unknown review verdict {verdict!r}")
     if verdict not in REVIEW_VERDICTS:
         raise RegistryError(f"unknown review verdict {verdict!r}")
     if len(evidence.strip()) < MIN_REASON_CHARS:
@@ -1321,6 +1332,12 @@ def review_idea(
         if idea.get("status") == BLOCKED_STATUS:
             raise RegistryError(
                 f"{idea_id} is Blocked after two deferrals and will not be reviewed again"
+            )
+        if idea.get("status") == "Superseded":
+            replacement = str(idea.get("superseded_by", "") or "").strip()
+            follow = f" by {replacement}" if replacement else ""
+            raise RegistryError(
+                f"{idea_id} is Superseded{follow} and will not be reviewed again"
             )
         sources = dossier_sources(root)
         declared = (sources.get(idea_id) or (None, None))[1]
