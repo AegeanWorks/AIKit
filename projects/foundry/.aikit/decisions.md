@@ -76,3 +76,14 @@
 - Consequences: A game-side catalog edit that drops every pool id surfaces
   as `loot pool has no ITEM_CATALOG overlap` with a fix direction, covered
   by test_empty_loot_pool_fails_loud.
+
+## ADR-008: validator hardening without contract change
+- Date: 2026-11-03. Status: accepted.
+- Decision: Harden validators/boss.py only: fullmatch for pack_version and
+  boss_id (close trailing-newline bypass), int-type guard for spawn.depth
+  (reject 3.0), repr-sorted unknown-field reporting (no TypeError on
+  mixed-type keys), OSError/UnicodeDecodeError parity in validate_file,
+  recursive glob, drop unused Container/Dict imports. Baselines regenerate
+  byte-identically; no schema or pack change.
+- Consequences: Six new TestValidatorHardening tests lock the fixes;
+  validator stays the shipping gate with field+reason lines.

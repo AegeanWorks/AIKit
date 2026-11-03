@@ -14,7 +14,7 @@ import math
 import re
 import sys
 from pathlib import Path
-from typing import Any, Container, Dict, List
+from typing import Any, List
 
 FOUNDRY_ROOT = Path(__file__).resolve().parent.parent
 if str(FOUNDRY_ROOT) not in sys.path:
@@ -78,7 +78,7 @@ def validate(pack: Any) -> List[str]:
     errors: List[str] = []
     if not isinstance(pack, dict):
         return ["pack: must be a JSON object"]
-    unknown = sorted(set(pack) - TOP_FIELDS)
+    unknown = sorted(set(pack) - TOP_FIELDS, key=repr)
     if unknown:
         errors.append(f"pack: unknown fields {unknown}")
     for field in sorted(TOP_FIELDS):
@@ -87,9 +87,9 @@ def validate(pack: Any) -> List[str]:
 
     ver = pack.get("pack_version")
     if "pack_version" in pack:
-        if not isinstance(ver, str) or not re.match(r"^1\.[0-9]+$", ver):
+        if not isinstance(ver, str) or not re.fullmatch(r"1\.[0-9]+", ver):
             errors.append(
-                "pack_version: must match ^1.[0-9]+$ "
+                r"pack_version: must match ^1\.[0-9]+$ "
                 f"(supported major {SUPPORTED_MAJOR}), got {ver!r}"
             )
 
@@ -98,7 +98,7 @@ def validate(pack: Any) -> List[str]:
 
     boss_id = pack.get("boss_id")
     if "boss_id" in pack:
-        if not isinstance(boss_id, str) or not BOSS_ID_RE.match(boss_id):
+        if not isinstance(boss_id, str) or not BOSS_ID_RE.fullmatch(boss_id):
             errors.append(f"boss_id: must match ^boss_[a-z0-9_]{{2,27}}$, got {boss_id!r}")
 
     name = pack.get("name")
@@ -111,7 +111,7 @@ def validate(pack: Any) -> List[str]:
         if not isinstance(stats, dict):
             errors.append("stats: must be an object")
         else:
-            extra = sorted(set(stats) - set(STAT_BANDS))
+            extra = sorted(set(stats) - set(STAT_BANDS), key=repr)
             if extra:
                 errors.append(f"stats: unknown fields {extra}")
             for key in sorted(STAT_BANDS):
@@ -143,7 +143,7 @@ def validate(pack: Any) -> List[str]:
                 if not isinstance(phase, dict):
                     errors.append(f"{field}: must be an object")
                     continue
-                extra = sorted(set(phase) - {"threshold_pct", "effect", "tell"})
+                extra = sorted(set(phase) - {"threshold_pct", "effect", "tell"}, key=repr)
                 if extra:
                     errors.append(f"{field}: unknown fields {extra}")
                 if phase.get("threshold_pct") != want["threshold_pct"]:
@@ -165,7 +165,7 @@ def validate(pack: Any) -> List[str]:
         if not isinstance(loot, dict):
             errors.append("loot: must be an object")
         else:
-            extra = sorted(set(loot) - {"item_id"})
+            extra = sorted(set(loot) - {"item_id"}, key=repr)
             if extra:
                 errors.append(f"loot: unknown fields {extra}")
             item_id = loot.get("item_id")
@@ -182,10 +182,10 @@ def validate(pack: Any) -> List[str]:
         if not isinstance(spawn, dict):
             errors.append("spawn: must be an object")
         else:
-            extra = sorted(set(spawn) - {"depth", "anchor", "replaces", "seeds"})
+            extra = sorted(set(spawn) - {"depth", "anchor", "replaces", "seeds"}, key=repr)
             if extra:
                 errors.append(f"spawn: unknown fields {extra}")
-            if spawn.get("depth") != 3:
+            if not _is_int(spawn.get("depth")) or spawn.get("depth") != 3:
                 errors.append(
                     f"spawn.depth: slice 1 supports depth 3 only, got {spawn.get('depth')!r}"
                 )
@@ -213,6 +213,10 @@ def validate_file(path: Path) -> List[str]:
         pack = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return [f"{path.name}: file not found"]
+    except UnicodeDecodeError as exc:
+        return [f"{path.name}: invalid encoding (must be utf-8): {exc}"]
+    except OSError as exc:
+        return [f"{path.name}: cannot read file: {exc}"]
     except json.JSONDecodeError as exc:
         return [f"{path.name}: invalid JSON: {exc}"]
     return [f"{path.name}: {e}" for e in validate(pack)]
@@ -226,7 +230,7 @@ def main(argv: List[str] | None = None) -> int:
 
     files: List[str] = []
     for pattern in args.packs:
-        hits = sorted(_glob.glob(pattern))
+        hits = sorted(_glob.glob(pattern, recursive=True))
         files.extend(hits if hits else [pattern])
     failures = 0
     for name in files:

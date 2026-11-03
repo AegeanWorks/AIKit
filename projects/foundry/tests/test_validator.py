@@ -203,5 +203,66 @@ class TestValidatorRejects(unittest.TestCase):
         self.assertIn("phases[0].threshold_pct:", joined)
 
 
+class TestValidatorHardening(unittest.TestCase):
+    def test_rejects_version_trailing_newline(self):
+        pack = copy.deepcopy(good_pack())
+        pack["pack_version"] = "1.0\n"
+        errors = validate(pack)
+        self.assertTrue(
+            any(e.startswith("pack_version:") for e in errors),
+            f"newline version bypassed: {errors}",
+        )
+
+    def test_rejects_boss_id_trailing_newline(self):
+        pack = copy.deepcopy(good_pack())
+        pack["boss_id"] = "boss_ab\n"
+        errors = validate(pack)
+        self.assertTrue(
+            any(e.startswith("boss_id:") for e in errors),
+            f"newline boss_id bypassed: {errors}",
+        )
+
+    def test_mixed_type_unknown_fields_no_crash(self):
+        pack = copy.deepcopy(good_pack())
+        pack[123] = 1
+        pack["zzz"] = 2
+        errors = validate(pack)
+        self.assertTrue(
+            any("unknown fields" in e for e in errors),
+            f"expected unknown-fields error: {errors}",
+        )
+
+    def test_rejects_float_depth(self):
+        pack = copy.deepcopy(good_pack())
+        pack["spawn"]["depth"] = 3.0
+        errors = validate(pack)
+        self.assertTrue(
+            any(e.startswith("spawn.depth:") for e in errors),
+            f"float depth accepted: {errors}",
+        )
+
+    def test_validate_file_directory_returns_error(self):
+        from pathlib import Path as _Path
+
+        from validators.boss import validate_file
+
+        errors = validate_file(_Path("."))
+        self.assertTrue(errors, "expected error list for directory, got []")
+
+    def test_validate_file_invalid_utf8_returns_error(self):
+        import tempfile
+        from pathlib import Path as _Path
+
+        from validators.boss import validate_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = _Path(tmp) / "bad.json"
+            bad.write_bytes(b"\xff\xfe\x00bad")
+            errors = validate_file(bad)
+            self.assertTrue(
+                errors, "expected error list for invalid utf-8, got []"
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
