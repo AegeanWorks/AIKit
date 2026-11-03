@@ -1,60 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "compat-hygiene-v1",
+    "task_id": "dogfood-blast-v1",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1793720653.904952,
+    "updated_at": 1793721612.2174423,
     "owner": "kilo:main",
     "started_by": "kilo:main",
     "continuations": [],
-    "completed_at": 1793720654.2109165
+    "impact_assessment": {
+      "why": "Stage4 nested blast FAIL was unactionable; evidence bundle closes it",
+      "benefits": "Next flake names its file; thresholds and coverage untouched",
+      "risks": "contract: verdict string gains paths; dependency: none; concurrency: none; state: none",
+      "mitigation": "Byte-identical hash stream; 9 fingerprint tests green; reachability OK"
+    },
+    "completed_at": 1793721800.08587
   },
   "checkpoints": [
-    {
-      "task_id": "snapshot-tests-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Pinned snapshot rename, unreadable, and git-failure branches; all green, no behavior change",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652498.4412568,
-      "timestamp_str": "2026-11-02 23:48:18",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "snapshot-tests-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: focused tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652503.8466282,
-      "timestamp_str": "2026-11-02 23:48:23",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "snapshot-tests-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'snapshot-tests-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793652814.1259189,
-      "timestamp_str": "2026-11-02 23:53:34",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "aikit-compat-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[3/4] Fix parallel probe race: skip underscore fixtures in reachability and f-string audit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793657082.2294416,
-      "timestamp_str": "2026-11-03 01:04:42",
-      "agent": "kilo:main"
-    },
     {
       "task_id": "aikit-compat-v1",
       "phase": "in_progress",
@@ -253,6 +216,67 @@
       "status": "completed",
       "timestamp": 1793720654.210919,
       "timestamp_str": "2026-11-03 18:44:14",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "dogfood-blast-v1",
+      "phase": "in_progress",
+      "phase_num": 1,
+      "description": "[1/3] Diagnose nested dogfood blast-radius FAIL vs standalone PASS",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793720827.2082899,
+      "timestamp_str": "2026-11-03 18:47:07",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Stage 4 CHECK: nested dogfood reports altered tracked content while standalone passes; in-tier pollution suspect",
+        "benefits": "Pinpoint the writer before changing anything",
+        "risks": "contract: read-only diagnosis; dependency: none; concurrency: none; state: temp dirs only",
+        "mitigation": "No repo writes except checkpoint; sandbox for probes"
+      }
+    },
+    {
+      "task_id": "dogfood-blast-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[2/3] Harden blast-radius failure with before/after path diff (evidence-bundle discipline)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793721371.1907387,
+      "timestamp_str": "2026-11-03 18:56:11",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Nested blast FAIL names no paths; watchdog proves tree static mid-run and all tracks sandboxed, so next occurrence must identify the file",
+        "benefits": "Unactionable flake becomes self-diagnosing; no thresholds weakened",
+        "risks": "contract: same hash inputs, detail string only; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "Pure-function diff plus mocked unit tests; full dogfood plus fingerprint suite after"
+      }
+    },
+    {
+      "task_id": "dogfood-blast-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/3] Blast verdict hardens with path diff plus 4 pins; dogfood 5/5, unit 809 OK, nested dogfood OK, map regen",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793721612.2174423,
+      "timestamp_str": "2026-11-03 19:00:12",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Stage4 nested blast FAIL was unactionable; evidence bundle closes it",
+        "benefits": "Next flake names its file; thresholds and coverage untouched",
+        "risks": "contract: verdict string gains paths; dependency: none; concurrency: none; state: none",
+        "mitigation": "Byte-identical hash stream; 9 fingerprint tests green; reachability OK"
+      }
+    },
+    {
+      "task_id": "dogfood-blast-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'dogfood-blast-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793721800.0858715,
+      "timestamp_str": "2026-11-03 19:03:20",
       "agent": "kilo:main"
     }
   ]

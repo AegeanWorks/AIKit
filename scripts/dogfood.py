@@ -151,15 +151,31 @@ def run_cli(script: Path, args: List[str], cwd: Path) -> Tuple[int, str, str]:
     return proc.returncode, out or "", err or ""
 
 
-def repo_fingerprint() -> Optional[str]:
-    """
-    Content fingerprint of the repository working tree, or None when git is unavailable.
+def _is_transient_fixture(path: str) -> bool:
+    """Transient test scaffolding invisible to the blast hash (Stage 4 CHECK convention)."""
+    leaf = Path(path).name
+    return leaf.startswith("_") or leaf.startswith(".tmp_")
 
-    Comparing `git status --porcelain` text is NOT sufficient: a file that was already dirty
-    before the run prints the same " M path" line afterwards no matter how its contents
-    changed. The first dogfood run passed its own blast-radius check while overwriting the
-    real task ledger for exactly that reason. Hashing only the paths status names closes the
-    hole without reading every tracked file on each of the run's two fingerprint calls.
+
+def _hash_file_contents(path: Path) -> str:
+    """SHA-256 of a dirty file's bytes, streamed; unreadable files hash stably."""
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as handle:  # hygiene: allow binary content hash
+            while chunk := handle.read(FINGERPRINT_CHUNK):
+                digest.update(chunk)
+    except OSError:
+        return "<unreadable>"
+    return digest.hexdigest()
+
+
+def snapshot_tree() -> Optional[Tuple[Tuple[str, ...], Dict[str, str]]]:
+    """
+    Working-tree snapshot: the hashed status entries plus {path: content-sha}.
+
+    Transient fixtures (`_*.py`, `.tmp_*`) are omitted from both halves, so parallel-tier
+    scaffolding never moves the blast hash (Stage 4 CHECK convention). Returns None when
+    git is unavailable, matching repo_fingerprint's contract.
     """
     try:
         status = subprocess.run(
@@ -172,37 +188,105 @@ def repo_fingerprint() -> Optional[str]:
     if status.returncode != 0:
         return None
 
-    digest = hashlib.sha256()
-    entries = status.stdout.split("\0")
+    entries: List[str] = []
+    contents: Dict[str, str] = {}
+    raw = status.stdout.split("\0")
     index = 0
-    while index < len(entries):
-        entry = entries[index]
+    while index < len(raw):
+        entry = raw[index]
         index += 1
         if not entry:
             continue
         path = entry[3:]  # porcelain's two status columns and one separator precede the path
-        # Transient test fixtures are invisible to the blast radius: parallel tiers share
-        # the tree and the AST-gate probe (`scripts/_*.py`) plus `.tmp_*` buffers exist only
-        # while their test runs. Hashing them would turn a parallel fixture into a false
-        # "dogfood altered tracked content" failure (Stage 4 CHECK). Same convention as
-        # check_reachability.production_modules and the test_kit skips.
-        leaf = Path(path).name
-        if leaf.startswith("_") or leaf.startswith(".tmp_"):
-            if any(column in "RC" for column in entry[:2]) and index < len(entries):
+        if _is_transient_fixture(path):
+            if any(column in "RC" for column in entry[:2]) and index < len(raw):
                 index += 1
             continue
-        digest.update(entry.encode("utf-8"))
+        entries.append(entry)
         if any(column in "RC" for column in entry[:2]):
-            if index < len(entries):
-                digest.update(entries[index].encode("utf-8"))
+            if index < len(raw):
+                entries.append(raw[index])
                 index += 1
-        try:
-            with (ROOT_DIR / path).open("rb") as handle:  # hygiene: allow binary content hash
-                while chunk := handle.read(FINGERPRINT_CHUNK):
-                    digest.update(chunk)
-        except OSError:
-            digest.update(b"<unreadable>")
+        contents[path] = _hash_file_contents(ROOT_DIR / path)
+    return tuple(entries), contents
+
+
+def fingerprint_of(snapshot: Optional[Tuple[Tuple[str, ...], Dict[str, str]]]) -> Optional[str]:
+    """SHA-256 over a snapshot in status order; None propagates git-unavailable."""
+    if snapshot is None:
+        return None
+    entries, contents = snapshot
+    # Replays the exact entry-then-bytes order the old inline loop hashed (ADR-043,
+    # ADR-1726): a status entry, its rename pair when present, then the new path's
+    # content sha. Transient fixtures never reach either half (see snapshot_tree).
+    digest = hashlib.sha256()
+    listed = list(entries)
+    index = 0
+    while index < len(listed):
+        entry = listed[index]
+        index += 1
+        digest.update(entry.encode("utf-8"))
+        if any(column in "RC" for column in entry[:2]) and index < len(listed):
+            digest.update(listed[index].encode("utf-8"))
+            index += 1
+        digest.update(contents.get(entry[3:], "<unreadable>").encode("utf-8"))
     return digest.hexdigest()
+
+
+def repo_fingerprint() -> Optional[str]:
+    """
+    Content fingerprint of the repository working tree, or None when git is unavailable.
+
+    Comparing `git status --porcelain` text is NOT sufficient: a file that was already dirty
+    before the run prints the same " M path" line afterwards no matter how its contents
+    changed. The first dogfood run passed its own blast-radius check while overwriting the
+    real task ledger for exactly that reason. Hashing the snapshot (status entries plus the
+    content of every path status names) closes the hole without reading clean tracked files:
+    their content cannot change without appearing in status (ADR-1726).
+    """
+    return fingerprint_of(snapshot_tree())
+
+
+def diff_snapshots(before: Optional[Tuple[Tuple[str, ...], Dict[str, str]]],
+                   after: Optional[Tuple[Tuple[str, ...], Dict[str, str]]]) -> List[str]:
+    """Added/removed/modified paths between two snapshots; empty when identical."""
+    if before is None or after is None:
+        return []
+    _, before_contents = before
+    _, after_contents = after
+    out: List[str] = []
+    for path in sorted(set(before_contents) | set(after_contents)):
+        if path not in before_contents:
+            out.append(f"added: {path}")
+        elif path not in after_contents:
+            out.append(f"removed: {path}")
+        elif before_contents[path] != after_contents[path]:
+            out.append(f"modified: {path}")
+    if not out and before[0] != after[0]:
+        out.append("staged/unstaged state changed with identical content")
+    return out
+
+
+def blast_verdict(before_hash: Optional[str], after_hash: Optional[str],
+                  before_snap: Optional[Tuple[Tuple[str, ...], Dict[str, str]]],
+                  after_snap: Optional[Tuple[Tuple[str, ...], Dict[str, str]]]
+                  ) -> Tuple[bool, str, List[str]]:
+    """
+    Blast-radius verdict with evidence: (clean, detail, differing paths).
+
+    A missing hash (git unavailable) can prove nothing either way, so it passes like the
+    old inline check did; a hash mismatch fails LOUDLY with the exact paths (evidence
+    bundles, never a bare "altered" claim).
+    """
+    if before_hash is None or after_hash is None:
+        return True, "zero host mutation; tracked content hash identical", []
+    if before_hash == after_hash:
+        return True, "zero host mutation; tracked content hash identical", []
+    paths = diff_snapshots(before_snap, after_snap)
+    detail = "dogfood run altered tracked repository content"
+    if paths:
+        detail += ": " + "; ".join(paths[:5])
+    return False, detail, paths
 
 
 # --------------------------------------------------------------------------------------
@@ -431,7 +515,8 @@ def _run_track(name: str, fn, jail: Path) -> Tuple[str, bool, str, List[str]]:
 def run_dogfood(verbose: bool = False, keep_sandbox: bool = False) -> int:
     """Execute every dogfood track and emit a terse dashboard (PRINCIPLE-015 Rule 7)."""
     log: List[str] = [f"AIKit dogfood run {time.strftime('%Y-%m-%d %H:%M:%S')}"]
-    tree_before = repo_fingerprint()
+    snap_before = snapshot_tree()
+    tree_before = fingerprint_of(snap_before)
     results: List[Tuple[str, bool, str]] = []
     started = time.perf_counter()
 
@@ -454,13 +539,21 @@ def run_dogfood(verbose: bool = False, keep_sandbox: bool = False) -> int:
 
         # PRINCIPLE-015 Rule 4: nothing may have escaped the jail.
         escaped = [p.name for p in ROOT_DIR.glob("aikit_dogfood_*")]
-        tree_after = repo_fingerprint()
+        snap_after = snapshot_tree()
+        tree_after = fingerprint_of(snap_after)
         if escaped:
             results.append(("blast radius", False, f"sandbox artifacts in repo: {escaped}"))
-        elif tree_before is not None and tree_after is not None and tree_before != tree_after:
-            results.append(("blast radius", False, "dogfood run altered tracked repository content"))
         else:
-            results.append(("blast radius", True, "zero host mutation; tracked content hash identical"))
+            clean, detail, paths = blast_verdict(tree_before, tree_after, snap_before, snap_after)
+            if clean:
+                results.append(("blast radius", True, detail))
+            else:
+                # Evidence bundle: the terse dashboard keeps the first paths, the log keeps
+                # the full before/after status text so the next flake names its file.
+                log.append(f"[blast:before] {snap_before[0] if snap_before else None}")
+                log.append(f"[blast:after] {snap_after[0] if snap_after else None}")
+                log.append(f"[blast:paths] {'; '.join(paths)}")
+                results.append(("blast radius", False, detail))
     finally:
         if keep_sandbox:
             print(f"[INFO] sandbox retained at {jail}")

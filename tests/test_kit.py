@@ -227,7 +227,13 @@ from scripts.check_project_hygiene import (
     scan_artifacts,
     scan_tree,
 )
-from scripts.dogfood import repo_fingerprint
+from scripts.dogfood import (
+    blast_verdict,
+    diff_snapshots,
+    fingerprint_of,
+    repo_fingerprint,
+    snapshot_tree,
+)
 from scripts import ui_contract
 from scripts import ui_proof
 from scripts.check_test_budgets import (
@@ -1661,6 +1667,50 @@ class TestDogfoodFingerprint(unittest.TestCase):
         # content does (covered by test_dirty_content_changes_fingerprint...).
         self.assertEqual(with_probe, changed_probe)
         self.assertEqual(with_probe, without_probe)
+
+    def test_blast_diff_names_added_removed_and_modified_paths(self):
+        # Failing-first pin for the evidence-bundle verdict: a bare "altered tracked
+        # content" claim sent Stage 4 CHECK hunting a ghost. The verdict must name paths.
+        before = ((" M a.txt", "?? gone.txt"), {"a.txt": "1", "gone.txt": "x"})
+        after = ((" M a.txt", "?? new.txt"), {"a.txt": "2", "new.txt": "y"})
+        self.assertEqual(diff_snapshots(before, after),
+                         ["modified: a.txt", "removed: gone.txt", "added: new.txt"])
+        self.assertEqual(diff_snapshots(before, before), [])
+
+    def test_blast_diff_reports_staged_state_change_without_content_change(self):
+        before = ((" M a.txt",), {"a.txt": "1"})
+        after = (("M  a.txt",), {"a.txt": "1"})
+        self.assertEqual(diff_snapshots(before, after),
+                         ["staged/unstaged state changed with identical content"])
+
+    def test_blast_verdict_passes_clean_and_fails_loud_with_paths(self):
+        before = ((" M a.txt",), {"a.txt": "1"})
+        same = ((" M a.txt",), {"a.txt": "1"})
+        changed = ((" M a.txt",), {"a.txt": "2"})
+        clean, detail, paths = blast_verdict("h1", "h1", before, same)
+        self.assertTrue(clean)
+        self.assertEqual(paths, [])
+        loud, loud_detail, loud_paths = blast_verdict("h1", "h2", before, changed)
+        self.assertFalse(loud)
+        self.assertIn("a.txt", loud_detail)
+        self.assertEqual(loud_paths, ["modified: a.txt"])
+        missing, _, _ = blast_verdict(None, "h2", None, changed)
+        self.assertTrue(missing, "git-unavailable proves nothing either way, like before")
+
+    def test_repo_fingerprint_matches_snapshot_hash(self):
+        # Single source of truth: repo_fingerprint() must equal fingerprint_of() over the
+        # same snapshot, so the verdict and the hash can never disagree about a tree.
+        root = Path(tempfile.mkdtemp(prefix="test_fingerprint_single_source_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        dirty = root / "dirty.txt"
+        dirty.write_text("one\n", encoding="utf-8")
+
+        def status_only(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, " M dirty.txt\0", "")
+
+        with mock.patch("scripts.dogfood.ROOT_DIR", root), \
+             mock.patch("scripts.dogfood.subprocess.run", side_effect=status_only):
+            self.assertEqual(repo_fingerprint(), fingerprint_of(snapshot_tree()))
 
 
 class TestAdrRegister(unittest.TestCase):

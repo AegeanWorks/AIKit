@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `63`
 - **Total Classes**: `137`
-- **Total Top-Level Functions**: `880`
-- **Total Class Methods**: `1040`
-- **Total Source Lines**: `39206`
+- **Total Top-Level Functions**: `886`
+- **Total Class Methods**: `1044`
+- **Total Source Lines**: `39349`
 
 ---
 
@@ -904,14 +904,20 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `536` lines (`24616` bytes)
+**Size**: `629` lines (`28432` bytes)
 
 **Functions:**
 - `def terminate_process_tree(proc)` - *Kill a process and all of its children (PRINCIPLE-015 Rule 2).*
 - `def supervised(argv, cwd)` - *RAII supervisor: guarantees recursive teardown even if the body raises. `argv` is a list, or*
 - `def sandbox_jail()` - *Ephemeral workspace outside the repository and outside host user directories*
 - `def run_cli(script, args, cwd)` - *Invoke a CLI as a real binary with stdin closed (PRINCIPLE-015 Rule 3 EOF safety).*
+- `def _is_transient_fixture(path)` - *Transient test scaffolding invisible to the blast hash (Stage 4 CHECK convention).*
+- `def _hash_file_contents(path)` - *SHA-256 of a dirty file's bytes, streamed; unreadable files hash stably.*
+- `def snapshot_tree()` - *Working-tree snapshot: the hashed status entries plus {path: content-sha}.*
+- `def fingerprint_of(snapshot)` - *SHA-256 over a snapshot in status order; None propagates git-unavailable.*
 - `def repo_fingerprint()` - *Content fingerprint of the repository working tree, or None when git is unavailable.*
+- `def diff_snapshots(before, after)` - *Added/removed/modified paths between two snapshots; empty when identical.*
+- `def blast_verdict(before_hash, after_hash, before_snap, after_snap)` - *Blast-radius verdict with evidence: (clean, detail, differing paths).*
 - `def track_golden_lifecycle(jail, log)` - *Track 1 (PRINCIPLE-015 Rule 5): a complete create -> modify -> retrieve lifecycle driven*
 - `def track_chaos_perturbation(jail, log)` - *Track 2 (PRINCIPLE-015 Rule 5): hostile perturbations. Each must fail cleanly with no*
 - `def track_readonly_gates(jail, log)` - *Track 3: the two freshness gates the delivery triad depends on must run read-only from an*
@@ -1691,7 +1697,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12237` lines (`680305` bytes)
+**Size**: `12287` lines (`682868` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1821,6 +1827,10 @@
   - Method `.test_rename_entry_hashes_the_new_path_and_consumes_the_old()`
   - Method `.test_fingerprint_reads_dirty_content_across_chunks()`
   - Method `.test_transient_fixtures_are_invisible_to_blast_radius()`
+  - Method `.test_blast_diff_names_added_removed_and_modified_paths()`
+  - Method `.test_blast_diff_reports_staged_state_change_without_content_change()`
+  - Method `.test_blast_verdict_passes_clean_and_fails_loud_with_paths()`
+  - Method `.test_repo_fingerprint_matches_snapshot_hash()`
 - `class TestAdrRegister` - *PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069).*
   - Method `.register(*numbers)`
   - Method `.test_consecutive_ids_pass()`
