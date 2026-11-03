@@ -28,7 +28,7 @@ Written once by `write_memory` in `scripts/project_registry.py` when a project i
 | `gates` | object | Gate name to shell command (adds or replaces a gate) or null (disables a detected one); `secrets` cannot be named. Absent in records written before ADR-122, read as empty. |
 | `ui_required` | bool | When true, `check --strict`/`publish` require a usable `.aikit/ui.json` and surface evidence (ADR-166). |
 | `mechanics_required` | bool | When true, `check` requires the `mechanics` contract below (ADR-271). |
-| `mechanics` | object or absent | A game/project's headless core: `core` is a list of existing relative paths, `test` is the command that exercises it; `check` adds that command as a gate. |
+| `mechanics` | object or absent | A game/project's headless core: `core` is a list of existing relative paths, `test` is the command that exercises it; optional `bench` is the benchmark-before-land command (structural gate, never a score threshold); `check` adds `test` and `bench` as gates when declared. |
 | `created` | string | Creation date, `YYYY-MM-DD`. |
 
 The project's decision register is `<project>/.aikit/decisions.md`, created from `DECISIONS_TEMPLATE` with the same entry format as `knowledge/decisions.md`; `latest_decision` ignores the template's commented example.
@@ -160,7 +160,21 @@ optional list of source paths to mutate; `mutants` and `min_killed` are non-nega
 `require_mutation` is a boolean that needs `sources` and a positive `mutants`; `waive` is an
 optional list of `FILE:LINE:OPERATOR` keys. When the file exists in a commit, `verify_commit.py`
 runs `scripts/proof_gate.py` against the commit worktree and its parent and fails the commit when
-the proof or the required mutation threshold fails (ADR-291).
+the proof or the required mutation threshold fails (ADR-291). `prove` also refuses mock-only
+`test_*` methods whose every assertion is a mock echo (ADR-315).
+
+### Compat Record (`.aikit/compat.json`, generated projects)
+Written by `scaffold_compat` in `scripts/project_compat.py` when a project is created (`headless` by default) and verified by `aikit check` when present (ADR-315).
+
+| Key | Type | Meaning |
+|---|---|---|
+| `schema` | int | `1`; any other value is refused. |
+| `kind` | string | `headless` or `ui`. |
+| `has_ui` | bool | True for UI kinds (screenshots and hooks required). |
+| `commands.inventory` | string | Project-owned inventory printer, one `kind|name|locator` line per control. |
+| `commands.scripted` | string | Headless drive printing `WORLD-DELTA: key=old->new` lines. |
+| `screenshots.before/after` | string | PNG paths for UI kinds, empty for headless. |
+| `hooks.layout_map/clickmap` | string | Analysis hook paths for UI kinds. |
 
 ### Idea Catcher Register (`targets.json`, `ideas.json`, `reviews.json`, `dossiers/`)
 Schema 1, stored as private local data under `.idea-catcher/` at the AIKit root and never in Git.

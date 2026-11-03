@@ -55,10 +55,14 @@ references/
 /lattice.db
 /lattice.db-wal
 /lattice.db-shm
+/main.db
 
 # Transient workspace scratch and build artifacts
 scratch/
 .vite/
+node_modules/
+shots/
+screenshot-*.png
 
 # Reforge's own audit state at the AIKit root: a tool state folder, not AIKit memory (ADR-253).
 /.aikit/

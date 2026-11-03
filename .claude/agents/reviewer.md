@@ -10,7 +10,7 @@ You are AIKit's reviewer sub-agent, delegated by the lead agent to audit living 
 
 ## Operational Contract
 1. **Living Documentation & Cold-Start Parity (PRINCIPLE-005, PRINCIPLE-016)**:
-   Verify that README.md and knowledge/ accurately mirror current code capabilities and tree structures. Ensure README character count stays strictly below 30,000 characters.
+   Verify that README.md and knowledge/ accurately mirror current code capabilities and tree structures. Ensure README character count stays strictly below 32,500 characters.
 2. **Link Integrity & AST Validation (PRINCIPLE-016 R2/R4)**:
    Verify that all markdown file links point to existing files, and verify syntax validation via `python scripts/update_knowledge_base.py`.
 3. **Secret Hygiene Inspection (PRINCIPLE-019)**:

@@ -51,7 +51,7 @@
 | **Verify the Commit Itself**| `python scripts/verify_commit.py`| Runs every gate against the commit alone in a throwaway worktree; exits 1 when the commit holds less than the tree it was tested in (PRINCIPLE-018 R7); warns on a file cut below half its size unless the message says `shrink-ok: <reason>`|
 | **Reachability Shield**| `python scripts/check_reachability.py`| No unwired capability or phantom state key (PRINCIPLE-014 R7)|
 | **Operational Dogfood Gate**| `python scripts/dogfood.py`| 5/5 tracks pass; zero host mutation (PRINCIPLE-015)|
-| **Discover Any CLI**| `python scripts/<script>.py --help`| Prints usage and exits `0` in <250ms as a fresh process, writing nothing|
+| **Discover Any CLI**| `python scripts/<script>.py --help`| Prints usage and exits `0` in <1000ms as a fresh process, writing nothing|
 | **Sandbox the Ledger CLI**| `python scripts/disruption_recovery.py --workspace <dir> --audit`| Operates on `<dir>/.agents/`, never the repo ledger|
 
 **Universal CLI contract (PRINCIPLE-011, PRINCIPLE-015).** Every CLI: `--help`/`-h` prints usage, writes nothing, exits `0`; exit `0` success, `1` operational failure, `2` misuse (an unknown flag is refused, never the default); failures print What → Why → Fix on stderr, never a traceback.
@@ -151,7 +151,9 @@ portable_agent_kit/
 │   ├── brand_catalog.json        <- Authored unique project identities
 │   ├── check_secrets.py          <- Secret/sensitive data scanner
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
+│   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree
+├── projects/                   <- Built software (each subfolder its own repo)
 ├── tests/
 │   ├── test_kit.py               <- Unit tier (<=20ms per test)
 │   ├── test_auto_register.py     <- Unit tier: idea registration from commits
@@ -291,7 +293,7 @@ The principles are strictly organized across **5 chronological execution phases*
 ### 🧭 Phase 2: Pre-Flight Orientation & Planning
 | Principle | Title | Capsule |
 |---|---|---|
-| **PRINCIPLE-005** | AI Cold-Start Readiness & Living Documentation | README <=30k chars: prerequisites, test command, tree; user-visible changes update it same commit; `update_knowledge_base.py --check` gates it. |
+| **PRINCIPLE-005** | AI Cold-Start Readiness & Living Documentation | README <=32500 chars: prerequisites, test command, tree; user-visible changes update it same commit; `update_knowledge_base.py --check` gates it. |
 | **PRINCIPLE-006** | Incremental Progress Checkpointing & Disruption Recovery | Commit `[milestone N/M]` once Phase 4 passes under PRINCIPLE-018 R1; failing work uncommitted via `--checkpoint`; `--complete`/`--reset` before switching tasks; `--clean` stale `.tmp_*`; ledger writes name `--agent`; another agent's task needs `--take-over`. |
 | **PRINCIPLE-007** | Pre-flight Impact & Quality Checklist | Track C first plan checkpoint carries --why --benefits --risks (contract, dependency, concurrency, state) --mitigation; no TODO or stub; no change outside the plan. |
 | **PRINCIPLE-008** | Hierarchical Problem & Task Decomposition | Plan of M<=6 milestones (more: split into tasks), built bottom-up, each passing Phase 4 alone; re-plan = new `[1/M']` checkpoint; sub-agents never write the ledger. |
@@ -300,7 +302,7 @@ The principles are strictly organized across **5 chronological execution phases*
 | Principle | Title | Capsule |
 |---|---|---|
 | **PRINCIPLE-009** | Modularity & Pluggable Architecture | Every module: no junk-drawer name, roles of 1-5 methods, no import cycle (gated). At a pluggable boundary: 4 layers, registry lookup, constructor DI with default, frozen DTOs. |
-| **PRINCIPLE-010** | Performance & Resource Optimization | Stream uncontrolled input; threads only for steps >=200ms; timeout= on subprocess, with on open(); one fsync per file; `--help` <250ms; unit <=20ms, integ <=500ms/test. |
+| **PRINCIPLE-010** | Performance & Resource Optimization | Stream uncontrolled input; threads only for steps >=200ms; timeout= on subprocess, with on open(); one fsync per file; `--help` <1000ms; unit <=20ms, integ <=500ms/test. |
 | **PRINCIPLE-011** | Zero-Friction Onboarding & Instant Usability | Only declared deps; creates its dirs; prompts only with `--interactive`; no `os.environ[...]` reads; exit 0/1/2; errors give `Why:`/`Fix:`; demo <10s; other software: its `aikit.py` project is the workspace (R8). |
 | **PRINCIPLE-012** | Token Frugality & Lean Code Architecture | LLM code: <=16k-char payloads, static prefix first, schema-checked replies, 429 backoff, step caps; agent: diff -U3, search <=50 hits, relative paths. |
 

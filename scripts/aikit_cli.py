@@ -590,7 +590,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         return 1
     if not any(result.gate.name == "test" for result in results):
         print("Error: the project has no test gate.", file=sys.stderr)
-        print("Why: without tests the gates prove nothing about behaviour (PRINCIPLE-014 R1).", file=sys.stderr)
+        print("Why: without tests the gates prove nothing about behaviour (PRINCIPLE-011 R8, PRINCIPLE-014 R1).", file=sys.stderr)
         print("Fix: write tests, and set `test_command` in .aikit/project.json when it is not detected.",
               file=sys.stderr)
         return 1

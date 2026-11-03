@@ -1,244 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "snapshot-tests-v1",
+    "task_id": "compat-hygiene-v1",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
-    "updated_at": 1793652503.8466282,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1793720653.904952,
     "owner": "kilo:main",
     "started_by": "kilo:main",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793720654.2109165
   },
   "checkpoints": [
-    {
-      "task_id": "batch3-secrets-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'batch3-secrets-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793648605.045163,
-      "timestamp_str": "2026-11-02 22:43:25",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "schema-strict-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan merged 1114+1203: refuse unknown proof-declaration keys against the PROOF_DEFAULTS schema literal",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648708.088127,
-      "timestamp_str": "2026-11-02 22:45:08",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "A misspelled declaration key silently disables the proof it meant to configure; no live declarations exist so strict refusal breaks nothing",
-        "benefits": "Closed declaration schema, typo'd keys fail loudly with known-keys list",
-        "risks": "contract: unknown keys now raise ValueError naming them; dependency: stdlib only; concurrency: none; state: none",
-        "mitigation": "Failing-first refusal test, focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "27edb9f19190a51152740d1b82ebed1f080acf6e27af2d40cb1f5c6dca240c38"
-    },
-    {
-      "task_id": "schema-strict-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Implemented merged 1114+1203 closed declaration schema with refusal test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648753.587004,
-      "timestamp_str": "2026-11-02 22:45:53",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "schema-strict-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: post-commit tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793648756.549793,
-      "timestamp_str": "2026-11-02 22:45:56",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "schema-strict-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'schema-strict-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793648802.9296517,
-      "timestamp_str": "2026-11-02 22:46:42",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "magic-default-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: derive verify_commit min-killed flag from PROOF_DEFAULTS instead of literal 3",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793650137.786363,
-      "timestamp_str": "2026-11-02 23:08:57",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Three sites hardcode the default; a future change to one silently diverges the proof gate",
-        "benefits": "Single source of truth for the declaration default",
-        "risks": "contract: none, identical behavior; dependency: none; concurrency: none; state: none",
-        "mitigation": "Characterization test on flag emission, focused run, then full Phase 4 triad"
-      },
-      "plan_digest": "0a30a478d94ffea50de13a036306b5188d7bfdb72cb7651358865067ee34c6b9"
-    },
-    {
-      "task_id": "magic-default-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Implemented PROOF_DEFAULTS-derived min-killed flag with wiring test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793650199.711665,
-      "timestamp_str": "2026-11-02 23:09:59",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "magic-default-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: focused tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793650199.8541772,
-      "timestamp_str": "2026-11-02 23:09:59",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "magic-default-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'magic-default-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793650347.253415,
-      "timestamp_str": "2026-11-02 23:12:27",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "single-source-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: single-source min-killed default in proof_gate, referenced by verify_commit schema",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793651263.319205,
-      "timestamp_str": "2026-11-02 23:27:43",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Two literals for the same default remain in proof_gate.py after the schema fix; a future change to one silently diverges the gate",
-        "benefits": "One literal for the default across both modules",
-        "risks": "contract: none, identical behavior; dependency: none new, same-package import; concurrency: none; state: none",
-        "mitigation": "Cross-module pinning test, focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "bd65df287bff7f18d3c79d8031cdfacc0a820baba431145313f2880e938a174e"
-    },
-    {
-      "task_id": "single-source-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Implemented single-source min-killed default with cross-module pinning test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793651312.442944,
-      "timestamp_str": "2026-11-02 23:28:32",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "single-source-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: focused tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793651315.4246867,
-      "timestamp_str": "2026-11-02 23:28:35",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "single-source-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'single-source-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793651612.1201203,
-      "timestamp_str": "2026-11-02 23:33:32",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "kilo-state-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: ignore .kilo IDE state in git, map, hygiene, sweep and proof-copy walkers",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793651998.9176059,
-      "timestamp_str": "2026-11-02 23:39:58",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "Agent Manager worktrees would enter the AST map, hygiene findings, and audit walks, and risk accidental staging",
-        "benefits": "IDE checkouts invisible to every walker and to git, matching the /.aikit precedent",
-        "risks": "contract: none, exclusion-only; dependency: none; concurrency: none; state: none",
-        "mitigation": "Walker-agreement test plus new ignore pinning test, focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "331f33650f6f7b08c8bf7553bddd3c83e47ad11f0f170eeb990b6c4679abc9c1"
-    },
-    {
-      "task_id": "kilo-state-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] Implemented .kilo ignores across gitignore, map, hygiene, sweep and proof-copy walkers with pinning test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652044.7756734,
-      "timestamp_str": "2026-11-02 23:40:44",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "kilo-state-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Verify: discovery tests green, running full Phase 4 triad and read-only gates; checklists: passed",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652050.2686293,
-      "timestamp_str": "2026-11-02 23:40:50",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "kilo-state-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'kilo-state-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793652181.6298652,
-      "timestamp_str": "2026-11-02 23:43:01",
-      "agent": "kilo:main"
-    },
-    {
-      "task_id": "snapshot-tests-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Plan: pin _tracked_snapshot rename, unreadable, and git-failure paths with mocked-subprocess tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793652482.2640784,
-      "timestamp_str": "2026-11-02 23:48:02",
-      "agent": "kilo:main",
-      "impact_assessment": {
-        "why": "The R/C skip and unreadable branches shipped in Batch 1 with only integration coverage; a regression would silently misattribute rewrites",
-        "benefits": "Unit-speed pins on every snapshot branch",
-        "risks": "contract: none, tests only; dependency: none; concurrency: none; state: none",
-        "mitigation": "Mocked subprocess (no spawns), focused runs, then full Phase 4 triad"
-      },
-      "plan_digest": "4216ad20fa9d4f5907c51765f80453119323bad3c839616ffd5662adc479fafb"
-    },
     {
       "task_id": "snapshot-tests-v1",
       "phase": "in_progress",
@@ -259,6 +32,227 @@
       "status": "in_progress",
       "timestamp": 1793652503.8466282,
       "timestamp_str": "2026-11-02 23:48:23",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "snapshot-tests-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'snapshot-tests-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793652814.1259189,
+      "timestamp_str": "2026-11-02 23:53:34",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/4] Fix parallel probe race: skip underscore fixtures in reachability and f-string audit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657082.2294416,
+      "timestamp_str": "2026-11-03 01:04:42",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Stage4 CHECK FAIL: kb stale fixed by regen, dogfood 5/5 after regen, compat scaffold PASS, ledger resume PASS, BUT integration budget OVER (48-82s, 582-851ms vs 500ms) and dogfood blast-radius flakes 4/5 with untracked node_modules shots screenshots present; checklists: failed; sending back to implementation",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657392.2618413,
+      "timestamp_str": "2026-11-03 01:09:52",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Stage3 probe-race fix verify: reachability skips underscore fixtures, f-string audit skips, new pin passes, dogfood 5/5, budgets parallel clean no errors (unit PASS 14.56ms, integration OVER 593ms needs ceiling decision)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657526.4203007,
+      "timestamp_str": "2026-11-03 01:12:06",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/4] Fix check flakes: ignore root node_modules shots screenshots in .gitignore so dogfood fingerprint stable; regen map; compat and mock gates hold",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657736.7707617,
+      "timestamp_str": "2026-11-03 01:15:36",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/4] Fix parallel contamination at source: sandbox-safe production_modules pin plus fingerprint skips transient fixtures",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657892.6074843,
+      "timestamp_str": "2026-11-03 01:18:12",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] CHECK final: unit 799 PASS 18.5ms, auto_register PASS, kb/sync/licenses/secrets/reach PASS, dogfood 5/5 PASS 3.6s, compat headless+ui PASS, mock detector PASS, ledger resume PASS; integration 83 tests OVER 625ms best-of-2 vs 500ms (needs 41.5s, best 48-52s); profiling shows Reforge 16s/9 ProofGate 7.7s/3 Publish 6.7s/1 pre-existing spawn-bound, new compat 1.6s/3 not culprit; checklists: failed budget",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793657928.563297,
+      "timestamp_str": "2026-11-03 01:18:48",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "implementation",
+      "phase_num": 3,
+      "description": "[3/4] Stage3 seed-bench-evidence extensions: compat seed determinism plus bench gate plus evidence emitter",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793658160.7538946,
+      "timestamp_str": "2026-11-03 01:22:40",
+      "agent": "kilo:goal",
+      "continued_from": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Stage3 parallel-safe fixes verify: production_modules temp-dir pin, fingerprint skips transient, allowlist evidence helpers, README projects tree, dogfood standalone 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793658660.623839,
+      "timestamp_str": "2026-11-03 01:31:00",
+      "agent": "kilo:main",
+      "continued_from": "kilo:goal"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] Stage3 seed-bench-evidence done: compat seed replay plus bench gate plus evidence emitter with unit pins and docs, ready for Stage4 check",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793658669.369637,
+      "timestamp_str": "2026-11-03 01:31:09",
+      "agent": "kilo:goal",
+      "continued_from": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Re-plan budget return: template git init plus in-process prove, no assert changes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793658956.4997,
+      "timestamp_str": "2026-11-03 01:35:56",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "integration 45s vs 41s budget blocks landing",
+        "benefits": "lands compat mock with triad green",
+        "risks": "contract: preserve git history; dependency: none; concurrency: copy per test; state: temp cleanup",
+        "mitigation": "keep asserts identical, focused then full triad"
+      },
+      "plan_digest": "1f6ed797fe064cc9cf72afbdf043863aefc05315248e7ff82b7632c1bd139750",
+      "continued_from": "kilo:goal"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[3/4] Profile slowest tiers to return budgets without weakening tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793658985.097371,
+      "timestamp_str": "2026-11-03 01:36:25",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "Stage4 CHECK left unit +0.02ms and integration +73ms over; raising ceilings needs ADR plus user approval",
+        "benefits": "Keep thresholds honest while fitting host variance via waste removal",
+        "risks": "contract: test timing only, no gate semantics; dependency: stdlib only; concurrency: none; state: none",
+        "mitigation": "Per-test durations, optimize setup redundancy only, full Phase4 triad after"
+      }
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] Stage4 CHECK reported: unit-dogfood-gates green, integration OVER 540ms pre-existing sent back for ceiling decision",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793659040.2474048,
+      "timestamp_str": "2026-11-03 01:37:20",
+      "agent": "kilo:goal",
+      "continued_from": "kilo:main"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[4/4] Stage4 CHECK PASS: budget 3 tiers inside (kit 805 17.3ms, auto 13 7.4ms, integ 83 463ms headroom 36ms), sync kb licenses secrets reach PASS, dogfood 5/5 2.9s, ledger audit resume PASS Phase4, compat headless ui scaffold verify PASS from scratch; checklists: passed",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793660592.7376919,
+      "timestamp_str": "2026-11-03 02:03:12",
+      "agent": "kilo:main",
+      "continued_from": "kilo:goal"
+    },
+    {
+      "task_id": "aikit-compat-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'aikit-compat-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793660593.0053775,
+      "timestamp_str": "2026-11-03 02:03:13",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "compat-hygiene-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Plan: mark scaffolded-project usage text with hygiene allow so kb file-existence gate passes; no behavior change",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793720644.2699606,
+      "timestamp_str": "2026-11-03 18:44:04",
+      "agent": "kilo:main",
+      "impact_assessment": {
+        "why": "verify_commit knowledge gate fails on demo.py usage strings",
+        "benefits": "commit-alone passes R7",
+        "risks": "contract: none, comments only; dependency: none; concurrency: none; state: map size line only",
+        "mitigation": "full triad already green on fixed tree; verify_commit after amend"
+      },
+      "plan_digest": "8933801db2e3b281f508153503e212c4995bc1d80b643588ab3b2c91134226d8"
+    },
+    {
+      "task_id": "compat-hygiene-v1",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/3] Implemented: 2 hygiene-allow markers on scaffold usage text plus regenerated map; triad green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793720653.904952,
+      "timestamp_str": "2026-11-03 18:44:13",
+      "agent": "kilo:main"
+    },
+    {
+      "task_id": "compat-hygiene-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'compat-hygiene-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793720654.210919,
+      "timestamp_str": "2026-11-03 18:44:14",
       "agent": "kilo:main"
     }
   ]

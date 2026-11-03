@@ -3,6 +3,8 @@
 ## 🎨 Presentation Architecture
 Not applicable to AIKit: it has no graphical or web interface. Its presentation layer is each CLI's argument parsing and terminal output, described in `services.md` and `README.md`.
 
+Generated projects are AI-compatible by construction (ADR-315): `aikit new` scaffolds `.aikit/compat.json` with a project-owned inventory command, a scripted `demo.py --scripted` printing WORLD-DELTA lines, and (for UI kinds) PNG before/after screenshots plus layout-map and clickmap hooks. `aikit check` verifies them when present.
+
 ## 🔄 State Lifecycle
 AIKit's only state file is `.agents/task_ledger.json` (schema in `data_models.md`).
 1. **Load**: parse, quarantine a corrupt file, fall back to `.bak`, migrate the schema (**PRINCIPLE-013** R4).

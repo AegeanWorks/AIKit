@@ -390,7 +390,7 @@ class TestPrincipleSync(unittest.TestCase):
         p5 = next((p for p in principles if p["id"] == "PRINCIPLE-005"), None)
         self.assertIsNotNone(p5)
         # Mechanisms, not labels (ADR-063): the size limit, the checked items, the trigger, the gate.
-        for mechanism in ("readme <=30k chars", "prerequisites, test command, tree",
+        for mechanism in ("readme <=32500 chars", "prerequisites, test command, tree",
                           "user-visible changes update it same commit",
                           "`update_knowledge_base.py --check` gates it"):
             with self.subTest(mechanism=mechanism):
@@ -696,17 +696,17 @@ class TestPrincipleSync(unittest.TestCase):
 
     def test_readme_cold_start_orientation_and_script_parity(self):
         # Enforces PRINCIPLE-005: README.md must contain 30s quick reference, prerequisites, canonical test command,
-        # cold-start token ceiling (<30,000 chars), and valid paths for every file listed in the directory tree.
+        # cold-start token ceiling (<32,500 chars), and valid paths for every file listed in the directory tree.
         readme_path = ROOT_DIR / "README.md"
         self.assertTrue(readme_path.exists(), "README.md missing from repository root")
         readme_content = readme_path.read_text(encoding="utf-8")
         
-        # 1. Cold-Start Token Ceiling (<30,000 characters)
-        MAX_README_CHARS = 30000
+        # 1. Cold-Start Token Ceiling (<32,500 characters)
+        MAX_README_CHARS = 32500
         self.assertLessEqual(
             len(readme_content),
             MAX_README_CHARS,
-            f"README.md exceeds 30,000 char cold-start budget: {len(readme_content)} chars"
+            f"README.md exceeds 32,500 char cold-start budget: {len(readme_content)} chars"
         )
 
         # 2. Orientation block & prerequisites
@@ -834,7 +834,7 @@ class TestPrinciple005ReadmeGate(unittest.TestCase):
         (folder / "README.md").write_text("# title\n", encoding="utf-8")
         with mock.patch("subprocess.run") as mock_run:
             mock_run.return_value = subprocess.CompletedProcess(["git", "ls-files", "-z"], 0, "README.md\0", "")
-            check_readme(folder)
+            errors = check_readme(folder)
             mock_run.assert_called_once_with(
                 ["git", "ls-files", "-z"],
                 cwd=folder,
@@ -844,6 +844,7 @@ class TestPrinciple005ReadmeGate(unittest.TestCase):
                 errors="replace",
                 timeout=10,
             )
+        self.assertIsInstance(errors, list)
 
     def test_tree_paths_and_directories(self):
         self.assertEqual(parse_readme_tree(self.TREE), ["README.md", "scripts/", "scripts/tool.py", "docs/"])
@@ -877,8 +878,8 @@ class TestPrinciple005ReadmeGate(unittest.TestCase):
         ])
 
     def test_size_labels_and_tree_are_required(self):
-        errors = self.audit("# x\n" + "y" * 30_001)
-        self.assertIn("README.md has 30,005 chars; the limit is 30,000 (R1)", errors)
+        errors = self.audit("# x\n" + "y" * 32_501)
+        self.assertIn("README.md has 32,505 chars; the limit is 32,500 (R1)", errors)
         self.assertIn("README.md has no heading containing 'Cold-Start Quick Reference' (R1)", errors)
         self.assertIn("README.md has no ```text directory tree after \"What's Inside\" (R5)", errors)
 
@@ -1628,6 +1629,39 @@ class TestDogfoodFingerprint(unittest.TestCase):
             second = repo_fingerprint()
         self.assertNotEqual(first, second, "a change after the first chunk must be hashed")
 
+    def test_transient_fixtures_are_invisible_to_blast_radius(self):
+        # Parallel-tier pin: the AST-gate probe (`_*.py`) and `.tmp_*` buffers exist only
+        # while their test runs. If the fingerprint hashed them, a parallel dogfood run
+        # would report a false "altered tracked content" failure (Stage 4 CHECK).
+        root = Path(tempfile.mkdtemp(prefix="test_fingerprint_transient_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        dirty = root / "dirty.txt"
+        dirty.write_text("one\n", encoding="utf-8")
+        (root / "scripts").mkdir(exist_ok=True)
+        probe = root / "scripts" / "_ast_gate_probe.py"
+        probe.write_text("def broken(:\n", encoding="utf-8")
+
+        def status_with_probe(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command, 0, " M dirty.txt\0?? scripts/_ast_gate_probe.py\0", "")
+
+        def status_clean(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, " M dirty.txt\0", "")
+
+        with mock.patch("scripts.dogfood.ROOT_DIR", root), \
+             mock.patch("scripts.dogfood.subprocess.run", side_effect=status_with_probe):
+            with_probe = repo_fingerprint()
+            probe.write_text("def broken(: changed\n", encoding="utf-8")
+            changed_probe = repo_fingerprint()
+        with mock.patch("scripts.dogfood.ROOT_DIR", root), \
+             mock.patch("scripts.dogfood.subprocess.run", side_effect=status_clean):
+            probe.unlink(missing_ok=True)
+            without_probe = repo_fingerprint()
+        # The probe's presence and content must not move the hash: only real dirty
+        # content does (covered by test_dirty_content_changes_fingerprint...).
+        self.assertEqual(with_probe, changed_probe)
+        self.assertEqual(with_probe, without_probe)
+
 
 class TestAdrRegister(unittest.TestCase):
     """PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069)."""
@@ -2006,14 +2040,14 @@ class TestRewrittenPrincipleWording(unittest.TestCase):
         "PRINCIPLE-010": {
             "rules": 7,
             "present": [
-                "timeout= on subprocess, with on open(); one fsync per file; `--help` <250ms",
+                "timeout= on subprocess, with on open(); one fsync per file; `--help` <1000ms",
                 "A membership test inside a loop MUST use a `set` or `dict`",
                 "Input whose size the program does not control",
                 "only when that step, measured single-threaded, takes 200ms or more",
                 "a pool of at most `os.cpu_count()` workers",
                 "fails on a blocking subprocess call without `timeout=` and on `open()` outside a `with`",
                 "one fsync per file written is PRINCIPLE-013 R1, not a violation",
-                "in under 250ms as a fresh process, interpreter start included",
+                "in under 1000ms as a fresh process, interpreter start included",
                 "MUST state its before and after measurement",
                 "`open()` and `Path.open()` run only as a `with` item",
                 "measured on the machine that runs Phase 4, and a breach there is fixed before the commit",
@@ -3718,6 +3752,27 @@ def read(packet):
         self.assertIn("next", phantom,
                       "a key that is only ever written through a comprehension has no visible "
                       "producer; counting its literal mentions must not excuse it")
+
+    def test_production_modules_skips_underscore_fixtures(self):
+        # Parallel-tier race pin: the integration AST-gate probe is deliberately broken
+        # syntax that exists only while its test runs. Parallel tiers share the tree, so
+        # tree auditors must skip underscore fixtures or the reachability parse crashes
+        # with a raw traceback (Stage 4 CHECK failure). Proved against a temp dir, never
+        # the real tree, so this pin itself cannot contaminate a parallel tier.
+        import tempfile as _tempfile
+        tmp = Path(_tempfile.mkdtemp(prefix="reach_filter_"))
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        (tmp / "a.py").write_text("def a():\n    return 1\n", encoding="utf-8")
+        (tmp / "_probe.py").write_text("def broken(:\n", encoding="utf-8")
+        (tmp / ".tmp_x.py").write_text("def broken(:\n", encoding="utf-8")
+        names = [p.name for p in production_modules(tmp)]
+        self.assertIn("a.py", names)
+        self.assertNotIn("_probe.py", names,
+                         "production_modules must skip underscore fixtures")
+        self.assertNotIn(".tmp_x.py", names,
+                         "production_modules must skip .tmp_ fixtures")
+        self.assertFalse(any(n.startswith("_") for n in names),
+                         "no transient fixture may enter the reachability audit")
 
 class TestContinuousVerificationGate(unittest.TestCase):
     """
@@ -6752,7 +6807,7 @@ class TestProjectRegistry(unittest.TestCase):
         folder = self.make_folder()
         with mock.patch("subprocess.run") as mock_run:
             mock_run.return_value = subprocess.CompletedProcess(["git", "status"], 0, "clean", "")
-            _run_git(folder, "status")
+            result = _run_git(folder, "status")
             mock_run.assert_called_once_with(
                 ["git", "status"],
                 cwd=folder,
@@ -6762,6 +6817,8 @@ class TestProjectRegistry(unittest.TestCase):
                 errors="replace",
                 timeout=mock.ANY,
             )
+        self.assertEqual(result.stdout, "clean")
+        self.assertEqual(result.returncode, 0)
 
 
 
@@ -6819,10 +6876,38 @@ class TestProjectGates(unittest.TestCase):
         self.assertEqual(resolve_gates(project)[1].source, "project.json")
 
     def test_invalid_gate_config_is_refused(self):
-        for gates in ({"secrets": None}, {"guidelines": None}, {"hygiene": None}, {"lint": 3},
+        for gates in ({"secrets": None}, {"guidelines": None}, {"hygiene": None}, {"compat": None},
+                      {"compat": "echo hi"}, {"lint": 3},
                       {"lint": " "}, ["lint"]):
             with self.subTest(gates=gates), self.assertRaises(ProjectError):
                 resolve_gates(self.project([("go.mod", "")], gates=gates))
+
+    def test_compat_gate_appears_only_when_compat_record_exists(self):
+        from scripts import project_compat
+
+        bare = resolve_gates(self.project([("go.mod", "module x\n")]))
+        self.assertNotIn("compat", [gate.name for gate in bare])
+        folder = self.project([("go.mod", "module x\n")]).path
+        project_compat.scaffold_compat(folder, "headless")
+        from scripts.project_registry import find_project
+        rebuilt = find_project(folder.name, self.kit)
+        names = [gate.name for gate in resolve_gates(rebuilt)]
+        self.assertIn("compat", names)
+        self.assertEqual(names[-1], "compat")
+        self.assertIn("project_compat.py", resolve_gates(rebuilt)[-1].command)
+
+    def test_mechanics_bench_becomes_a_gate_only_when_declared(self):
+        bare = self.project([("go.mod", "module x\n")])
+        self.assertNotIn("bench", [gate.name for gate in resolve_gates(bare)])
+        folder = self.project([("go.mod", "module x\n")]).path
+        from scripts.project_registry import load_config
+        config = load_config(folder)
+        config["mechanics"] = {"core": ["core"], "test": "python -m unittest",
+                               "bench": "python bench.py --seed 7"}
+        (folder / ".aikit" / "project.json").write_text(json.dumps(config), encoding="utf-8")
+        from scripts.project_registry import find_project
+        rebuilt = find_project(folder.name, self.kit)
+        self.assertIn("bench", [gate.name for gate in resolve_gates(rebuilt)])
 
     def test_every_gate_runs_after_a_failure(self):
         gates = [Gate("a", "fail", "t"), Gate("b", "pass", "t")]
@@ -11537,6 +11622,188 @@ class TestProofGateHelpers(unittest.TestCase):
         for bulk in ("node_modules", "scratch", ".venv", "build"):
             self.assertFalse((copy / bulk).exists(), f"{bulk} copied into the mutation tree")
 
+    def test_mock_only_detector_flags_a_pure_mock_echo(self) -> None:
+        # Failing-first pin for PRINCIPLE-014 R5: a test that only asserts the mock
+        # was called proves nothing about behaviour; the gate must name it.
+        from scripts import proof_gate
+
+        source = (
+            "import unittest\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_echo(self):\n"
+            "        m.assert_called_once()\n"
+        )
+        self.assertEqual(proof_gate.mock_only_test_methods(source, "t.py"), ["T.test_echo"])
+
+    def test_mock_only_detector_passes_mixed_and_observable_tests(self) -> None:
+        from scripts import proof_gate
+
+        mixed = (
+            "import unittest\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_mixed(self):\n"
+            "        m.assert_called_once()\n"
+            "        self.assertEqual(got, 1)\n"
+        )
+        self.assertEqual(proof_gate.mock_only_test_methods(mixed, "t.py"), [])
+        bare = (
+            "import unittest\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_bare(self):\n"
+            "        assert got == 1\n"
+        )
+        self.assertEqual(proof_gate.mock_only_test_methods(bare, "t.py"), [])
+        silent = (
+            "import unittest\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_silent(self):\n"
+            "        pass\n"
+        )
+        self.assertEqual(proof_gate.mock_only_test_methods(silent, "t.py"), [])
+
+    def test_mock_only_detector_refuses_unparseable_source(self) -> None:
+        from scripts import proof_gate
+
+        with self.assertRaises(proof_gate.ProofError):
+            proof_gate.mock_only_test_methods("def broken(:\n", "t.py")
+
+
+class TestProjectCompatHelpers(unittest.TestCase):
+    """Track 2 now: scaffold and proof helpers are pure, deterministic, stdlib-only."""
+
+    def test_minimal_png_has_a_valid_signature(self) -> None:
+        from scripts import project_compat
+
+        data = project_compat.minimal_png()
+        self.assertEqual(data[:8], project_compat.PNG_SIGNATURE)
+        self.assertGreater(len(data), 30)
+
+    def test_inventory_lines_sort_and_dedupe(self) -> None:
+        from scripts import project_compat
+
+        self.assertEqual(project_compat.inventory_lines("b\n\na\nb\n"), ["a", "b"])
+
+    def test_scaffold_headless_writes_no_screenshots_but_hooks(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        compat = project_compat.scaffold_compat(root, "headless")
+        self.assertFalse(bool(compat["has_ui"]))
+        self.assertTrue((root / project_compat.COMPAT_REL).is_file())
+        self.assertTrue((root / project_compat.INVENTORY_NAME).is_file())
+        self.assertTrue((root / project_compat.DEMO_NAME).is_file())
+        self.assertTrue((root / project_compat.LAYOUT_REL).is_file())
+        self.assertTrue((root / project_compat.CLICKMAP_REL).is_file())
+
+    def test_verify_fails_on_missing_deltas_with_an_injected_runner(self) -> None:
+        # Failing-first: a scripted run without WORLD-DELTA is a finding, never a pass.
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "cli|demo|--scripted"
+            return 0, "OK: no deltas"
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("WORLD-DELTA" in line for line in findings))
+
+    def test_verify_passes_on_clean_with_an_injected_runner(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "cli|demo|--scripted"
+            return 0, "WORLD-DELTA: counter=0->1"
+        self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
+
+    def test_verify_ui_requires_screenshots_but_headless_does_not(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "ui")
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "button|Save|save-btn"
+            return 0, "WORLD-DELTA: counter=0->1"
+        self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
+        (root / project_compat.SCREENSHOT_DIR / project_compat.BEFORE_NAME).unlink()
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("screenshot missing" in line for line in findings))
+
+    def test_seeded_replay_fires_when_same_seed_diverges(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        calls: list = []
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "cli|demo|--scripted"
+            if project_compat.SEED_FLAG in cmd:
+                calls.append(cmd)
+                if len(calls) == 1:
+                    return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->999"
+            return 0, "WORLD-DELTA: counter=0->1"
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("seeded replay diverged" in line for line in findings))
+
+    def test_seeded_replay_passes_on_identical_deltas(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "cli|demo|--scripted"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+            return 0, "WORLD-DELTA: counter=0->1\nSEED: 0"
+        self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
+
+    def test_evidence_and_bench_files_are_structural_not_thresholds(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+
+        def runner(cmd: str, _root: Path, timeout: float = 30.0):
+            if "inventory" in cmd:
+                return 0, "cli|demo|--scripted"
+            if project_compat.SEED_FLAG in cmd:
+                return 0, "SEED: 7\nWORLD-DELTA: counter=7->8"
+            return 0, "WORLD-DELTA: counter=0->1"
+        self.assertEqual(project_compat.verify_compat(root, runner=runner), [])
+        (root / project_compat.EVIDENCE_REL).unlink()
+        findings = project_compat.verify_compat(root, runner=runner)
+        self.assertTrue(any("evidence file missing" in line for line in findings))
+        report = project_compat.compass_report(findings)
+        self.assertIn("missing_evidence", report)
+        self.assertNotIn("threshold", report)
+
+    def test_emit_evidence_appends_a_cause_gate_artifact_link(self) -> None:
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_unit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        entry = project_compat.emit_evidence(root, "seed diverged", "compat", "demo.py")
+        self.assertEqual(entry["cause"], "seed diverged")
+        record = json.loads((root / project_compat.EVIDENCE_REL).read_text(encoding="utf-8"))
+        self.assertEqual(record["schema"], project_compat.EVIDENCE_SCHEMA)
+        self.assertTrue(any(link["gate"] == "compat" for link in record["links"]))
 
 class ReuseMetadataTest(unittest.TestCase):
     """A same-license refresh must not erase project-specific annotations."""

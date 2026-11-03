@@ -180,8 +180,18 @@ def repo_fingerprint() -> Optional[str]:
         index += 1
         if not entry:
             continue
-        digest.update(entry.encode("utf-8"))
         path = entry[3:]  # porcelain's two status columns and one separator precede the path
+        # Transient test fixtures are invisible to the blast radius: parallel tiers share
+        # the tree and the AST-gate probe (`scripts/_*.py`) plus `.tmp_*` buffers exist only
+        # while their test runs. Hashing them would turn a parallel fixture into a false
+        # "dogfood altered tracked content" failure (Stage 4 CHECK). Same convention as
+        # check_reachability.production_modules and the test_kit skips.
+        leaf = Path(path).name
+        if leaf.startswith("_") or leaf.startswith(".tmp_"):
+            if any(column in "RC" for column in entry[:2]) and index < len(entries):
+                index += 1
+            continue
+        digest.update(entry.encode("utf-8"))
         if any(column in "RC" for column in entry[:2]):
             if index < len(entries):
                 digest.update(entries[index].encode("utf-8"))
@@ -353,11 +363,11 @@ def track_help_startup_budget(jail: Path, log: List[str]) -> Tuple[bool, str]:
     Track 4: every entrypoint must answer --help safely and inside the PRINCIPLE-010 R5
     startup budget, measured as a real process rather than asserted.
     """
-    # PRINCIPLE-010 R5, one fresh process per entrypoint. Raised from 200 by user decision (ADR-179):
-    # aikit.py --help has a ~160ms floor on the development machine because it imports nearly every
-    # module to print help, so a single 200ms sample failed on ordinary process-start jitter. The
-    # 47-71ms medians ADR-083 recorded predate aikit.py joining this loop (ADR-119).
-    budget_ms = 250
+    # PRINCIPLE-010 R5, one fresh process per entrypoint. Raised 200 -> 250 by user decision (ADR-179),
+    # then 250 -> 1000 by user decision (ADR-316): under concurrent load the same entrypoints measured
+    # 263-791ms on a correct tree, so the track could not tell host load from a startup regression.
+    # Best-of-two sampling is unchanged.
+    budget_ms = 1000
     attempts = 2
     failures = []
     slowest = 0.0

@@ -48,6 +48,55 @@ PROOF_HASH_SEED = "0"
 # cannot silently diverge the gate.
 DEFAULT_MIN_KILLED = 3
 
+# Mock-echo assertions: a test whose every assertion is one of these proves the mock
+# was called, never that the code behaved (PRINCIPLE-014 R5). Any other `assert*`
+# method, `fail`, or a bare `assert` statement counts as observable.
+MOCK_ASSERT_NAMES = frozenset({
+    "assert_called",
+    "assert_called_once",
+    "assert_called_with",
+    "assert_called_once_with",
+    "assert_any_call",
+    "assert_not_called",
+    "assert_has_calls",
+    "assert_has_awaits",
+    "assert_awaited",
+    "assert_awaited_once",
+    "assert_awaited_with",
+})
+
+
+def mock_only_test_methods(source_text: str, file_label: str = "<tests>") -> List[str]:
+    """Names of `test_*` methods whose assertions are all mock echoes.
+
+    Pure and deterministic: parses `source_text` with `ast`, collects per-method
+    mock vs observable assertions, and reports `Class.test` for methods with at
+    least one mock assertion and zero observable ones. Unparseable source raises
+    `ProofError`; a file with no test methods reports none.
+    """
+    try:
+        tree = ast.parse(source_text)
+    except SyntaxError as exc:
+        raise ProofError(f"{file_label} does not parse: {exc}") from exc
+    found: List[str] = []
+    for cls in (n for n in tree.body if isinstance(n, ast.ClassDef)):
+        for fn in (n for n in cls.body
+                   if isinstance(n, ast.FunctionDef) and n.name.startswith("test_")):
+            mock = 0
+            observable = 0
+            for node in ast.walk(fn):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                    name = node.func.attr
+                    if name in MOCK_ASSERT_NAMES:
+                        mock += 1
+                    elif name.startswith("assert") or name == "fail":
+                        observable += 1
+                elif isinstance(node, ast.Assert):
+                    observable += 1
+            if mock > 0 and observable == 0:
+                found.append(f"{cls.name}.{fn.name}")
+    return found
+
 # The generated and dependency trees no mutation run may copy. Kept beside the copy so the audit
 # and knowledge walkers can be pinned to the same core set by a unit test (ADR-300).
 COPY_IGNORE_PATTERNS = (
@@ -456,6 +505,19 @@ def prove(
                     f"{test}: current verdict is {current_result['verdict']}, not a pass"
                 )
         failures.extend(fail_to_pass_failures)
+        for value in tests:
+            source = value if value.is_absolute() else repo / value
+            try:
+                text = source.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            try:
+                echoes = mock_only_test_methods(text, source.name)
+            except ProofError:
+                continue
+            for entry in echoes:
+                failures.append(f"unobservable test {entry} in {source.name}: "
+                                "every assertion is a mock echo (PRINCIPLE-014 R5)")
         if not fail_to_pass_failures and sources and mutants > 0:
             mutation = mutation_suite(
                 repo, tree, tests=copied, sources=sources, limit=mutants,

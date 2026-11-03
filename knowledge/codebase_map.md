@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `62`
-- **Total Classes**: `135`
-- **Total Top-Level Functions**: `864`
-- **Total Class Methods**: `1019`
-- **Total Source Lines**: `38375`
+- **Total Python Modules**: `63`
+- **Total Classes**: `137`
+- **Total Top-Level Functions**: `880`
+- **Total Class Methods**: `1040`
+- **Total Source Lines**: `39206`
 
 ---
 
@@ -634,7 +634,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1490` lines (`75569` bytes)
+**Size**: `1490` lines (`75587` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -753,12 +753,12 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `358` lines (`15496` bytes)
+**Size**: `370` lines (`16333` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
 - `def module_nodes(path)` - *Every node of the module, walked once per parsed tree: references, state keys and literals*
-- `def production_modules()` - *Production source files whose reachability is audited (excludes this checker itself).*
+- `def production_modules(root)` - *Production source files whose reachability is audited (excludes this checker itself).*
 - `def collect_definitions(files)` - *Map every top-level function name to the module that defines it.*
 - `def collect_references(files)` - *Every name referenced in production code, however it is reached.*
 - `def find_unreachable(files)` - *Functions defined in production code with no production reference outside themselves and no allowlist entry.*
@@ -904,7 +904,7 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `526` lines (`23995` bytes)
+**Size**: `536` lines (`24616` bytes)
 
 **Functions:**
 - `def terminate_process_tree(proc)` - *Kill a process and all of its children (PRINCIPLE-015 Rule 2).*
@@ -1024,10 +1024,33 @@
 
 ---
 
+### [`scripts/project_compat.py`](scripts/project_compat.py)
+> *AI-compat scaffold and proof for generated projects (Track 2, now).*
+
+**Size**: `400` lines (`17542` bytes)
+
+**Functions:**
+- `def _error(message, why, fix)`
+- `def minimal_png()` - *A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders.*
+- `def _inventory_template(kind)`
+- `def _demo_template(kind)`
+- `def scaffold_compat(root, kind)` - *Write compat files for `headless` or `ui`; returns the compat record.*
+- `def load_compat(root)` - *Load and validate the project's compat record.*
+- `def inventory_lines(output)` - *Sorted, deduplicated non-empty inventory lines.*
+- `def _run(cmd, root, timeout)`
+- `def _delta_lines(output)` - *Sorted WORLD-DELTA lines; the seeded-replay identity check compares these.*
+- `def emit_evidence(root, cause, gate, artifact)` - *Append one cause -> gate -> artifact link to the scaffolded evidence file.*
+- `def compass_report(findings)` - *Quality-as-compass: scores are info, only missing evidence fails.*
+- `def verify_compat(root, runner)` - *Prove the scaffolded project is drivable; returns findings (empty is clean).*
+- `def build_parser()`
+- `def main(argv)`
+
+---
+
 ### [`scripts/project_gates.py`](scripts/project_gates.py)
 > *Project gates: the checks a project's own configuration declares, run as its Phase 4 (ADR-122).*
 
-**Size**: `290` lines (`12786` bytes)
+**Size**: `305` lines (`13563` bytes)
 
 **Classes:**
 - `class Gate` - *A named check and the shell command that runs it; `source` says where it came from.*
@@ -1043,7 +1066,8 @@
 - `def guidelines_gate(project_root)` - *The built-in guidelines and quality scan of the project's repository.*
 - `def hygiene_gate(project_root)` - *The built-in hygiene scan of the project's source and static assets (ADR-137).*
 - `def secrets_gate(project_root)` - *The built-in secret scan of the project's repository.*
-- `def resolve_gates(project)` - *The project's gates in run order: test, detected extras, `gates` overrides, hygiene,*
+- `def compat_gate(project_root)` - *The built-in AI-compat proof for generated projects (ADR-315).*
+- `def resolve_gates(project)` - *The project's gates in run order: test, detected extras, mechanics test/bench,*
 - `def run_shell(command, cwd, timeout)` - *Run `command` through the platform shell with stdin closed; on timeout the whole process*
 - `def run_gates(project_root, gates, runner, timeout, snapshotter)` - *Run every gate, even after a failure, so one report lists all of them.*
 - `def failure_tail(output, lines)` - *The last `lines` non-empty lines of a gate's output, where its error normally is.*
@@ -1142,7 +1166,7 @@
 ### [`scripts/project_registry.py`](scripts/project_registry.py)
 > *Project registry: the projects AIKit builds (cockpit model, ADR-119).*
 
-**Size**: `1228` lines (`56987` bytes)
+**Size**: `1247` lines (`58422` bytes)
 
 **Classes:**
 - `class ProjectError` - *A request AIKit cannot carry out, with its reason and remedy (PRINCIPLE-011 R6).*
@@ -1156,9 +1180,9 @@
 - `def repository_name(name)` - *The GitHub repository name for a project: each hyphen- or underscore-delimited word takes a*
 - `def license_choice(kind)` - *The catalog entry for `kind`, or a ProjectError naming the three choices.*
 - `def detect_license_kind(project_root)` - *The domain an AI should pick a license for, from the project's own markers. Strong markers*
-- `def render_project_readme(name, test_command, description, licensed, integrated, license_kind, license_version, assets_manifest, reuse)` - *A README whose structure passes PRINCIPLE-005's audit, with a `<FILL:` prerequisite marker: the*
+- `def render_project_readme(name, test_command, description, licensed, integrated, license_kind, license_version, assets_manifest, reuse, compat)` - *A README whose structure passes PRINCIPLE-005's audit, with a `<FILL:` prerequisite marker: the*
 - `def license_header_match(first_line)` - *The `(kind, version)` a LICENSE first line names, including an archived legacy header.*
-- `def seed_readme(project_root, name, test_command, description, licensed, integrated, license_kind)` - *Write the template README when the project has none; returns whether it did. `new` and `fix`*
+- `def seed_readme(project_root, name, test_command, description, licensed, integrated, license_kind, compat)` - *Write the template README when the project has none; returns whether it did. `new` and `fix`*
 - `def migrate_aikit_links(project_root)` - *Rewrite the pre-move AIKit URL in the README to the current one; returns whether it did. Run*
 - `def add_aikit_badge(project_root)` - *Put the AIKit Integrated badge under the README's title, or at its top without one; returns*
 - `def validate_description(description)` - *The description stripped, or None; one line of 10-350 characters (GitHub's limit is 350).*
@@ -1253,12 +1277,13 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `570` lines (`23638` bytes)
+**Size**: `632` lines (`26228` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
 
 **Functions:**
+- `def mock_only_test_methods(source_text, file_label)` - *Names of `test_*` methods whose assertions are all mock echoes.*
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; 124 on timeout, 127 when it cannot start.*
 - `def module_name(test)` - *The dotted module name for a repository-relative test path.*
 - `def test_argv(test)` - *The unittest command for one test module, run from the tree root.*
@@ -1508,7 +1533,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `1987` lines (`102596` bytes)
+**Size**: `2033` lines (`104720` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1571,6 +1596,11 @@
   - Method `.setUpClass()`
   - Method `.test_every_test_method_asserts()`
   - Method `.test_no_test_module_imports_a_network_library()`
+  - Method `.test_no_test_is_a_mock_only_echo()`
+- `class TestProjectCompatProof` - *Track 2 now: scaffolded projects drive and verify with zero project tooling.*
+  - Method `.test_headless_scaffold_verifies_with_real_subprocesses()`
+  - Method `.test_ui_scaffold_verifies_screenshots_and_hooks()`
+  - Method `.test_seeded_scripted_failure_is_a_finding_then_clean_passes()`
 - `class TestRepositoryReachability` - *PRINCIPLE-014 R7 live invariant over the whole repository. Integration tier with the other*
   - Method `.test_this_repository_passes_the_shield()`
   - Method `.test_allowlist_entries_still_exist()`
@@ -1661,7 +1691,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `11970` lines (`666840` bytes)
+**Size**: `12237` lines (`680305` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1790,6 +1820,7 @@
   - Method `.test_dirty_content_changes_fingerprint_with_identical_status()`
   - Method `.test_rename_entry_hashes_the_new_path_and_consumes_the_old()`
   - Method `.test_fingerprint_reads_dirty_content_across_chunks()`
+  - Method `.test_transient_fixtures_are_invisible_to_blast_radius()`
 - `class TestAdrRegister` - *PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069).*
   - Method `.register(*numbers)`
   - Method `.test_consecutive_ids_pass()`
@@ -1970,6 +2001,7 @@
   - Method `.test_key_with_a_producer_is_not_flagged()`
   - Method `.test_a_key_produced_only_by_setdefault_is_not_flagged()`
   - Method `.test_a_producer_hidden_in_a_comprehension_is_flagged()`
+  - Method `.test_production_modules_skips_underscore_fixtures()`
 - `class TestContinuousVerificationGate` - *The CI workflow must enforce the same gates the principles declare, using the same*
   - Method `.setUpClass()`
   - Method `.test_workflow_exists()`
@@ -2196,6 +2228,8 @@
   - Method `.test_built_in_scans_are_always_present_and_last()`
   - Method `.test_project_json_adds_replaces_and_disables_gates()`
   - Method `.test_invalid_gate_config_is_refused()`
+  - Method `.test_compat_gate_appears_only_when_compat_record_exists()`
+  - Method `.test_mechanics_bench_becomes_a_gate_only_when_declared()`
   - Method `.test_every_gate_runs_after_a_failure()`
   - Method `.test_a_gate_that_rewrites_tracked_files_fails()`
   - Method `.test_a_gate_that_changes_nothing_passes_as_before()`
@@ -2565,6 +2599,20 @@
   - Method `.test_a_waiver_must_bind_to_a_generated_mutant()`
   - Method `.test_mutation_sources_cannot_escape_the_repository()`
   - Method `.test_mutation_copy_prunes_dependency_and_generated_trees()`
+  - Method `.test_mock_only_detector_flags_a_pure_mock_echo()`
+  - Method `.test_mock_only_detector_passes_mixed_and_observable_tests()`
+  - Method `.test_mock_only_detector_refuses_unparseable_source()`
+- `class TestProjectCompatHelpers` - *Track 2 now: scaffold and proof helpers are pure, deterministic, stdlib-only.*
+  - Method `.test_minimal_png_has_a_valid_signature()`
+  - Method `.test_inventory_lines_sort_and_dedupe()`
+  - Method `.test_scaffold_headless_writes_no_screenshots_but_hooks()`
+  - Method `.test_verify_fails_on_missing_deltas_with_an_injected_runner()`
+  - Method `.test_verify_passes_on_clean_with_an_injected_runner()`
+  - Method `.test_verify_ui_requires_screenshots_but_headless_does_not()`
+  - Method `.test_seeded_replay_fires_when_same_seed_diverges()`
+  - Method `.test_seeded_replay_passes_on_identical_deltas()`
+  - Method `.test_evidence_and_bench_files_are_structural_not_thresholds()`
+  - Method `.test_emit_evidence_appends_a_cause_gate_artifact_link()`
 - `class ReuseMetadataTest` - *A same-license refresh must not erase project-specific annotations.*
   - Method `.setUpClass()`
   - Method `.tearDownClass()`

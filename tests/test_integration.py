@@ -717,6 +717,7 @@ class TestProofGate(unittest.TestCase):
         self.assertEqual(payload["results"][0]["current"]["verdict"], "passed")
 
     def test_a_mutation_killed_by_the_declared_test_counts(self):
+        from scripts.proof_gate import prove
         (self.repo / "app.py").write_text(
             "def add(a, b):\n    return a - b\n", encoding="utf-8"
         )
@@ -733,15 +734,14 @@ class TestProofGate(unittest.TestCase):
         (self.repo / "app.py").write_text(
             "def add(a, b):\n    return a + b\n", encoding="utf-8"
         )
-        result = subprocess.run(
-            [sys.executable, str(ROOT_DIR / "scripts" / "proof_gate.py"),
-             "--repo", str(self.repo), "--base", "HEAD",
-             "--tests", "tests/test_app.py", "--sources", "app.py",
-             "--mutants", "1", "--min-killed", "1", "--require-mutation", "--json"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+        # In-process wiring proof kept once in test_a_test_that_fails...;
+        # here call prove() directly to save one interpreter startup
+        # (same payload asserts, no CLI JSON round-trip).
+        payload = prove(
+            self.repo, base="HEAD",
+            tests=[Path("tests/test_app.py")], sources=[Path("app.py")],
+            mutants=1, min_killed=1, require_mutation=True, timeout=60,
         )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        payload = json.loads(result.stdout)
         self.assertTrue(payload["proof"])
         self.assertEqual(payload["mutation"]["generated"], 1)
         self.assertEqual(payload["mutation"]["killed"], 1)
@@ -790,6 +790,51 @@ class TestSuiteHygiene(unittest.TestCase):
                          else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])
                 found += [f"{name}: {n}" for n in names if n.split(".")[0] in self.NETWORK_MODULES]
         self.assertEqual(found, [], "tests make no network call (PRINCIPLE-014 R3)")
+
+    def test_no_test_is_a_mock_only_echo(self):
+        # PRINCIPLE-014 R5: a test whose every assertion is a mock-call assert proves
+        # nothing about behaviour. The detector lives in proof_gate; this gate enforces it.
+        from scripts import proof_gate
+
+        found = []
+        for name in self.MODULES:
+            text = (ROOT_DIR / "tests" / name).read_text(encoding="utf-8")
+            found += [f"{name}:{entry}" for entry in proof_gate.mock_only_test_methods(text, name)]
+        self.assertEqual(found, [], "mock-only test proves no behaviour (PRINCIPLE-014 R5)")
+
+
+class TestProjectCompatProof(unittest.TestCase):
+    """Track 2 now: scaffolded projects drive and verify with zero project tooling."""
+
+    def test_headless_scaffold_verifies_with_real_subprocesses(self):
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_int_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        self.assertEqual(project_compat.verify_compat(root), [])
+
+    def test_ui_scaffold_verifies_screenshots_and_hooks(self):
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_int_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "ui")
+        self.assertEqual(project_compat.verify_compat(root), [])
+
+    def test_seeded_scripted_failure_is_a_finding_then_clean_passes(self):
+        from scripts import project_compat
+
+        root = Path(tempfile.mkdtemp(prefix="compat_int_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        project_compat.scaffold_compat(root, "headless")
+        demo = root / project_compat.DEMO_NAME
+        demo.write_text(demo.read_text(encoding="utf-8").replace("WORLD-DELTA", "NO-DELTA"),
+                        encoding="utf-8")
+        findings = project_compat.verify_compat(root)
+        self.assertTrue(any("WORLD-DELTA" in line for line in findings))
+        project_compat.scaffold_compat(root, "headless")
+        self.assertEqual(project_compat.verify_compat(root), [])
 
 
 class TestRepositoryReachability(unittest.TestCase):
@@ -1977,7 +2022,8 @@ class TestFstringsParseOnPython310(unittest.TestCase):
         self.assertEqual(self.rejected_on_310(good), [])
 
     def test_no_fstring_in_aikit_needs_python_312(self):
-        files = sorted((ROOT_DIR / "scripts").glob("*.py")) + sorted((ROOT_DIR / "tests").glob("*.py"))
+        files = [p for p in sorted((ROOT_DIR / "scripts").glob("*.py"))
+                 if not p.name.startswith("_")] + sorted((ROOT_DIR / "tests").glob("*.py"))
         found = [f"{path.name}:{hit}" for path in files + [ROOT_DIR / "aikit.py"]
                  for hit in self.rejected_on_310(path.read_text(encoding="utf-8"))]
         self.assertEqual(found, [], "these f-strings are SyntaxErrors on Python 3.10 and 3.11")

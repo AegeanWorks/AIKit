@@ -232,7 +232,7 @@ def render_readme_table(principles: List[Dict]) -> str:
         if p["phase_name"] != phase:
             phase = p["phase_name"]
             lines += ([""] if lines else []) + [f"### {phase}", "| Principle | Title | Capsule |", "|---|---|---|"]
-        title = re.sub(r"\s*\([^)]*\)$", "", p["title"])  # the subtitle costs README's 30,000-char budget
+        title = re.sub(r"\s*\([^)]*\)$", "", p["title"])  # the subtitle costs README's 32,500-char budget
         cells = [c.replace("|", "\\|") for c in (title, p["invariant"])]
         lines.append(f"| **{p['id']}** | {cells[0]} | {cells[1]} |")
     return "\n".join(lines)

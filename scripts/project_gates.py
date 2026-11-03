@@ -34,6 +34,8 @@ HYGIENE_CLI = ROOT_DIR / "scripts" / "check_project_hygiene.py"
 HYGIENE_GATE = "hygiene"
 UPDATE_KB_CLI = ROOT_DIR / "scripts" / "update_knowledge_base.py"
 GUIDELINES_GATE = "guidelines"
+COMPAT_CLI = ROOT_DIR / "scripts" / "project_compat.py"
+COMPAT_GATE = "compat"
 # One gate may build and test a whole project; past this it is treated as hung.
 GATE_TIMEOUT_SECONDS = 1800
 # Lines of a failing gate's output shown (PRINCIPLE-012 R7: terse, the end holds the error).
@@ -171,10 +173,17 @@ def secrets_gate(project_root: Path) -> Gate:
     return Gate(SECRETS_GATE, command, "built-in")
 
 
+def compat_gate(project_root: Path) -> Gate:
+    """The built-in AI-compat proof for generated projects (ADR-315)."""
+    argv = [sys.executable, str(COMPAT_CLI), "--verify", "--root", str(project_root)]
+    command = subprocess.list2cmdline(argv) if sys.platform == "win32" else shlex.join(argv)
+    return Gate(COMPAT_GATE, command, "built-in")
+
+
 def resolve_gates(project: Project) -> List[Gate]:
     """
-    The project's gates in run order: test, detected extras, `gates` overrides, hygiene,
-    guidelines, secret scan.
+    The project's gates in run order: test, detected extras, mechanics test/bench,
+    `gates` overrides, hygiene, guidelines, secret scan, compat.
     Two stacks detecting the same gate name keep the first; an override names the gate it means.
     """
     gates: Dict[str, Gate] = {}
@@ -190,6 +199,9 @@ def resolve_gates(project: Project) -> List[Gate]:
         command = mechanics.get("test")
         if isinstance(command, str) and command.strip():
             gates.setdefault("mechanics", Gate("mechanics", command.strip(), "project.json"))
+        bench = mechanics.get("bench")
+        if isinstance(bench, str) and bench.strip():
+            gates.setdefault("bench", Gate("bench", bench.strip(), "project.json"))
     if not isinstance(overrides, dict):
         raise ProjectError(
             f"{project.path / '.aikit' / 'project.json'}: 'gates' is not a mapping.",
@@ -197,7 +209,7 @@ def resolve_gates(project: Project) -> List[Gate]:
             'write it as e.g. "gates": {"lint": "npm run lint", "build": null}.',
         )
     for name, command in overrides.items():
-        if name in (SECRETS_GATE, GUIDELINES_GATE, HYGIENE_GATE):
+        if name in (SECRETS_GATE, GUIDELINES_GATE, HYGIENE_GATE, COMPAT_GATE):
             raise ProjectError(
                 f"project.json may not override the '{name}' gate.",
                 f"the {name} gate guards every commit and cannot be replaced.",
@@ -213,8 +225,11 @@ def resolve_gates(project: Project) -> List[Gate]:
                 "each gate is one shell command run in the project folder.",
                 f'set "{name}" to a command string, or to null to disable it.',
             )
-    return [*gates.values(), hygiene_gate(project.path), guidelines_gate(project.path),
-            secrets_gate(project.path)]
+    built = [hygiene_gate(project.path), guidelines_gate(project.path),
+             secrets_gate(project.path)]
+    if (project.path / ".aikit" / "compat.json").is_file():
+        built.append(compat_gate(project.path))
+    return [*gates.values(), *built]
 
 
 def run_shell(command: str, cwd: Path, timeout: float) -> Tuple[int, str]:

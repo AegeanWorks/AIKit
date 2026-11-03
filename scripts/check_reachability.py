@@ -81,6 +81,10 @@ PUBLIC_API_ALLOWLIST: Set[str] = {
     "repo_fingerprint",
     "validate_argv",
     "print_help",
+    # Compat evidence helpers agents and scaffolded projects drive directly (ADR-318):
+    # evidence bundles (cause -> gate -> artifact) and compass reporting (scores as info).
+    "emit_evidence",
+    "compass_report",
 }
 
 # Keys of third-party formats AIKit reads and never writes, so no AIKit writer can exist: the
@@ -141,9 +145,17 @@ def module_nodes(path: Path) -> List[ast.AST]:
     return _NODES_CACHE[id(tree)]
 
 
-def production_modules() -> List[Path]:
+def production_modules(root: Path | None = None) -> List[Path]:
     """Production source files whose reachability is audited (excludes this checker itself)."""
-    modules = [p for p in PROD_DIR.glob("*.py") if p.name != Path(__file__).name]
+    # Underscore-prefixed files are transient test fixtures, not shipped modules: the
+    # integration tier's AST-gate probe is deliberately broken syntax that exists only
+    # while its test runs, and parallel tiers share the tree, so auditing it here would
+    # race a fixture the AST gate itself refuses (same convention as test_kit skips).
+    # `root` exists so the pin test can prove the filter without touching the real tree.
+    prod_dir = Path(root) if root is not None else PROD_DIR
+    modules = [p for p in prod_dir.glob("*.py")
+               if p.name != Path(__file__).name and not p.name.startswith("_")
+               and not p.name.startswith(".tmp_")]
     modules += [ROOT_DIR / name for name in ROOT_ENTRYPOINTS if (ROOT_DIR / name).is_file()]
     return sorted(modules)
 

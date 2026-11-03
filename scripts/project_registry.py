@@ -269,7 +269,8 @@ def render_project_readme(name: str, test_command: Optional[str] = None,
                           integrated: bool = False,
                           license_kind: str = DEFAULT_LICENSE_KIND,
                           license_version: Optional[str] = None,
-                          assets_manifest: bool = False, reuse: bool = False) -> str:
+                          assets_manifest: bool = False, reuse: bool = False,
+                          compat: bool = False) -> str:
     """
     A README whose structure passes PRINCIPLE-005's audit, with a `<FILL:` prerequisite marker: the
     gate stays red until the agent states the project's own runtime facts (ADR-138). The tree lists
@@ -278,7 +279,8 @@ def render_project_readme(name: str, test_command: Optional[str] = None,
     is the description `publish` uploads; `licensed` lists the LICENSE and COMMERCIAL.md `new`
     copies (ADR-199, ADR-214), the heading is title-cased, and `license_kind` selects the personal
     license (ADR-218); `integrated` marks a project AIKit was attached to rather than one it built
-    (ADR-202).
+    (ADR-202). `compat` lists the AI-compat scaffold (`inventory.py`, `demo.py`) that `new`
+    commits (ADR-315); attached projects without the scaffold leave it False.
     """
     choice = license_choice(license_kind)
     version = license_version or choice["version"]
@@ -293,6 +295,9 @@ def render_project_readme(name: str, test_command: Optional[str] = None,
                   "├── REUSE.toml                <- Machine-readable SPDX metadata\n"
                   if licensed and reuse else "")
     license_section = f"\n{versioned(choice['section'])}" if licensed else ""
+    compat_lines = ("├── inventory.py              <- AI-compat inventory: kind|name|locator lines (ADR-315)\n"
+                    "├── demo.py                   <- AI-compat scripted drive: WORLD-DELTA lines (ADR-315)\n"
+                    if compat else "")
     return (
         f"# {title_case(name)}\n\n"
         f"{AIKIT_INTEGRATED_BADGE if integrated else AIKIT_BADGE}\n\n"
@@ -318,6 +323,7 @@ def render_project_readme(name: str, test_command: Optional[str] = None,
         f"{assets_line}"
         f"{reuse_line}"
         "├── README.md\n"
+        f"{compat_lines}"
         "└── .aikit/                   <- this project's memory: record, ledger, decisions\n"
         "```\n"
         f"{license_section}"
@@ -338,13 +344,14 @@ def license_header_match(first_line: str) -> Optional[Tuple[str, str]]:
 
 def seed_readme(project_root: Path, name: str, test_command: Optional[str] = None,
                 description: Optional[str] = None, licensed: bool = False,
-                integrated: bool = False, license_kind: Optional[str] = None) -> bool:
+                integrated: bool = False, license_kind: Optional[str] = None,
+                compat: bool = False) -> bool:
     """
     Write the template README when the project has none; returns whether it did. `new` and `fix`
     call it, `attach` never does: attaching leaves an existing folder's files alone. Only `new`
     passes `licensed`, since only it writes the LICENSE; `fix` passes `integrated` for an attached
-    one. Without an explicit `license_kind`, the project's LICENSE header decides, else the
-    markers do (ADR-218).
+    one. `new` passes `compat` because it scaffolds `inventory.py`/`demo.py` (ADR-315). Without an
+    explicit `license_kind`, the project's LICENSE header decides, else the markers do (ADR-218).
     """
     readme = project_root / "README.md"
     if readme.exists():
@@ -363,7 +370,7 @@ def seed_readme(project_root: Path, name: str, test_command: Optional[str] = Non
     write_generated_file(readme, render_project_readme(
         name, test_command, description, licensed, integrated, license_kind, license_version,
         assets_manifest=(project_root / ASSETS_MANIFEST_NAME).exists(),
-        reuse=(project_root / REUSE_FILE).exists()))
+        reuse=(project_root / REUSE_FILE).exists(), compat=compat))
     return True
 
 
@@ -699,11 +706,14 @@ WINDOWS_DEVICE_NAMES = frozenset({"con", "prn", "aux", "nul",
 GIT_TIMEOUT_SECONDS = 30
 
 # Transient files AIKit's atomic writes and locks leave next to project state (PRINCIPLE-013).
+# `.aikit/*.log` covers the compat clickmap hook: generated drive evidence, ignored so a new
+# project starts clean and the hygiene scan never sees it (ADR-315).
 PROJECT_GITIGNORE_LINES = (
     ".aikit/*.lock",
     ".aikit/*.bak",
     ".aikit/*.tmp_*",
     ".aikit/*.corrupt_*",
+    ".aikit/*.log",
     "__pycache__/",
     "*.py[cod]",
     "node_modules/",
@@ -900,6 +910,9 @@ def mechanics_errors(project_root: Path, config: Dict[str, object]) -> List[str]
     test = mechanics.get("test")
     if not isinstance(test, str) or not test.strip():
         errors.append("the mechanics contract has no test command")
+    bench = mechanics.get("bench")
+    if bench is not None and (not isinstance(bench, str) or not bench.strip()):
+        errors.append("the mechanics bench command must be a non-empty string")
     return errors
 
 
@@ -1023,8 +1036,12 @@ def _git_start(project_root: Path) -> None:
             "fix the git error above, then run the command again.",
         )
     # LICENSE only when present: `git add` of a missing path fails the whole call.
+    # `demo.py` and `inventory.py` are the compat scaffold's drive and inventory (ADR-315):
+    # names come from `project_compat` so the scaffold stays the single source.
+    from scripts.project_compat import DEMO_NAME, INVENTORY_NAME
     stage_items = [item for item in (".gitignore", "LICENSE", "COMMERCIAL.md", "ASSETS.md",
-                                     "REUSE.toml", "LICENSES", "README.md", PROJECT_MEMORY_DIRNAME)
+                                     "REUSE.toml", "LICENSES", "README.md", PROJECT_MEMORY_DIRNAME,
+                                     DEMO_NAME, INVENTORY_NAME)
                    if (project_root / item).exists()]
     _run_git(project_root, "add", "--", *stage_items)
     result = _run_git(project_root, "commit", "--quiet", "-m", "chore: start project with AIKit memory")
@@ -1083,7 +1100,9 @@ def create_project(name: str, test_command: Optional[str] = None, workspace: Pat
         seed_assets_manifest(project_root, license_kind)
         seed_commercial(project_root)
         seed_readme(project_root, name, test_command, description, licensed=True,
-                    license_kind=license_kind)
+                    license_kind=license_kind, compat=True)
+        from scripts.project_compat import scaffold_compat
+        scaffold_compat(project_root, "headless")
         git_start(project_root)
     except BaseException:
         # Only this call created the folder, so removing it leaves no half-made project behind.
