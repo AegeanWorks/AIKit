@@ -155,7 +155,6 @@ portable_agent_kit/
 │   ├── proof_envelope.py         <- Sealed HMAC commit-proof envelope (IDEA-1168)
 │   ├── evidence_policy.py        <- Named policy over step attestations (IDEA-1169)
 │   ├── proof_corpus.py           <- Witness-keyed proof corpus (IDEA-1156)
-│   ├── proof_corpus.py           <- Witness-keyed proof corpus (IDEA-1156)
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
 │   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree

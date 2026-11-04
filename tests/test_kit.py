@@ -8520,7 +8520,6 @@ class TestStagedTree(unittest.TestCase):
         self.assertIn("does not pass on its own: knowledge", text)
         self.assertIn("staged index", text)
 
-
 class TestPassToPass(unittest.TestCase):
     """S-F: optional pass-to-pass frame — neighbors must hold on base and current.
 
@@ -8615,7 +8614,6 @@ class TestDelegateSchema(unittest.TestCase):
         self.assertIn("Why:", output)
         self.assertIn("Fix:", output)
         self.assertEqual(calls, [], "a schema violation must never spawn")
-
 
 class TestProjectGuidelines(unittest.TestCase):
     """A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129)."""

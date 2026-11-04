@@ -10,7 +10,7 @@
 - **Total Classes**: `151`
 - **Total Top-Level Functions**: `940`
 - **Total Class Methods**: `1104`
-- **Total Source Lines**: `41976`
+- **Total Source Lines**: `41974`
 
 ---
 
@@ -1805,7 +1805,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13157` lines (`723344` bytes)
+**Size**: `13155` lines (`723342` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
