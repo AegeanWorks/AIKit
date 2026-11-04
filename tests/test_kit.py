@@ -8217,6 +8217,158 @@ class TestDelegateBudgets(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
 
 
+class TestEvidencePolicy(unittest.TestCase):
+    """IDEA-1169: a named policy decides step attestations; fail always wins."""
+
+    def test_closed_vocabulary_rejects_unknown_policy(self) -> None:
+        from scripts import evidence_policy
+
+        for bad in ("majority", "quorum:0", "quorum:x", "", "require-all-but-one"):
+            with self.assertRaises(evidence_policy.PolicyError):
+                evidence_policy.parse_policy(bad)
+        self.assertEqual(evidence_policy.parse_policy("require-all"), ("require-all", 0))
+        self.assertEqual(evidence_policy.parse_policy("quorum:2"), ("quorum", 2))
+
+    def test_require_all_needs_every_pass_and_refuses_empty(self) -> None:
+        from scripts import evidence_policy
+
+        good = [evidence_policy.attest("tiers", "pass"),
+                evidence_policy.attest("secrets", "pass")]
+        self.assertEqual(evidence_policy.evaluate("require-all", good)["outcome"], "pass")
+        mixed = good + [evidence_policy.attest("dogfood", "fail")]
+        failed = evidence_policy.evaluate("require-all", mixed)
+        self.assertEqual(failed["outcome"], "fail")
+        self.assertEqual(failed["failed"], ["dogfood"])
+        self.assertEqual(evidence_policy.evaluate("require-all", [])["outcome"],
+                         "inconclusive")
+
+    def test_quorum_counts_passes_but_never_outvotes_a_fail(self) -> None:
+        from scripts import evidence_policy
+
+        three = [evidence_policy.attest("a", "pass"), evidence_policy.attest("b", "pass"),
+                 evidence_policy.attest("c", "inconclusive")]
+        self.assertEqual(evidence_policy.evaluate("quorum:2", three)["outcome"], "pass")
+        self.assertEqual(evidence_policy.evaluate("quorum:3", three)["outcome"],
+                         "inconclusive")
+        vetoed = three + [evidence_policy.attest("d", "fail")]
+        refused = evidence_policy.evaluate("quorum:2", vetoed)
+        self.assertEqual(refused["outcome"], "fail")
+        self.assertEqual(refused["failed"], ["d"])
+
+    def test_sealed_attestation_is_decided_by_envelope_verification(self) -> None:
+        from scripts import evidence_policy, proof_envelope
+
+        payload = {"proof": True, "base": "abc"}
+        envelope = proof_envelope.seal(payload, key="k" * 32, now=1000)
+        sealed = evidence_policy.attest("proof", "pass", envelope=envelope)
+        at_1001 = lambda env, keys: proof_envelope.verify(env, keys=keys, now=1001)
+        verdict = evidence_policy.evaluate(
+            "require-all", [sealed], envelope_keys={"local": "k" * 32},
+            verify_sealed=at_1001)
+        self.assertEqual(verdict["outcome"], "pass")
+        tampered = dict(envelope)
+        tampered["payload"] = {"proof": False, "base": "abc"}
+        bad = evidence_policy.attest("proof", "pass", envelope=tampered)
+        refused = evidence_policy.evaluate(
+            "require-all", [bad], envelope_keys={"local": "k" * 32},
+            verify_sealed=at_1001)
+        self.assertEqual(refused["outcome"], "fail")
+
+    def test_verify_commit_accepts_a_policy_and_keeps_default_verdicts(self) -> None:
+        from scripts.verify_commit import verify_commit as verify_commit_fn
+
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "rev-parse --short" in joined:
+                return 0, "abc1234"
+            if "rev-parse" in joined:
+                return 0, "9999head"
+            return 0, "ok"
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
+                                        policy="quorum:6")
+        self.assertEqual(code, 0, report)
+        self.assertIn("[OK] Commit abc1234 passes every gate on its own.", report)
+
+        def failing(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "update_knowledge_base" in joined:
+                return 1, "[FAIL] codebase_map.md is stale"
+            return run(argv, cwd)
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=failing,
+                                        policy="quorum:2")
+        self.assertEqual(code, 1)
+        self.assertIn("does not pass on its own: knowledge", "\n".join(report))
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
+                                        policy="majority")
+        self.assertEqual(code, 2)
+        self.assertIn("unknown policy", "\n".join(report))
+
+
+class TestProofCorpus(unittest.TestCase):
+    """IDEA-1156: receipts file under content witness keys; replay compares verdicts."""
+
+    def _receipt(self, **overrides):
+        base = {"base": "abc", "tests": ["a.py"], "proof": True, "reason": "ok",
+                "tree_manifest": [{"path": "a.py", "sha256": "0" * 64}],
+                "gate_digest": {"proof_gate.py": "1" * 64}}
+        base.update(overrides)
+        return base
+
+    def test_witness_key_is_stable_and_content_bound(self) -> None:
+        from scripts import proof_corpus
+
+        first = proof_corpus.witness_key(self._receipt())
+        reordered = self._receipt(tests=["a.py"])
+        self.assertEqual(first, proof_corpus.witness_key(reordered))
+        changed = self._receipt(base="def")
+        self.assertNotEqual(first, proof_corpus.witness_key(changed))
+        self.assertNotIn("..", proof_corpus.entry_path(Path("/tmp"), first).name)
+        with self.assertRaises(ValueError):
+            proof_corpus.entry_path(Path("/tmp"), "")
+
+    def test_store_lists_and_prunes_oldest_first(self) -> None:
+        from scripts import proof_corpus
+
+        root = Path(tempfile.mkdtemp(prefix="corpus_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        corpus = root / "corpus"
+        keys = []
+        for idx in range(3):
+            key, dest = proof_corpus.store(self._receipt(base=f"base{idx}"), corpus,
+                                           now=1000 + idx)
+            keys.append(key)
+            self.assertTrue(dest.is_file())
+        self.assertEqual([row["key"] for row in proof_corpus.list_entries(corpus)], keys)
+        loaded = proof_corpus.load(corpus, keys[1])
+        self.assertEqual(loaded["receipt"]["base"], "base1")
+        self.assertIsNone(proof_corpus.load(corpus, "0" * 64))
+        deleted = proof_corpus.prune(corpus, keep=2)
+        self.assertEqual(deleted, keys[:1])
+        self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
+        with self.assertRaises(ValueError):
+            proof_corpus.prune(corpus, keep=-1)
+
+    def test_replay_matches_verdicts_and_refuses_without_evidence(self) -> None:
+        from scripts import proof_corpus
+
+        entry = {"receipt": self._receipt(proof=True)}
+        match = proof_corpus.replay(entry, prove_fn=lambda **kwargs: {"proof": True})
+        self.assertEqual(match["outcome"], "pass")
+        drift = proof_corpus.replay(entry, prove_fn=lambda **kwargs: {"proof": False})
+        self.assertEqual(drift["outcome"], "fail")
+        missing = proof_corpus.replay({}, prove_fn=lambda **kwargs: {"proof": True})
+        self.assertEqual(missing["outcome"], "inconclusive")
+
+        def broken(**kwargs):
+            raise RuntimeError("boom")
+
+        self.assertEqual(proof_corpus.replay(entry, prove_fn=broken)["outcome"],
+                         "inconclusive")
+
+
 class TestPassToPass(unittest.TestCase):
     """S-F: optional pass-to-pass frame — neighbors must hold on base and current.
 
@@ -8286,6 +8438,31 @@ class TestPassToPass(unittest.TestCase):
         self.assertTrue(result["proof"], result["reason"])
         self.assertEqual(result["pass_to_pass"], [])
         self.assertTrue(result["pass_to_pass_ok"])
+
+
+class TestDelegateSchema(unittest.TestCase):
+    """S-B: pre-execution schema validation — unknown enums never spawn (ValidationNode pattern)."""
+
+    def test_unknown_output_format_is_refused_before_running(self):
+        calls = []
+
+        def run(cmd, cwd, timeout):
+            calls.append((cmd, cwd, timeout))
+            return subprocess.CompletedProcess(cmd, 0, "ok", "")
+
+        root = Path(tempfile.mkdtemp(prefix="test_schema_kit_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        (root / ".agents").mkdir(parents=True)
+        (root / ".agents" / "task_ledger.json").write_text(
+            json.dumps({"version": 1, "active_task": None, "checkpoints": []}),
+            encoding="utf-8")
+        code, output = delegate_subagent(
+            "worker", "summarize docs", workspace=root,
+            output_format="yaml", runner=run)
+        self.assertEqual(code, 2)
+        self.assertIn("Why:", output)
+        self.assertIn("Fix:", output)
+        self.assertEqual(calls, [], "a schema violation must never spawn")
 
 
 class TestProjectGuidelines(unittest.TestCase):
@@ -12823,95 +13000,6 @@ class TestProofEnvelope(unittest.TestCase):
 
         with self.assertRaises(proof_envelope.EnvelopeError):
             proof_envelope.seal({"proof": True}, key="")
-
-class TestEvidencePolicy(unittest.TestCase):
-    """IDEA-1169: a named policy decides step attestations; fail always wins."""
-
-    def test_closed_vocabulary_rejects_unknown_policy(self) -> None:
-        from scripts import evidence_policy
-
-        for bad in ("majority", "quorum:0", "quorum:x", "", "require-all-but-one"):
-            with self.assertRaises(evidence_policy.PolicyError):
-                evidence_policy.parse_policy(bad)
-        self.assertEqual(evidence_policy.parse_policy("require-all"), ("require-all", 0))
-        self.assertEqual(evidence_policy.parse_policy("quorum:2"), ("quorum", 2))
-
-    def test_require_all_needs_every_pass_and_refuses_empty(self) -> None:
-        from scripts import evidence_policy
-
-        good = [evidence_policy.attest("tiers", "pass"),
-                evidence_policy.attest("secrets", "pass")]
-        self.assertEqual(evidence_policy.evaluate("require-all", good)["outcome"], "pass")
-        mixed = good + [evidence_policy.attest("dogfood", "fail")]
-        failed = evidence_policy.evaluate("require-all", mixed)
-        self.assertEqual(failed["outcome"], "fail")
-        self.assertEqual(failed["failed"], ["dogfood"])
-        self.assertEqual(evidence_policy.evaluate("require-all", [])["outcome"],
-                         "inconclusive")
-
-    def test_quorum_counts_passes_but_never_outvotes_a_fail(self) -> None:
-        from scripts import evidence_policy
-
-        three = [evidence_policy.attest("a", "pass"), evidence_policy.attest("b", "pass"),
-                 evidence_policy.attest("c", "inconclusive")]
-        self.assertEqual(evidence_policy.evaluate("quorum:2", three)["outcome"], "pass")
-        self.assertEqual(evidence_policy.evaluate("quorum:3", three)["outcome"],
-                         "inconclusive")
-        vetoed = three + [evidence_policy.attest("d", "fail")]
-        refused = evidence_policy.evaluate("quorum:2", vetoed)
-        self.assertEqual(refused["outcome"], "fail")
-        self.assertEqual(refused["failed"], ["d"])
-
-    def test_sealed_attestation_is_decided_by_envelope_verification(self) -> None:
-        from scripts import evidence_policy, proof_envelope
-
-        payload = {"proof": True, "base": "abc"}
-        envelope = proof_envelope.seal(payload, key="k" * 32, now=1000)
-        sealed = evidence_policy.attest("proof", "pass", envelope=envelope)
-        at_1001 = lambda env, keys: proof_envelope.verify(env, keys=keys, now=1001)
-        verdict = evidence_policy.evaluate(
-            "require-all", [sealed], envelope_keys={"local": "k" * 32},
-            verify_sealed=at_1001)
-        self.assertEqual(verdict["outcome"], "pass")
-        tampered = dict(envelope)
-        tampered["payload"] = {"proof": False, "base": "abc"}
-        bad = evidence_policy.attest("proof", "pass", envelope=tampered)
-        refused = evidence_policy.evaluate(
-            "require-all", [bad], envelope_keys={"local": "k" * 32},
-            verify_sealed=at_1001)
-        self.assertEqual(refused["outcome"], "fail")
-
-    def test_verify_commit_accepts_a_policy_and_keeps_default_verdicts(self) -> None:
-        from scripts.verify_commit import verify_commit as verify_commit_fn
-
-        def run(argv, cwd):
-            joined = " ".join(str(a) for a in argv)
-            if "rev-parse --short" in joined:
-                return 0, "abc1234"
-            if "rev-parse" in joined:
-                return 0, "9999head"
-            return 0, "ok"
-
-        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
-                                        policy="quorum:6")
-        self.assertEqual(code, 0, report)
-        self.assertIn("[OK] Commit abc1234 passes every gate on its own.", report)
-
-        def failing(argv, cwd):
-            joined = " ".join(str(a) for a in argv)
-            if "update_knowledge_base" in joined:
-                return 1, "[FAIL] codebase_map.md is stale"
-            return run(argv, cwd)
-
-        code, report = verify_commit_fn(repo=Path("/repo"), runner=failing,
-                                        policy="quorum:2")
-        self.assertEqual(code, 1)
-        self.assertIn("does not pass on its own: knowledge", "\n".join(report))
-
-        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
-                                        policy="majority")
-        self.assertEqual(code, 2)
-        self.assertIn("unknown policy", "\n".join(report))
 
 if __name__ == "__main__":
     unittest.main()

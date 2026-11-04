@@ -162,6 +162,10 @@ def delegate_subagent(
         return 2, _triad(f"prompt is {len(prompt)} characters; the limit is {DELEGATE_MAX_PROMPT_CHARS}.",
                          "an unbounded brief burns the lead agent's context (PRINCIPLE-012 R1).",
                          "narrow the brief (PRINCIPLE-008 R1) or split it across delegates.")
+    if output_format not in ("text", "json"):
+        return 2, _triad(f"unknown output_format {output_format!r}; want 'text' or 'json'.",
+                         "an unchecked enum silently degrades to text (S-B ValidationNode).",
+                         "pass output_format 'text' (report) or 'json' (machine record).")
     target = workspace
     if project_name:
         try:
