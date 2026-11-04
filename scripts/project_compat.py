@@ -55,9 +55,9 @@ def _error(message: str, why: str, fix: str) -> ValueError:
     return ValueError(f"{message}\nWhy: {why}\nFix: {fix}")
 
 
-def minimal_png() -> bytes:
+def minimal_png(variant: int = 0) -> bytes:
     """A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders."""
-    raw = b"\x00\x00\x00\x00"
+    raw = bytes((0, variant & 0xFF, 0, 0))
     compressed = zlib.compress(raw)
     def chunk(tag: bytes, data: bytes) -> bytes:
         out = struct.pack(">I", len(data)) + tag + data
@@ -176,8 +176,8 @@ def scaffold_compat(root: Path, kind: str) -> Dict[str, object]:
     (root / CLICKMAP_REL).write_text(
         "click save-btn -> on-save\n" if has_ui else "", encoding="utf-8")
     if has_ui:
-        (root / SCREENSHOT_DIR / BEFORE_NAME).write_bytes(minimal_png())
-        (root / SCREENSHOT_DIR / AFTER_NAME).write_bytes(minimal_png())
+        (root / SCREENSHOT_DIR / BEFORE_NAME).write_bytes(minimal_png(0))
+        (root / SCREENSHOT_DIR / AFTER_NAME).write_bytes(minimal_png(1))
     return compat
 
 
@@ -330,6 +330,7 @@ def verify_compat(root: Path, runner=None) -> List[str]:
     has_ui = bool(compat.get("has_ui"))
     if has_ui:
         shots = compat.get("screenshots") if isinstance(compat.get("screenshots"), dict) else {}
+        shot_bytes: Dict[str, bytes] = {}
         for key in ("before", "after"):
             rel = shots.get(key) if isinstance(shots, dict) else ""
             if not isinstance(rel, str) or not rel:
@@ -340,12 +341,38 @@ def verify_compat(root: Path, runner=None) -> List[str]:
                 findings.append(f"screenshot missing: {rel}")
                 continue
             try:
-                head = path.read_bytes()[:8]
+                data = path.read_bytes()
             except OSError as exc:
                 findings.append(f"cannot read screenshot {rel}: {exc}")
                 continue
-            if head != PNG_SIGNATURE:
+            if data[:8] != PNG_SIGNATURE:
                 findings.append(f"screenshot is not a PNG: {rel}")
+                continue
+            shot_bytes[key] = data
+        if "before" in shot_bytes and "after" in shot_bytes:
+            if shot_bytes["before"] == shot_bytes["after"]:
+                findings.append(
+                    "screenshots are byte-identical: before/after show no state change"
+                )
+        hooks = compat.get("hooks") if isinstance(compat.get("hooks"), dict) else {}
+        layout_rel = hooks.get("layout_map") if isinstance(hooks, dict) else ""
+        if not isinstance(layout_rel, str) or not layout_rel:
+            layout_rel = LAYOUT_REL.as_posix()
+        try:
+            layout_raw = json.loads((root / layout_rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            layout_raw = {}
+        controls = layout_raw.get("controls") if isinstance(layout_raw, dict) else []
+        if isinstance(controls, list) and controls:
+            names = [c.get("name") for c in controls if isinstance(c, dict)]
+            names = [n for n in names if isinstance(n, str) and n.strip()]
+            tokens = {part.strip() for e in entries for part in e.split("|") if part.strip()}
+            lowered = {t.lower() for t in tokens}
+            missing = [n for n in names if n not in tokens and n.lower() not in lowered]
+            if missing:
+                findings.append(
+                    f"layout controls missing from inventory: {', '.join(sorted(missing))}"
+                )
         for rel_key in ("layout_map", "clickmap"):
             hooks = compat.get("hooks") if isinstance(compat.get("hooks"), dict) else {}
             rel = hooks.get(rel_key) if isinstance(hooks, dict) else ""

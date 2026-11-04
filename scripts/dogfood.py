@@ -410,10 +410,12 @@ def track_chaos_perturbation(jail: Path, log: List[str]) -> Tuple[bool, str]:
     return True, "bad flag, missing value, corrupt + 0-byte ledger all handled cleanly"
 
 
-def track_readonly_gates(jail: Path, log: List[str]) -> Tuple[bool, str]:
+def track_readonly_gates(jail: Path, log: List[str], runner=None) -> Tuple[bool, str]:
     """
     Track 3: the two freshness gates the delivery triad depends on must run read-only from an
     unrelated working directory and still report truthfully (PRINCIPLE-017 R3, PRINCIPLE-016 R4).
+
+    Timeouts (rc=124) are retried once; real failures never are.
     """
     failures = []
     # check_reachability.py has no write mode at all, so it takes no --check flag; passing one
@@ -427,12 +429,18 @@ def track_readonly_gates(jail: Path, log: List[str]) -> Tuple[bool, str]:
     )
     # The gates are independent read-only processes, so they run concurrently: run one after
     # another they took ~1s and pushed the integration tier past its 5s budget (ADR-080).
+    run = runner or run_cli
     from concurrent.futures import ThreadPoolExecutor  # lazy: --help stays fast (PRINCIPLE-010)
     with ThreadPoolExecutor(max_workers=min(len(gates), os.cpu_count() or 1)) as pool:  # PRINCIPLE-010 R3
-        results = list(pool.map(lambda gate: run_cli(gate[1], gate[2], jail), gates))
-    for (name, script, args), (code, out, err) in zip(gates, results):
+        results = list(pool.map(lambda gate: run(gate[1], gate[2], jail), gates))
+    for index, ((name, script, args), (code, out, err)) in enumerate(zip(gates, results)):
         label = f"{name} {' '.join(args)}".strip()
         log.append(f"[gate:{name}] rc={code} out={out.strip()[-160:]}")
+        if code == 124:
+            log.append(f"[gate:{name}] retry after rc=124")
+            code, out, err = run(script, args, jail)
+            results[index] = (code, out, err)
+            log.append(f"[gate:{name}] retry rc={code} out={out.strip()[-160:]}")
         if code != 0:
             failures.append(f"{label} failed (rc={code})")
         if "Traceback" in err:

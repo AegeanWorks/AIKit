@@ -211,8 +211,9 @@ These close the structural gaps without pretending to be operative before counse
 
 ## Archived drafts
 
-`AL-PU-1.0-DRAFT.md`, `AECL-1.0.md` and `COMMERCIAL-LICENSE-TEMPLATE-DRAFT.md` are superseded
-drafts kept for history. They are not operative and must never be copied into a project. The
+`COMMERCIAL-LICENSE-TEMPLATE-DRAFT.md` is a superseded draft kept for history. It is not
+operative and must never be copied into a project as a license. (`AL-PU-1.0-DRAFT.md` and
+`AECL-1.0.md` are prior superseded names not shipped in this checkout.) The
 operative texts are AL-1.1, AGL-1.1, ASL-1.1, ACL-1.0 and the restricted notice.
 
 ## Legal review

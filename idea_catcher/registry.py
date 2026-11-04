@@ -1315,8 +1315,6 @@ def review_idea(
     """
     if verdict not in REVIEW_VERDICTS:
         raise RegistryError(f"unknown review verdict {verdict!r}")
-    if verdict not in REVIEW_VERDICTS:
-        raise RegistryError(f"unknown review verdict {verdict!r}")
     if len(evidence.strip()) < MIN_REASON_CHARS:
         raise RegistryError(
             f"a review needs evidence of at least {MIN_REASON_CHARS} characters"

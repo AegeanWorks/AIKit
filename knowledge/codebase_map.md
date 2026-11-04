@@ -9,8 +9,8 @@
 - **Total Python Modules**: `63`
 - **Total Classes**: `137`
 - **Total Top-Level Functions**: `886`
-- **Total Class Methods**: `1044`
-- **Total Source Lines**: `39349`
+- **Total Class Methods**: `1054`
+- **Total Source Lines**: `39536`
 
 ---
 
@@ -98,7 +98,7 @@
 ### [`idea_catcher/registry.py`](idea_catcher/registry.py)
 > *Generate and validate the Idea Catcher register.*
 
-**Size**: `2548` lines (`110705` bytes)
+**Size**: `2563` lines (`111408` bytes)
 
 **Classes:**
 - `class StatusSpec` - *One decision state: how it renders and what a recorded decision must carry.*
@@ -904,7 +904,7 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `629` lines (`28432` bytes)
+**Size**: `637` lines (`28820` bytes)
 
 **Functions:**
 - `def terminate_process_tree(proc)` - *Kill a process and all of its children (PRINCIPLE-015 Rule 2).*
@@ -920,7 +920,7 @@
 - `def blast_verdict(before_hash, after_hash, before_snap, after_snap)` - *Blast-radius verdict with evidence: (clean, detail, differing paths).*
 - `def track_golden_lifecycle(jail, log)` - *Track 1 (PRINCIPLE-015 Rule 5): a complete create -> modify -> retrieve lifecycle driven*
 - `def track_chaos_perturbation(jail, log)` - *Track 2 (PRINCIPLE-015 Rule 5): hostile perturbations. Each must fail cleanly with no*
-- `def track_readonly_gates(jail, log)` - *Track 3: the two freshness gates the delivery triad depends on must run read-only from an*
+- `def track_readonly_gates(jail, log, runner)` - *Track 3: the two freshness gates the delivery triad depends on must run read-only from an*
 - `def track_help_startup_budget(jail, log)` - *Track 4: every entrypoint must answer --help safely and inside the PRINCIPLE-010 R5*
 - `def _run_track(name, fn, jail)` - *Run one track with its own log; a crashing track is a failing track, never a crashing run.*
 - `def run_dogfood(verbose, keep_sandbox)` - *Execute every dogfood track and emit a terse dashboard (PRINCIPLE-015 Rule 7).*
@@ -1033,11 +1033,11 @@
 ### [`scripts/project_compat.py`](scripts/project_compat.py)
 > *AI-compat scaffold and proof for generated projects (Track 2, now).*
 
-**Size**: `400` lines (`17542` bytes)
+**Size**: `427` lines (`19063` bytes)
 
 **Functions:**
 - `def _error(message, why, fix)`
-- `def minimal_png()` - *A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders.*
+- `def minimal_png(variant)` - *A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders.*
 - `def _inventory_template(kind)`
 - `def _demo_template(kind)`
 - `def scaffold_compat(root, kind)` - *Write compat files for `headless` or `ui`; returns the compat record.*
@@ -1697,7 +1697,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12287` lines (`682868` bytes)
+**Size**: `12424` lines (`688957` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1831,6 +1831,9 @@
   - Method `.test_blast_diff_reports_staged_state_change_without_content_change()`
   - Method `.test_blast_verdict_passes_clean_and_fails_loud_with_paths()`
   - Method `.test_repo_fingerprint_matches_snapshot_hash()`
+  - Method `.test_readonly_gates_retry_a_timeout_once_then_pass()`
+  - Method `.test_readonly_gates_still_fail_on_double_timeout()`
+  - Method `.test_readonly_gates_never_retry_a_real_failure()`
 - `class TestAdrRegister` - *PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069).*
   - Method `.register(*numbers)`
   - Method `.test_consecutive_ids_pass()`
@@ -2583,6 +2586,10 @@
   - Method `.test_a_legacy_deferred_idea_blocks_on_its_second_deferral()`
   - Method `.test_a_blocked_idea_refuses_review()`
   - Method `.test_a_blocked_idea_refuses_a_status_change()`
+  - Method `.test_a_superseded_idea_refuses_review()`
+  - Method `.test_a_superseded_idea_refuses_a_status_change()`
+  - Method `.test_a_superseded_idea_accepts_repointing_to_another_canonical()`
+  - Method `.test_auto_registration_does_not_reopen_a_superseded_idea()`
   - Method `.test_review_idea_defer_twice_blocks()`
   - Method `.test_review_idea_blocks_a_legacy_deferred_row()`
   - Method `.test_review_idea_confirmed_preserves_the_existing_decision()`
@@ -2623,6 +2630,9 @@
   - Method `.test_seeded_replay_passes_on_identical_deltas()`
   - Method `.test_evidence_and_bench_files_are_structural_not_thresholds()`
   - Method `.test_emit_evidence_appends_a_cause_gate_artifact_link()`
+  - Method `.test_ui_scaffold_writes_distinct_before_after_screenshots()`
+  - Method `.test_ui_verify_fires_on_byte_identical_screenshots()`
+  - Method `.test_ui_verify_fires_on_layout_controls_missing_from_inventory()`
 - `class ReuseMetadataTest` - *A same-license refresh must not erase project-specific annotations.*
   - Method `.setUpClass()`
   - Method `.tearDownClass()`
