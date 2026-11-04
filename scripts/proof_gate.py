@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import os
 import re
@@ -616,6 +617,125 @@ def prove(
     }
 
 
+def _sha256_file(path: Path) -> str:
+    """SHA-256 of one file, or empty when unreadable (IDEA-1202 manifest)."""
+    try:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+    except OSError:
+        return ""
+
+
+def tree_manifest(repo: Path, paths: Sequence[Path]) -> list[dict[str, str]]:
+    """Content hashes of declared paths, repo-relative, sorted (IDEA-1202).
+
+    Only declared tests and sources are hashed: bounded, reproducible, and
+    independent of untracked build output. Unreadable entries hash empty so a
+    receipt never crashes on a file that vanished mid-proof.
+    """
+    root = Path(repo).resolve()
+    rows: list[dict[str, str]] = []
+    for value in paths:
+        candidate = value if value.is_absolute() else root / value
+        try:
+            relative = candidate.resolve().relative_to(root).as_posix()
+        except ValueError:
+            relative = str(value).replace("\\", "/")
+        rows.append({"path": relative, "sha256": _sha256_file(candidate)})
+    return sorted(rows, key=lambda row: row["path"])
+
+
+def gate_digest() -> dict[str, str]:
+    """Hashes of the gate's own logic files (IDEA-1202 gate digest)."""
+    here = Path(__file__).resolve().parent
+    return {
+        "proof_gate.py": _sha256_file(here / "proof_gate.py"),
+        "evidence_outcome.py": _sha256_file(here / "evidence_outcome.py"),
+    }
+
+
+def dirty_paths(repo: Path) -> list[str] | None:
+    """Porcelain dirty paths, or None when git cannot answer (IDEA-1202 policy).
+
+    None is a documented unknown: no observation, no clean verdict. A non-empty
+    list marks the receipt dirty; an empty list marks it clean.
+    """
+    try:
+        done = subprocess.run(
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=no"],
+            cwd=str(repo), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    fields = done.stdout.split("\0")
+    paths = [entry[3:] for entry in fields if entry.strip()]
+    return sorted(paths)
+
+
+def write_receipt(result: Dict[str, object], dest: Path) -> Dict[str, object]:
+    """Persist a reproducible proof receipt beside the in-memory result (IDEA-1202).
+
+    The receipt binds the verdict to its evidence: declared file hashes, gate
+    hashes, and the dirty-tree state. Fail-closed: a dirty or unknown tree is
+    recorded, never reported clean. Atomic write (temp + fsync + replace).
+    Returns the receipt dict.
+    """
+    repo = Path(str(result.get("repo", ".")))
+    declared = [Path(value) for value in list(result.get("tests", []))]
+    mutation = result.get("mutation")
+    if isinstance(mutation, dict):
+        extra = mutation.get("mutants")
+        if isinstance(extra, list):
+            for row in extra:
+                if isinstance(row, dict) and row.get("file"):
+                    declared.append(Path(str(row["file"])))
+    manifest = tree_manifest(repo, declared)
+    gates = gate_digest()
+    dirty = dirty_paths(repo)
+    receipt: Dict[str, object] = {
+        "schema": 1,
+        "base": result.get("base", ""),
+        "tests": list(result.get("tests", [])),
+        "proof": bool(result.get("proof", False)),
+        "reason": str(result.get("reason", "")),
+        "tree_manifest": manifest,
+        "gate_digest": gates,
+        "dirty": dirty,
+        "dirty_clean": dirty == [],
+    }
+    if isinstance(mutation, dict):
+        receipt["mutation"] = {
+            key: mutation.get(key) for key in (
+                "generated", "waived", "scored", "killed", "survived",
+                "errors", "timeouts", "threshold", "passed", "outcome",
+            )
+        }
+    dest = Path(dest)
+    if dest.parent != Path(".") and str(dest.parent):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    import os as _os
+    import tempfile as _tempfile
+    handle_no, temporary = _tempfile.mkstemp(
+        prefix=dest.name + ".tmp_", dir=str(dest.parent) if str(dest.parent) else ".")
+    try:
+        with _os.fdopen(handle_no, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+            stream.flush()
+            _os.fsync(stream.fileno())
+        _os.replace(temporary, dest)
+    finally:
+        if _os.path.exists(temporary):
+            _os.unlink(temporary)
+    return receipt
+
+
 def render_text(result: Dict[str, object]) -> str:
     """A terse human report for the CLI."""
     lines = [
@@ -668,6 +788,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT_SECONDS,
                         help=f"seconds per test run (default: {DEFAULT_TIMEOUT_SECONDS:g})")
     parser.add_argument("--json", action="store_true", help="print one machine-readable result")
+    parser.add_argument("--receipt", default="", metavar="PATH",
+                        help="write a reproducible proof receipt (tree manifest + gate digest) to PATH")
     return parser
 
 
@@ -687,6 +809,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Fix: pass an existing Git checkout, a real base commit and existing test paths.",
               file=sys.stderr)
         return 2
+    if args.receipt:
+        try:
+            write_receipt(result, Path(args.receipt))
+        except OSError as error:
+            print(f"Error: cannot write receipt {args.receipt}: {error}", file=sys.stderr)
+            print("Why: the receipt is the reproducible proof; losing it voids the run.",
+                  file=sys.stderr)
+            print("Fix: point --receipt at a writable path and rerun.", file=sys.stderr)
+            return 2
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:

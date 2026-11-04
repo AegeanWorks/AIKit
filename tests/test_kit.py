@@ -3700,6 +3700,28 @@ class TestSecretHygieneScanner(unittest.TestCase):
         self.assertEqual(scan_text("fixture.py", line), [],
                          "weak allowlist should suppress the entropy fallback")
 
+    def test_encoded_pass_detects_base64_and_hex_payloads_bounded(self):
+        # IDEA-1133: a credential pasted as base64/hex reports encoded-*, bounded.
+        import base64
+        from scripts import check_secrets as secrets_module
+
+        raw = "ghp_" + "A" * 36
+        encoded = base64.b64encode(raw.encode()).decode()
+        findings = secrets_module.scan_text("fixture.py", f"blob = '{encoded}'\n")
+        self.assertTrue(any(det == "encoded-GitHub token" for _, _, det, _ in findings),
+                        findings)
+        hexed = raw.encode().hex()
+        findings = secrets_module.scan_text("fixture.py", f"blob = '{hexed}'\n")
+        self.assertTrue(any(det == "encoded-GitHub token" for _, _, det, _ in findings),
+                        findings)
+        many = " ".join([encoded] * 10)
+        findings = secrets_module.scan_text("fixture.py", f"blob = '{many}'\n")
+        self.assertLessEqual(len(findings), 1)
+        findings = secrets_module.scan_text(
+            "fixture.py", f"blob = '{encoded}'  # aikit:allow-secret[GitHub token]\n")
+        self.assertEqual(findings, [])
+        self.assertEqual(secrets_module.scan_text("fixture.py", "note = 'hello world'\n"), [])
+
     def test_explicit_pragma_suppresses_everything(self):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
         self.assertEqual(scan_text("fixture.py", line), [],
@@ -12531,6 +12553,52 @@ class TestNoEvidenceRefusal(unittest.TestCase):
         self.assertFalse(upstream_check.is_failure({"state": "current", "outcome": "pass"}))
         diffed = upstream_check.diff_upstream({"licence": "MIT"}, {"missing": True})
         self.assertEqual(diffed["outcome"], "fail")
+
+
+class TestProofReceipt(unittest.TestCase):
+    """IDEA-1202: persisted receipt binds verdict to tree manifest and gate digest."""
+
+    def test_tree_manifest_hashes_declared_files_sorted(self) -> None:
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="receipt_manifest_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        (root / "b.py").write_text("B = 2\n", encoding="utf-8")
+        (root / "a.py").write_text("A = 1\n", encoding="utf-8")
+        manifest = proof_gate.tree_manifest(root, [Path("b.py"), Path("a.py")])
+        self.assertEqual([row["path"] for row in manifest], ["a.py", "b.py"])
+        self.assertTrue(all(len(row["sha256"]) == 64 for row in manifest))
+        self.assertNotEqual(manifest[0]["sha256"], manifest[1]["sha256"])
+
+    def test_write_receipt_records_dirty_and_digests(self) -> None:
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="receipt_write_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        (root / "a.py").write_text("A = 1\n", encoding="utf-8")
+        result = {"repo": str(root), "base": "abc", "tests": ["a.py"],
+                  "proof": True, "reason": "ok", "mutation": None}
+        dest = root / "receipt.json"
+        clean = mock.Mock(returncode=0, stdout="", stderr="")
+        with mock.patch.object(proof_gate.subprocess, "run", return_value=clean):
+            receipt = proof_gate.write_receipt(result, dest)
+        self.assertTrue(dest.is_file())
+        loaded = json.loads(dest.read_text(encoding="utf-8"))
+        self.assertEqual(loaded["schema"], 1)
+        self.assertEqual(loaded["proof"], True)
+        self.assertIn("tree_manifest", loaded)
+        self.assertIn("gate_digest", loaded)
+        self.assertIn("dirty", loaded)
+        self.assertEqual(receipt["tree_manifest"], loaded["tree_manifest"])
+        self.assertEqual(loaded["dirty"], [])
+
+    def test_receipt_cli_flag_writes_file(self) -> None:
+        from scripts import proof_gate
+
+        args = proof_gate.build_parser().parse_args(
+            ["--tests", "tests/test_x.py", "--receipt", "out/receipt.json"])
+        self.assertEqual(args.receipt, "out/receipt.json")
+        self.assertEqual(args.tests, ["tests/test_x.py"])
 
 
 if __name__ == "__main__":

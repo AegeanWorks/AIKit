@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `64`
-- **Total Classes**: `139`
-- **Total Top-Level Functions**: `902`
-- **Total Class Methods**: `1065`
-- **Total Source Lines**: `40293`
+- **Total Classes**: `140`
+- **Total Top-Level Functions**: `900`
+- **Total Class Methods**: `1066`
+- **Total Source Lines**: `40175`
 
 ---
 
@@ -268,7 +268,7 @@
 ### [`reforge/cli.py`](reforge/cli.py)
 > *The Reforge command grammar, shared by `python -m reforge` and `aikit.py reforge`.*
 
-**Size**: `454` lines (`22496` bytes)
+**Size**: `458` lines (`22666` bytes)
 
 **Classes:**
 - `class ReforgeArgumentParser` - *argparse whose usage errors carry the AIKit What/Why/Fix triad (PRINCIPLE-011).*
@@ -296,14 +296,13 @@
 ### [`reforge/delivery.py`](reforge/delivery.py)
 > *Explicit staging, conventional commit and never-forced push for accepted repairs.*
 
-**Size**: `134` lines (`5491` bytes)
+**Size**: `117` lines (`4790` bytes)
 
 **Functions:**
 - `def validate_message(message)`
 - `def _paths_to_commit(root)`
 - `def _not_ignored(root, paths)` - *Drop paths git ignores; an ignored state file is local, not a commit failure.*
 - `def commit_repairs(root, message, paths)` - *Stage exactly the repair paths, commit, and verify the commit holds them.*
-- `def push_committed(root)` - *Push already-committed window(s) without staging anything new.*
 - `def deliver(root, message, do_push, paths)` - *Commit only the reviewed repair paths plus the audit state, then optionally push.*
 
 ---
@@ -443,7 +442,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `942` lines (`47626` bytes)
+**Size**: `766` lines (`37871` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -458,17 +457,14 @@
 - `def _check_commit_targets(root, targets, allow_dirty, deliver, ignore, owned)` - *Refuse a commit whose target file already held work Reforge did not make.*
 - `def _fingerprint(path)`
 - `def _execute_repairs(root, findings, add_tests, run_tests, test_command, gate_runner, extra_allowed, preexisting)`
-- `def _payload(root, mode, plan, run, findings, repairs, tests, gates, skipped, ledger, reviewed, review, delivery, delivery_lines)`
+- `def _payload(root, mode, plan, run, findings, repairs, tests, gates, skipped, ledger, reviewed, review)`
 - `def _review_error(run, pending)`
 - `def _plan_from_last(run, last)` - *Rebuild the stage a `fix` must apply, from the run and its last audit entry.*
 - `def _collect_review(root, plan, reviewed, findings_file, packet, method)` - *Write the review packet and load the reviewer's answer, if one was supplied.*
 - `def _serialize_review(report)` - *The small JSON-safe form of a review kept in state and printed by the CLI.*
 - `def _note_stage(root, run, plan, entry, findings, skipped)` - *Mirror one stage into the repository's task ledger so cold start can see the audit.*
-- `def _delivery_message(run_id, stage, repaired)` - *Conventional message shared by the stage-close hook (no caller variants).*
-- `def _publish_backlog(root, state, run)` - *Push previously verified-but-unpushed windows before auditing the next one.*
-- `def _close_window(root, state, run, entry, commit_paths, do_commit, do_push)` - *Commit and push one verified window; empty windows never commit.*
 - `def _note_review(root, run, stage, review)` - *Mirror a host review into the task ledger, including the completion it may unlock.*
-- `def run_pipeline(root, mode, add_tests, run_tests, test_command, gate_runner, allow_dirty, run_id, start, step, stop, rules, findings_file, packet, deliver, do_push)` - *Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`).*
+- `def run_pipeline(root, mode, add_tests, run_tests, test_command, gate_runner, allow_dirty, run_id, start, step, stop, rules, findings_file, packet, deliver)` - *Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`).*
 - `def review_stage(root, run_id, stage, findings_file, method)` - *Record a host or analyzer review of any retained stage, including an older one.*
 - `def analyze_stage(root, run_id, stage, command, timeout)` - *Run the configured analyzer over one stage packet, then record its answer as the review.*
 - `def start_audit(root, start, step, stop)` - *Create a new independent run, refusing while another run is still active.*
@@ -550,7 +546,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `650` lines (`25829` bytes)
+**Size**: `546` lines (`21651` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -568,14 +564,7 @@
 - `def _migrate_v1(data)` - *A schema-1 state becomes run-1 without losing its stage, commits or history.*
 - `def load_state(root)` - *Read the state; a missing file is fresh, schema 1 migrates in memory, corrupt is refused.*
 - `def save_state(root, data)` - *Persist through AIKit's atomic writer under its advisory lock.*
-- `def new_delivery(empty)` - *Per-window ship record; `pushed` is True only after `push()` returns 0.*
 - `def entry_from_stage(plan, findings, repairs, tests, gates, skipped, reviewed, review)` - *One stage's durable record; `skipped` names binary files and `reviewed` counts the rest.*
-- `def _entry_applied(entry)`
-- `def _entry_verified(entry)` - *A stage that reached `record_stage` with passing gates; rollback already excluded failures.*
-- `def _delivery_of(entry)`
-- `def _stage_candidates(run)` - *History plus last_audit deduplicated by stage; last_audit wins on collision.*
-- `def find_unpushed_verified(run)` - *Verified stages with applied repairs that were never pushed (no empty windows).*
-- `def mark_delivered(root, state, run, stage, delivery)` - *Record one stage's push hash in history and last_audit, then persist.*
 - `def run_complete(run, window, total_commits)`
 - `def completion_total(run, live)` - *The repository commit count that closes an unlimited run: live first, then the stored one.*
 - `def settle_run(run, state, total_commits, *, reopen)` - *The one completed/active transition, shared by every entry point.*
@@ -782,7 +771,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `570` lines (`27133` bytes)
+**Size**: `672` lines (`31366` bytes)
 
 **Functions:**
 - `def shannon_entropy(value)` - *Bits of entropy per character; random credentials score high, English prose low.*
@@ -792,6 +781,10 @@
 - `def detector_in_scope(detector, scope)` - *Whether a finding label is excused by a scoped pragma's names.*
 - `def scan_text(label, text)` - *Return (label, line_no, detector, excerpt) for every finding in a blob of text.*
 - `def looks_random(value)` - *A token shaped like a generated key: mixed case and digits, and high entropy. Hex digests*
+- `def _encoded_candidates(line)` - *Up to two decodable candidates from one line (IDEA-1133 bound).*
+- `def _to_text(raw)` - *Bytes to text for the encoded pass; empty when not plausibly text.*
+- `def _decode_candidate(token)` - *One bounded base64/hex decode; empty when not decodable text.*
+- `def scan_encoded_passes(label, lineno, line, scope)` - *Bounded decoded-payload findings for one line (IDEA-1133).*
 - `def redact(line, start, end)` - *The line with the secret span cut to its first 4 characters plus `***` (PRINCIPLE-019 R4).*
 - `def scrub_text(text)` - *`text` with every credential-shaped span replaced by `[REDACTED]`, and the detectors hit.*
 - `def should_skip(path_str)`
@@ -1308,7 +1301,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `698` lines (`28907` bytes)
+**Size**: `829` lines (`34177` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1331,6 +1324,11 @@
 - `def _resolve_base(repo, base, timeout)`
 - `def _copy_tests(repo, worktree, tests)` - *Copy each declared test into the base worktree and return its repo-relative path.*
 - `def prove(repo, *, base, tests, sources, mutants, min_killed, require_mutation, waive, timeout, runner)` - *Run the declared tests on the base and current trees and return the proof record.*
+- `def _sha256_file(path)` - *SHA-256 of one file, or empty when unreadable (IDEA-1202 manifest).*
+- `def tree_manifest(repo, paths)` - *Content hashes of declared paths, repo-relative, sorted (IDEA-1202).*
+- `def gate_digest()` - *Hashes of the gate's own logic files (IDEA-1202 gate digest).*
+- `def dirty_paths(repo)` - *Porcelain dirty paths, or None when git cannot answer (IDEA-1202 policy).*
+- `def write_receipt(result, dest)` - *Persist a reproducible proof receipt beside the in-memory result (IDEA-1202).*
 - `def render_text(result)` - *A terse human report for the CLI.*
 - `def build_parser()`
 - `def main(argv)`
@@ -1564,7 +1562,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2159` lines (`111772` bytes)
+**Size**: `2033` lines (`104720` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1694,9 +1692,6 @@
   - Method `.test_a_commit_refuses_a_target_that_was_dirty_when_repaired()`
   - Method `.test_the_packet_shows_each_commit_hunk_in_order()`
   - Method `.test_a_findings_file_adds_and_applies_a_validated_fix()`
-  - Method `.test_per_window_push_records_hash_and_resume_knows()`
-  - Method `.test_network_failure_leaves_verified_but_unpushed_and_resume_pushes()`
-  - Method `.test_empty_window_commits_nothing()`
   - Method `.test_aikit_reforge_status_reaches_the_registry_and_state()`
 - `class TestIdeaCatcherCli` - *PRINCIPLE-011: `aikit.py idea-catcher` reaches the private register in one command.*
   - Method `.test_status_reads_the_register_named_by_the_root_override()`
@@ -1725,7 +1720,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12537` lines (`693958` bytes)
+**Size**: `12605` lines (`697433` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2028,6 +2023,7 @@
   - Method `.test_does_not_flag_indirection_or_placeholders()`
   - Method `.test_weak_allowlist_cannot_veto_a_pattern_match()`
   - Method `.test_weak_allowlist_still_suppresses_entropy_fallback()`
+  - Method `.test_encoded_pass_detects_base64_and_hex_payloads_bounded()`
   - Method `.test_explicit_pragma_suppresses_everything()`
   - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
   - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`
@@ -2703,6 +2699,10 @@
   - Method `.test_hygiene_empty_tree_is_inconclusive_not_ok()`
   - Method `.test_claim_audit_zero_claims_is_inconclusive()`
   - Method `.test_upstream_diff_marks_skipped_inconclusive_and_fails_strict()`
+- `class TestProofReceipt` - *IDEA-1202: persisted receipt binds verdict to tree manifest and gate digest.*
+  - Method `.test_tree_manifest_hashes_declared_files_sorted()`
+  - Method `.test_write_receipt_records_dirty_and_digests()`
+  - Method `.test_receipt_cli_flag_writes_file()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

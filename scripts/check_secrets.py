@@ -104,6 +104,15 @@ HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # A quoted token long enough to be a generated key; `looks_random` decides whether it is one.
 BARE_LITERAL_RE = re.compile(r"[\"']([A-Za-z0-9_\-]{40,})[\"']")
 
+# IDEA-1133: bounded encoded-payload passes. Raw-only scanning misses a
+# credential pasted as base64/hex (e.g. in a folded env file). The pass is
+# bounded to stay inside the 20ms unit budget: at most two candidates per
+# line, each at most 160 chars, single decode depth, stdlib only.
+ENCODED_PASS_MAX_CANDIDATES = 2
+ENCODED_PASS_MAX_CHARS = 160
+_BASE64_CANDIDATE_RE = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
+_HEX_CANDIDATE_RE = re.compile(r"\b(?:[0-9a-fA-F]{2}){20,}\b")
+
 # Allowlisting is risk-tiered, because a weak word must never veto a high-confidence match.
 # A red-check caught this: "AKIAIOSFODNN7EXAMPLE" was missed purely because the line contained  # aikit:allow-secret
 # the word "example", which would equally have hidden a live key on an "# example usage" line.
@@ -242,6 +251,11 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
             if scope is None or not detector_in_scope("high-entropy string literal", scope):
                 findings.append((label, lineno, "high-entropy string literal",
                                  redact(line, bare.start(1), bare.end(1))))
+                continue
+        # IDEA-1133: bounded encoded-payload pass. Raw-only scanning misses a
+        # credential pasted as base64/hex; decode at most two candidates.
+        if not is_weakly_allowlisted(line):
+            findings.extend(scan_encoded_passes(label, lineno, line, scope))
     return findings
 
 
@@ -250,6 +264,94 @@ def looks_random(value: str) -> bool:
     and long identifiers lack the mix, so they do not trip it."""
     return (shannon_entropy(value) >= 4.5 and any(c.islower() for c in value)
             and any(c.isupper() for c in value) and any(c.isdigit() for c in value))
+
+
+def _encoded_candidates(line: str) -> list[str]:
+    """Up to two decodable candidates from one line (IDEA-1133 bound)."""
+    found: list[str] = []
+    for match in _BASE64_CANDIDATE_RE.finditer(line):
+        token = match.group(0)[:ENCODED_PASS_MAX_CHARS]
+        if len(token) >= 40:
+            found.append(token)
+        if len(found) >= ENCODED_PASS_MAX_CANDIDATES:
+            return found
+    for match in _HEX_CANDIDATE_RE.finditer(line):
+        token = match.group(0)[:ENCODED_PASS_MAX_CHARS]
+        if len(token) >= 40:
+            found.append(token)
+        if len(found) >= ENCODED_PASS_MAX_CANDIDATES:
+            return found
+    return found
+
+
+def _to_text(raw: bytes) -> str:
+    """Bytes to text for the encoded pass; empty when not plausibly text.
+
+    A replacement-heavy decode (binary garbage through errors="replace" is
+    mostly U+FFFD, which isprintable() wrongly counts) is rejected, so a
+    base64 reading of a hex string cannot shadow the true hex decode.
+    """
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        text = raw.decode("utf-8", errors="replace")
+        if text.count("\ufffd") > len(text) * 0.1:
+            return ""
+    printable = sum(1 for ch in text if ch != "\ufffd" and (ch.isprintable() or ch in "\t"))
+    if not text or printable < len(text) * 0.8 or len(text.strip()) < 8:
+        return ""
+    return text
+
+
+def _decode_candidate(token: str) -> str:
+    """One bounded base64/hex decode; empty when not decodable text."""
+    import base64 as _base64
+    import binascii as _binascii
+
+    cleaned = "".join(token.split())
+    if len(cleaned) >= 40 and all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=" for c in cleaned):
+        try:
+            text = _to_text(_base64.b64decode(cleaned, validate=True))
+        except (_binascii.Error, ValueError):
+            text = ""
+        if text:
+            return text
+    if len(cleaned) >= 40 and all(c in "0123456789abcdefABCDEF" for c in cleaned) and len(cleaned) % 2 == 0:
+        try:
+            text = _to_text(bytes.fromhex(cleaned))
+        except ValueError:
+            text = ""
+        if text:
+            return text
+    return ""
+
+
+def scan_encoded_passes(label: str, lineno: int, line: str,
+                        scope: Optional[FrozenSet[str]]) -> List[Tuple[str, int, str, str]]:
+    """Bounded decoded-payload findings for one line (IDEA-1133).
+
+    Pure and bounded: at most ENCODED_PASS_MAX_CANDIDATES decodes per line.
+    Reports `encoded-<detector>` so the raw and decoded surfaces are
+    distinguishable in triage.
+    """
+    findings: List[Tuple[str, int, str, str]] = []
+    for token in _encoded_candidates(line):
+        decoded = _decode_candidate(token)
+        if not decoded:
+            continue
+        for detector, pattern in SECRET_PATTERNS:
+            hit = re.search(pattern, decoded)
+            if hit:
+                name = f"encoded-{detector}"
+                # A scoped pragma naming either the encoded or the raw detector
+                # excuses the finding; the raw vocabulary stays closed (IDEA-1115).
+                if scope is None or (not detector_in_scope(name, scope)
+                                     and not detector_in_scope(detector, scope)):
+                    findings.append((label, lineno, name, redact(line, 0, min(len(line), 88))))
+                break
+        if findings:
+            break
+    return findings
 
 
 def redact(line: str, start: int, end: int) -> str:
