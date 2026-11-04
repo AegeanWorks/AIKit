@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `67`
+- **Total Python Modules**: `68`
 - **Total Classes**: `149`
-- **Total Top-Level Functions**: `922`
+- **Total Top-Level Functions**: `934`
 - **Total Class Methods**: `1097`
-- **Total Source Lines**: `41323`
+- **Total Source Lines**: `41585`
 
 ---
 
@@ -1328,6 +1328,27 @@
 - `def ui_payload(project_root)`
 - `def _surface_paths(project_root, evidence)` - *The smallest practical surface: detected entry files plus a source tree if one exists.*
 - `def adopt_ui(project_root, test_command)` - *Adopt a detected UI project into the bounded UI contract, without guessing a proof.*
+
+---
+
+### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
+> *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
+
+**Size**: `262` lines (`10928` bytes)
+
+**Functions:**
+- `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
+- `def witness_key(receipt)` - *Content hash binding a receipt to its evidence (IDEA-1156 witness).*
+- `def entry_path(corpus, key)` - *Filesystem path of one corpus entry (hex key, no traversal).*
+- `def _atomic_write_json(path, value)`
+- `def store(receipt, corpus, *, envelope, now)` - *File a receipt under its witness key (IDEA-1156); returns key, path.*
+- `def load(corpus, key)` - *Read one entry by witness key; None when absent or unreadable.*
+- `def list_entries(corpus)` - *Every readable entry, oldest first (IDEA-1156 pruning order).*
+- `def prune(corpus, keep)` - *Delete oldest entries past the cap (IDEA-1156); returns deleted keys.*
+- `def replay(entry, *, prove_fn, repo)` - *Re-prove a stored entry and compare verdicts (IDEA-1156); never raises.*
+- `def build_parser()`
+- `def _read_json(path)`
+- `def main(argv)`
 
 ---
 
