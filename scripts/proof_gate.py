@@ -37,6 +37,37 @@ ASSERTION_FAILURE_RE = re.compile(r"FAILED \([^)]*failures=\d+")
 COMPARE_MUTATIONS = {"==": "!=", "!=": "==", "<": ">=", "<=": ">", ">": "<=", ">=": "<"}
 BINOP_MUTATIONS = {"+": "-", "-": "+"}
 
+# IDEA-1118: shared no-evidence outcome model. Direct-run safe: `python
+# scripts/proof_gate.py` puts scripts/ on sys.path, while tests import as
+# `scripts.proof_gate`; both resolve, otherwise fall back to local constants.
+try:  # hygiene: allow [silent-except] optional shared-model import fallback path
+    from scripts.evidence_outcome import (  # type: ignore[import-not-found]
+        OUTCOME_FAIL,
+        OUTCOME_INCONCLUSIVE,
+        OUTCOME_PASS,
+        is_refusal,
+        outcome_for_counts,
+    )
+except Exception:  # pragma: no cover - import fallback for direct runs
+    try:
+        from evidence_outcome import (  # type: ignore[import-not-found]
+            OUTCOME_FAIL,
+            OUTCOME_INCONCLUSIVE,
+            OUTCOME_PASS,
+            is_refusal,
+            outcome_for_counts,
+        )
+    except Exception:
+        OUTCOME_PASS = "pass"
+        OUTCOME_FAIL = "fail"
+        OUTCOME_INCONCLUSIVE = "inconclusive"
+
+        def outcome_for_counts(observed: int, failures: int = 0) -> str:  # type: ignore[no-redef]
+            return "inconclusive" if observed <= 0 else ("fail" if failures else "pass")
+
+        def is_refusal(outcome: str) -> bool:  # type: ignore[no-redef]
+            return outcome != OUTCOME_PASS
+
 Runner = Callable[[Sequence[str], Path, float], Tuple[int, str]]
 
 # Proof runs are derandomized by default: an unset PYTHONHASHSEED randomizes hash order
@@ -388,7 +419,30 @@ def mutation_suite(
     survived = sum(1 for row in records if row["status"] == "survived")
     errors = sum(1 for row in records if row["status"] == "error")
     timeouts = sum(1 for row in records if row["status"] == "timeout")
-    threshold = min(min_killed, len(records)) if records else 0
+    # IDEA-1118: zero scored mutants are inconclusive, never a pass.
+    # Threshold 0 used to report pass with no evidence.
+    if not records:
+        return {
+            "generated": len(mutants),
+            "waived": waived,
+            "scored": 0,
+            "killed": killed,
+            "survived": survived,
+            "errors": errors,
+            "timeouts": timeouts,
+            "threshold": 0,
+            "passed": False,
+            "outcome": OUTCOME_INCONCLUSIVE,
+            "mutants": records,
+        }
+    threshold = min(min_killed, len(records))
+    passed = killed >= threshold
+    # IDEA-1118: shared classifier decides the outcome; refusal is fail-closed.
+    outcome = outcome_for_counts(len(records), len(records) - killed)
+    # Killed-gate passes only when the threshold holds; an empty or failing
+    # set refuses via the shared model.
+    if not passed:
+        outcome = OUTCOME_FAIL
     return {
         "generated": len(mutants),
         "waived": waived,
@@ -398,7 +452,8 @@ def mutation_suite(
         "errors": errors,
         "timeouts": timeouts,
         "threshold": threshold,
-        "passed": killed >= threshold,
+        "passed": passed,
+        "outcome": outcome,
         "mutants": records,
     }
 
@@ -523,7 +578,12 @@ def prove(
                 repo, tree, tests=copied, sources=sources, limit=mutants,
                 min_killed=min_killed, waive=waive, timeout=timeout, runner=runner,
             )
-            if require_mutation and not mutation["passed"]:
+            if mutation.get("outcome") == OUTCOME_INCONCLUSIVE:
+                failures.append(
+                    "mutation: inconclusive, no mutants scored "
+                    f"(generated {mutation['generated']}, waived {mutation['waived']})"
+                )
+            elif require_mutation and is_refusal(str(mutation.get("outcome", ""))):
                 extra = ""
                 if mutation["errors"]:
                     extra += f", {mutation['errors']} error(s)"
@@ -572,10 +632,16 @@ def render_text(result: Dict[str, object]) -> str:
     mutation = result.get("mutation")
     if mutation:
         waived = f", {mutation['waived']} waived" if mutation["waived"] else ""
-        lines.append(
-            f"       mutation: {mutation['killed']}/{mutation['scored']} killed "
-            f"(threshold {mutation['threshold']}{waived})"
-        )
+        if mutation.get("outcome") == OUTCOME_INCONCLUSIVE:
+            lines.append(
+                f"       mutation: inconclusive, no mutants scored "
+                f"(generated {mutation['generated']}{waived})"
+            )
+        else:
+            lines.append(
+                f"       mutation: {mutation['killed']}/{mutation['scored']} killed "
+                f"(threshold {mutation['threshold']}{waived})"
+            )
     return "\n".join(lines)
 
 

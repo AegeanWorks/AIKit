@@ -304,7 +304,12 @@ def _count_artefacts(repo: Path, max_files: int) -> dict[str, int]:
 def assess_ratio(
     repo_path: Path, evidence: Sequence[ClaimEvidence], *, max_files: int = MAX_FILES_DEFAULT
 ) -> dict[str, object]:
-    """Repository-level verdict merged from IDEA-500: implemented, brief, or docs-only."""
+    """Repository-level verdict merged from IDEA-500: implemented, brief, or docs-only.
+
+    IDEA-1118: zero claims are inconclusive (no-evidence refusal), never a pass.
+    The ``outcome`` key carries the shared pass/fail/inconclusive verdict while
+    ``verdict`` keeps its historical vocabulary for compatibility.
+    """
     repo = Path(repo_path).resolve()
     artefacts = _count_artefacts(repo, max_files)
     claims = len(evidence)
@@ -328,6 +333,15 @@ def assess_ratio(
         confidence = "medium"
     else:
         confidence = "low"
+    # IDEA-1118 shared outcome: no claims or all-unknown is inconclusive.
+    if claims == 0 or (implemented == 0 and unknown == claims and claims > 0):
+        outcome = "inconclusive"
+    elif verdict in {"implemented"}:
+        outcome = "pass" if confidence == "high" else "fail"
+    elif verdict in {"docs-only", "design-brief"}:
+        outcome = "fail"
+    else:
+        outcome = "inconclusive"
     return {
         "claims": claims,
         "implemented": implemented,
@@ -337,6 +351,7 @@ def assess_ratio(
         "artefacts": artefacts,
         "verdict": verdict,
         "confidence": confidence,
+        "outcome": outcome,
     }
 
 

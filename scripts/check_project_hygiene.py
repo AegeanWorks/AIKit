@@ -14,7 +14,7 @@ than opinion, and every finding names the line to change. A deliberate exception
 `hygiene: allow <reason>` on the finding's own line or the line directly above it.
 
 Exit codes:
-  0 clean    1 findings    2 CLI argument misuse
+  0 clean    1 findings or inconclusive (no files observed)    2 CLI argument misuse
 """
 
 import ast
@@ -24,6 +24,29 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+
+# IDEA-1118: shared no-evidence outcome. Direct-run safe fallback.
+try:  # hygiene: allow [silent-except] optional shared-model import fallback path
+    from scripts.evidence_outcome import (  # type: ignore[import-not-found]
+        OUTCOME_INCONCLUSIVE,
+        no_evidence_message,
+        outcome_for_counts,
+    )
+except Exception:  # pragma: no cover - import fallback for direct runs
+    try:
+        from evidence_outcome import (  # type: ignore[import-not-found]
+            OUTCOME_INCONCLUSIVE,
+            no_evidence_message,
+            outcome_for_counts,
+        )
+    except Exception:
+        OUTCOME_INCONCLUSIVE = "inconclusive"
+
+        def no_evidence_message(what: str, reason: str) -> list:  # type: ignore[no-redef]
+            return [f"[INCONCLUSIVE] No {what} observed: {reason}."]
+
+        def outcome_for_counts(observed: int, failures: int = 0) -> str:  # type: ignore[no-redef]
+            return "inconclusive" if observed <= 0 else ("fail" if failures else "pass")
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -622,12 +645,14 @@ def scan_tree(root: Path, artifacts: bool = False) -> List[Finding]:
     about untracked outputs, root test modules and tracked caches.
     """
     findings: List[Finding] = []
+    scanned = 0
     for path in sorted(root.rglob("*")):
         parts = path.relative_to(root).parts
         if not path.is_file() or any(part in SKIP_DIRS for part in parts[:-1]):
             continue
         rel = path.relative_to(root).as_posix()
         if path.suffix == PY_SUFFIX or path.suffix in ASSET_SUFFIXES:
+            scanned += 1
             source, gaps = _read_source(rel, path)
             findings.extend(gaps)
             if source is None:
@@ -638,6 +663,9 @@ def scan_tree(root: Path, artifacts: bool = False) -> List[Finding]:
                 findings.extend(check_asset_source(rel, source))
     if artifacts:
         findings.extend(scan_artifacts(root))
+    # IDEA-1118: zero scannable files is inconclusive, never clean.
+    # The count is attached for the CLI refusal; existing callers keep a list.
+    setattr(scan_tree, "_last_scanned", scanned)
     return sorted(findings, key=lambda finding: (finding.path, finding.line, finding.rule))
 
 
@@ -658,6 +686,16 @@ def run_scan(root: Path, artifacts: bool = False) -> int:
     print(f"Scope: {root.resolve()}")
     if artifacts:
         print("Artifacts: git worktree checked (untracked, root tests, tracked caches)")
+    scanned = getattr(scan_tree, "_last_scanned", None)
+    # IDEA-1118: shared outcome decides clean vs findings vs no-evidence.
+    # Zero scannable files refuses with inconclusive instead of OK.
+    observed = scanned if isinstance(scanned, int) else 1
+    _outcome = outcome_for_counts(observed, len(findings))
+    if _outcome == OUTCOME_INCONCLUSIVE and not findings:
+        for line in no_evidence_message("scannable Python/asset files", f"none under {root}"):
+            print(line)
+        print("=" * 58)
+        return 1
     if not findings:
         print("[OK] No hygiene findings.")
         print("=" * 58)

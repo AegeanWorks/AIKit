@@ -172,7 +172,11 @@ def resolve_upstream(repo: str, fetch: Fetch, *, commit: str = "") -> dict[str, 
 
 
 def diff_upstream(recorded: Mapping[str, str], current: Mapping[str, Any]) -> dict[str, Any]:
-    """Classify the difference between the dossier and the live repository."""
+    """Classify the difference between the dossier and the live repository.
+
+    IDEA-1118: the shared outcome is explicit. ``current`` is pass/fail for a
+    decided state and inconclusive when the check could not observe evidence.
+    """
     recorded_licence = normalise_licence(str(recorded.get("licence", "")))
     current_licence = normalise_licence(str(current.get("licence", "")))
     result: dict[str, Any] = {
@@ -184,6 +188,7 @@ def diff_upstream(recorded: Mapping[str, str], current: Mapping[str, Any]) -> di
     }
     if current.get("missing"):
         result["state"] = "missing"
+        result["outcome"] = "fail"
         return result
     moved_to = str(current.get("moved_to", "") or "")
     behind = current.get("commits_behind")
@@ -192,6 +197,7 @@ def diff_upstream(recorded: Mapping[str, str], current: Mapping[str, Any]) -> di
     if _licence_key(recorded_licence) and _licence_key(current_licence):
         if _licence_key(recorded_licence) != _licence_key(current_licence):
             result["state"] = "licence_changed"
+            result["outcome"] = "fail"
             return result
     if moved_to:
         result["state"] = "moved"
@@ -199,11 +205,26 @@ def diff_upstream(recorded: Mapping[str, str], current: Mapping[str, Any]) -> di
         result["state"] = "archived"
     elif isinstance(behind, int) and behind > 0:
         result["state"] = "analysis_behind"
+    # IDEA-1118: decided states are pass/fail, missing evidence is inconclusive.
+    if result["state"] in {"licence_changed", "missing"}:
+        result["outcome"] = "fail"
+    elif result["state"] in {"moved", "archived", "analysis_behind"}:
+        result["outcome"] = "fail"
+    elif result["state"] == "current":
+        result["outcome"] = "pass"
+    else:
+        result["outcome"] = "inconclusive"
     return result
 
 
 def is_failure(result: Mapping[str, Any]) -> bool:
-    """Only a licence change or a vanished repository fails ``--strict``."""
+    """Only a licence change or a vanished repository fails ``--strict``.
+
+    IDEA-1118: an explicit inconclusive outcome never passes strict; it
+    refuses alongside failures so empty evidence cannot read as green.
+    """
+    if result.get("outcome") == "inconclusive":
+        return True
     return result.get("state") in {"licence_changed", "missing"}
 
 
@@ -289,7 +310,8 @@ def run_revalidation(
         if not repo:
             results.append({"dossier": dossier, "repo": "", "state": "skipped",
                             "recorded_licence": header["licence"], "current_licence": "",
-                            "moved_to": "", "commits_behind": None})
+                            "moved_to": "", "commits_behind": None,
+                            "outcome": "inconclusive"})
             continue
         cached = _load_cache(_cache_path(cache, repo), today)
         if cached is not None:
@@ -297,7 +319,8 @@ def run_revalidation(
         elif limit and requests >= limit:
             results.append({"dossier": dossier, "repo": repo, "state": "skipped",
                             "recorded_licence": header["licence"], "current_licence": "",
-                            "moved_to": "", "commits_behind": None})
+                            "moved_to": "", "commits_behind": None,
+                            "outcome": "inconclusive"})
             continue
         else:
             try:
@@ -305,7 +328,8 @@ def run_revalidation(
             except UpstreamError as error:
                 results.append({"dossier": dossier, "repo": repo, "state": "error",
                                 "recorded_licence": header["licence"], "current_licence": "",
-                                "moved_to": "", "commits_behind": None, "error": str(error)})
+                                "moved_to": "", "commits_behind": None, "error": str(error),
+                                "outcome": "inconclusive"})
                 requests += 1
                 continue
             requests += 1

@@ -12420,5 +12420,65 @@ class TestDossierCatalogueSync(unittest.TestCase):
         self.assertIn('"keystone": "AGL"', core)
 
 
+class TestNoEvidenceRefusal(unittest.TestCase):
+    """IDEA-1118: empty evidence is inconclusive, never a pass."""
+
+    def test_shared_outcome_model_refuses_zero_observations(self) -> None:
+        from scripts import evidence_outcome
+
+        self.assertEqual(evidence_outcome.outcome_for_counts(0), "inconclusive")
+        self.assertEqual(evidence_outcome.outcome_for_counts(3, 0), "pass")
+        self.assertEqual(evidence_outcome.outcome_for_counts(3, 1), "fail")
+        self.assertTrue(evidence_outcome.is_refusal("inconclusive"))
+        self.assertFalse(evidence_outcome.is_refusal("pass"))
+
+    def test_mutation_suite_with_no_mutants_is_inconclusive(self) -> None:
+        from scripts import proof_gate
+
+        root = Path(tempfile.mkdtemp(prefix="proof_no_evidence_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        repo = root / "repo"
+        repo.mkdir()
+        (repo / "app.py").write_text("VALUE = 1\n", encoding="utf-8")
+        report = proof_gate.mutation_suite(
+            repo, root / "tree", tests=[Path("tests/test_x.py")],
+            sources=[Path("app.py")], limit=10, min_killed=0, timeout=1.0,
+            runner=lambda *_: (0, "ok"))
+        self.assertEqual(report["scored"], 0)
+        self.assertEqual(report["outcome"], "inconclusive")
+        self.assertFalse(report["passed"])
+
+    def test_hygiene_empty_tree_is_inconclusive_not_ok(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        from scripts.check_project_hygiene import run_scan, scan_tree
+
+        root = Path(tempfile.mkdtemp(prefix="hygiene_no_evidence_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        self.assertEqual(scan_tree(root), [])
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = run_scan(root)
+        self.assertEqual(code, 1)
+        self.assertIn("INCONCLUSIVE", out.getvalue())
+
+    def test_claim_audit_zero_claims_is_inconclusive(self) -> None:
+        from idea_catcher import claim_audit
+
+        root = Path(tempfile.mkdtemp(prefix="audit_no_evidence_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        verdict = claim_audit.assess_ratio(root, [])
+        self.assertEqual(verdict["verdict"], "unknown")
+        self.assertEqual(verdict["outcome"], "inconclusive")
+
+    def test_upstream_diff_marks_skipped_inconclusive_and_fails_strict(self) -> None:
+        from idea_catcher import upstream_check
+
+        self.assertTrue(upstream_check.is_failure({"state": "x", "outcome": "inconclusive"}))
+        self.assertFalse(upstream_check.is_failure({"state": "current", "outcome": "pass"}))
+        diffed = upstream_check.diff_upstream({"licence": "MIT"}, {"missing": True})
+        self.assertEqual(diffed["outcome"], "fail")
+
+
 if __name__ == "__main__":
     unittest.main()
