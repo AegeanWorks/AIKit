@@ -3472,3 +3472,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Stdlib-plus-plumbing verify_staged() in scripts/verify_commit.py: refuse empty indexes inconclusive (IDEA-1118), wrap the index with git write-tree plus git commit-tree against HEAD (object-db writes only, no ref, stash or worktree moves), run the full gate set on the detached staged commit through the named evidence policy, and note the staged context on failure; --staged CLI flag, --ref plus --staged refused as misuse.
 - **Consequences**: The pre-commit gate proves exactly what git is about to record. Failing-first pins in TestStagedTree (detached staged commit verifies green, empty index inconclusive, unreadable index reported, failing gate names the staged context) plus regenerated map.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-018 R2/R7 (prove the staged subset), PRINCIPLE-014 (failing-first) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-331: Expiring owner-bound secret baseline with self-cleaning entries (IDEA-1132)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: check_secrets knew only line pragmas and the static allowlist, so an accepted finding lingered forever with no owner and no expiry; nobody re-reviewed yesterday's exception.
+- **Decision**: Optional version-1 baseline file (explicit --baseline flag; default behavior unchanged): entries name path, detector (raw or encoded twin), fingerprint (SHA-256 of path plus detector plus redacted excerpt), owner, YYYY-MM-DD expiry and reason, all validated by a closed schema. Unexpired entries suppress their finding; expired entries fail loudly while the finding goes active again; stale entries fail loudly so dead acceptances cannot accumulate; a malformed baseline is exit 2.
+- **Consequences**: Accepted findings carry an owner and a deadline; the baseline cleans itself instead of rotting. Failing-first pins in TestSecretHygieneScanner (fingerprint stability, suppress/lapse/stale/invalid baselines, file-mode suppression) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-019 (no silent credential surface, owned exceptions), PRINCIPLE-010 (bounded pure matching) and PRINCIPLE-014 (failing-first); PRINCIPLE-000 R5 is unchanged.

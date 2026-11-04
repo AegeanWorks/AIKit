@@ -28,12 +28,15 @@ Exit codes:
   0 clean    1 potential secret found    2 CLI argument misuse
 """
 
+import datetime
+import hashlib
+import json
 import math
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 # Agent working memory, relative to the scanned repository: AIKit's ledger and dogfood log, or a
@@ -504,8 +507,112 @@ def scan_agent_memory(gaps: Optional[List[str]] = None,
     return findings
 
 
+BASELINE_SCHEMA = 1
+BASELINE_DATE_FORMAT = "%Y-%m-%d"
+
+
+class BaselineError(ValueError):
+    """The baseline file is missing or refuses its own schema (IDEA-1132)."""
+
+
+def fingerprint_finding(label: str, detector: str, excerpt: str) -> str:
+    """Stable identity of one finding (IDEA-1132).
+
+    Line numbers shift, so they stay out; path plus detector plus the
+    (redacted) excerpt names the accepted finding. Two different secrets of
+    the same shape at the same spot share a fingerprint: the owner reviews
+    the spot again on expiry either way.
+    """
+    return hashlib.sha256(
+        f"{label}\x00{detector}\x00{excerpt}".encode("utf-8")).hexdigest()
+
+
+def _baseline_detector_names() -> Set[str]:
+    """Detectors a baseline entry may name: raw plus encoded twins."""
+    names = set(DETECTOR_NAMES)
+    names.update(f"encoded-{name}" for name in DETECTOR_NAMES)
+    return names
+
+
+def load_baseline(path: Path) -> Dict[str, Any]:
+    """Read and validate a baseline file; closed schema (IDEA-1132)."""
+    try:
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    except OSError as error:
+        raise BaselineError(f"no baseline file at {path}: {error}")
+    except ValueError as error:
+        raise BaselineError(f"baseline {path} is not JSON: {error}")
+    if not isinstance(raw, dict) or raw.get("version") != BASELINE_SCHEMA:
+        raise BaselineError(f"baseline {path} needs version {BASELINE_SCHEMA}")
+    entries = raw.get("entries")
+    if not isinstance(entries, list):
+        raise BaselineError(f"baseline {path} needs an 'entries' list")
+    valid = _baseline_detector_names()
+    seen = set()
+    clean = []
+    for pos, item in enumerate(entries):
+        where = f"baseline {path} entry {pos}"
+        if not isinstance(item, dict):
+            raise BaselineError(f"{where} must be an object")
+        for field in ("path", "detector", "fingerprint", "owner", "expires", "reason"):
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise BaselineError(f"{where} needs a non-empty {field!r}")
+        if item["detector"] not in valid:
+            raise BaselineError(f"{where} names unknown detector {item['detector']!r}")
+        try:
+            datetime.datetime.strptime(item["expires"], BASELINE_DATE_FORMAT)
+        except ValueError:
+            raise BaselineError(f"{where} needs expires as YYYY-MM-DD, "
+                                f"got {item['expires']!r}")
+        fingerprint = item["fingerprint"].strip()
+        if len(fingerprint) != 64 or any(c not in "0123456789abcdefABCDEF"
+                                         for c in fingerprint):
+            raise BaselineError(f"{where} needs a 64-hex fingerprint")
+        if fingerprint.lower() in seen:
+            raise BaselineError(f"{where} duplicates a fingerprint")
+        seen.add(fingerprint.lower())
+        clean.append({**item, "fingerprint": fingerprint.lower()})
+    return {"version": BASELINE_SCHEMA, "entries": clean}
+
+
+def apply_baseline(findings: List[Tuple[str, int, str, str]],
+                   baseline: Dict[str, Any], *,
+                   today: datetime.date) -> Dict[str, Any]:
+    """Split findings against the baseline (IDEA-1132); pure, no I/O.
+
+    An unexpired entry suppresses its finding; an expired entry fails loudly
+    and the finding stays active; an unexpired entry matching nothing is
+    stale and fails loudly so dead acceptances cannot accumulate.
+    """
+    keyed: Dict[str, Dict[str, Any]] = {}
+    for entry in baseline.get("entries", []):
+        keyed.setdefault(entry["fingerprint"], entry)
+    expired = [entry for entry in keyed.values()
+               if entry["expires"] < today.isoformat()]
+    matched = set()
+    active: List[Tuple[str, int, str, str]] = []
+    suppressed: List[Tuple[Tuple[str, int, str, str], Dict[str, Any]]] = []
+    for finding in findings:
+        label, _lineno, detector, excerpt = finding
+        key = fingerprint_finding(label, detector, excerpt)
+        entry = keyed.get(key)
+        if entry is not None and entry not in expired:
+            matched.add(entry["fingerprint"])
+            suppressed.append((finding, entry))
+        else:
+            if entry is not None:
+                matched.add(entry["fingerprint"])
+            active.append(finding)
+    stale = [entry for key, entry in keyed.items()
+             if key not in matched and entry not in expired]
+    return {"active": active, "suppressed": suppressed,
+            "expired": expired, "stale": stale}
+
+
 def run_scan(mode: str = "staged", target: Optional[Path] = None,
-             verbose: bool = False, repo: Path = ROOT_DIR, commits: Optional[str] = None) -> int:
+             verbose: bool = False, repo: Path = ROOT_DIR, commits: Optional[str] = None,
+             baseline: Optional[Path] = None) -> int:
     """Scan the requested surface plus agent memory, reporting tersely (PRINCIPLE-012 R4)."""
     print("=" * 58)
     print("SECRET & SENSITIVE DATA SCAN (PRINCIPLE-019)")
@@ -550,8 +657,48 @@ def run_scan(mode: str = "staged", target: Optional[Path] = None,
         print("=" * 58)
         return 1
 
+    suppressed: List[Tuple[Tuple[str, int, str, str], Dict[str, Any]]] = []
+    expired: List[Dict[str, Any]] = []
+    stale: List[Dict[str, Any]] = []
+    if baseline is not None:
+        try:
+            table = load_baseline(baseline)
+        except BaselineError as error:
+            print(f"[FAIL] {error}", file=sys.stderr)
+            print("Why: a baseline that cannot be read excuses nothing.", file=sys.stderr)
+            print("Fix: point --baseline at a version-1 file with owner and YYYY-MM-DD "
+                  "expiry on every entry.", file=sys.stderr)
+            print("=" * 58)
+            return 2
+        verdict = apply_baseline(findings, table, today=datetime.date.today())
+        findings = verdict["active"]
+        suppressed = verdict["suppressed"]
+        expired = verdict["expired"]
+        stale = verdict["stale"]
+        if expired or stale:
+            print(f"[FAIL] Secret baseline {baseline} needs attention:")
+            for entry in expired:
+                print(f"   - expired: {entry['path']} [{entry['detector']}] "
+                      f"(owner {entry['owner']}, lapsed {entry['expires']})")
+            for entry in stale:
+                print(f"   - stale: {entry['path']} [{entry['detector']}] matches nothing "
+                      f"(owner {entry['owner']})")
+            print("   Why: an expired acceptance re-opens the finding; a stale entry hides "
+                  "that the code moved on.")
+            print("   Fix: rotate and re-file, or delete the entry, then rerun.")
+            print("=" * 58)
+            return 1
+
     if not findings:
         print("[OK] No credential patterns or high-entropy literals detected.")
+        if suppressed:
+            print(f"      {len(suppressed)} finding(s) acknowledged under --baseline "
+                  f"{baseline}:")
+            for (label, lineno, detector, _excerpt), entry in suppressed[:12]:
+                print(f"   - {label}:{lineno} [{detector}] "
+                      f"(owner {entry['owner']}, until {entry['expires']})")
+            if len(suppressed) > 12:
+                print(f"   ... and {len(suppressed) - 12} more")
         if verbose:
             print(f"      {len(SECRET_PATTERNS)} detectors active; "
                   f"{len(ALLOWLIST_SUBSTRINGS)} allowlist tokens.")
@@ -573,8 +720,9 @@ def run_scan(mode: str = "staged", target: Optional[Path] = None,
     return 1
 
 
-KNOWN_FLAGS = {"--staged", "--all", "--file", "--commits", "--workspace", "--verbose", "-v", "--help", "-h"}
-VALUE_FLAGS = {"--file", "--commits", "--workspace"}
+KNOWN_FLAGS = {"--staged", "--all", "--file", "--commits", "--workspace", "--baseline",
+               "--verbose", "-v", "--help", "-h"}
+VALUE_FLAGS = {"--file", "--commits", "--workspace", "--baseline"}
 
 HELP_TEXT = """AIKit Secret & Sensitive Data Scanner (PRINCIPLE-019)
 
@@ -593,6 +741,9 @@ Options:
                    exactly what a push uploads (ADR-145)
   --workspace <dir>  Scan the git repository at <dir> instead of AIKit's, e.g. a project
                    under projects/ (ADR-121)
+  --baseline <file>  Acknowledge findings listed in a version-1 baseline file: every
+                   entry names path, detector, fingerprint, owner, YYYY-MM-DD
+                   expiry and reason (IDEA-1132). Expired or stale entries fail.
   --verbose, -v    Print detector and allowlist counts
   -h, --help       Show this help message and exit
 
@@ -667,6 +818,22 @@ if __name__ == "__main__":
             sys.exit(2)
         scan_repo = Path(argv[idx + 1]).resolve()
 
+    scan_baseline: Optional[Path] = None
+    if "--baseline" in argv:
+        idx = argv.index("--baseline")
+        if idx + 1 >= len(argv) or argv[idx + 1].startswith("-"):
+            print("[INVALID USAGE] --baseline requires a baseline file.", file=sys.stderr)
+            print("Why: an unnamed baseline excuses nothing.", file=sys.stderr)
+            print("Fix: pass '--baseline <file>', a version-1 JSON baseline.", file=sys.stderr)
+            sys.exit(2)
+        scan_baseline = Path(argv[idx + 1])
+        if not scan_baseline.is_file():
+            print(f"[INVALID USAGE] No baseline file: {scan_baseline}", file=sys.stderr)
+            print("Why: an explicit baseline that cannot be read excuses nothing.",
+                  file=sys.stderr)
+            print("Fix: point --baseline at the file, or drop the flag.", file=sys.stderr)
+            sys.exit(2)
+
     sys.exit(run_scan(mode=scan_mode, target=scan_target,
                       verbose=("--verbose" in argv or "-v" in argv), repo=scan_repo,
-                      commits=scan_commits_range))
+                      commits=scan_commits_range, baseline=scan_baseline))

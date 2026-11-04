@@ -3722,6 +3722,95 @@ class TestSecretHygieneScanner(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertEqual(secrets_module.scan_text("fixture.py", "note = 'hello world'\n"), [])
 
+    def test_expiring_owner_bound_baseline_acknowledges_and_lapses(self):
+        # IDEA-1132: unexpired owner-bound entries suppress; expired/stale fail loudly.
+        import datetime
+        import json
+        from scripts import check_secrets as secrets_module
+
+        line = "token = 'ghp_" + "B" * 36 + "'\n"
+        found = secrets_module.scan_text("fixture.py", line)
+        self.assertEqual(len(found), 1)
+        label, _lineno, detector, excerpt = found[0]
+        fingerprint = secrets_module.fingerprint_finding(label, detector, excerpt)
+        self.assertEqual(fingerprint,
+                         secrets_module.fingerprint_finding(label, detector, excerpt))
+        self.assertNotEqual(fingerprint,
+                            secrets_module.fingerprint_finding("other.py", detector,
+                                                               excerpt))
+
+        def baseline_file(entries):
+            root = Path(tempfile.mkdtemp(prefix="baseline_"))
+            self.addCleanup(shutil.rmtree, str(root), True)
+            path = root / "baseline.json"
+            path.write_text(json.dumps({"version": 1, "entries": entries}),
+                            encoding="utf-8")
+            return path
+
+        entry = {"path": label, "detector": detector, "fingerprint": fingerprint,
+                 "owner": "sec-team", "expires": "2099-01-01", "reason": "rotated quarterly"}
+        table = secrets_module.load_baseline(baseline_file([entry]))
+        verdict = secrets_module.apply_baseline(found, table,
+                                                today=datetime.date(2026, 11, 4))
+        self.assertEqual(verdict["active"], [])
+        self.assertEqual(len(verdict["suppressed"]), 1)
+        self.assertEqual(verdict["expired"], [])
+        self.assertEqual(verdict["stale"], [])
+
+        old = dict(entry, expires="2020-01-01")
+        table = secrets_module.load_baseline(baseline_file([old]))
+        verdict = secrets_module.apply_baseline(found, table,
+                                                today=datetime.date(2026, 11, 4))
+        self.assertEqual(len(verdict["active"]), 1)
+        self.assertEqual(len(verdict["expired"]), 1)
+
+        gone = dict(entry, path="elsewhere.py")
+        table = secrets_module.load_baseline(baseline_file([gone]))
+        verdict = secrets_module.apply_baseline([], table,
+                                                today=datetime.date(2026, 11, 4))
+        self.assertEqual(len(verdict["stale"]), 1)
+
+        bad_owner = dict(entry, owner="  ")
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(baseline_file([bad_owner]))
+        bad_date = dict(entry, expires="next Friday")
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(baseline_file([bad_date]))
+        bad_detector = dict(entry, detector="No Such Detector")
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(baseline_file([bad_detector]))
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(baseline_file([entry, entry]))
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(Path(tempfile.mkdtemp()) / "missing.json")
+
+    def test_baseline_file_mode_suppresses_owned_findings(self):
+        import io
+        import json
+        from contextlib import redirect_stdout
+        from scripts import check_secrets as secrets_module
+
+        root = Path(tempfile.mkdtemp(prefix="baseline_run_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        target = root / "leak.py"
+        target.write_text("token = 'ghp_" + "C" * 36 + "'\n", encoding="utf-8")
+        findings = secrets_module.scan_text("leak.py",
+                                            target.read_text(encoding="utf-8"))
+        self.assertEqual(len(findings), 1)
+        label, _lineno, detector, excerpt = findings[0]
+        table = root / "baseline.json"
+        table.write_text(json.dumps({"version": 1, "entries": [
+            {"path": label, "detector": detector,
+             "fingerprint": secrets_module.fingerprint_finding(label, detector, excerpt),
+             "owner": "sec-team", "expires": "2099-06-30", "reason": "tracked"}]}),
+            encoding="utf-8")
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = secrets_module.run_scan(mode="file", target=target, repo=root,
+                                           baseline=table)
+        self.assertEqual(code, 0, out.getvalue())
+        self.assertIn("acknowledged under --baseline", out.getvalue())
+
     def test_explicit_pragma_suppresses_everything(self):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
         self.assertEqual(scan_text("fixture.py", line), [],

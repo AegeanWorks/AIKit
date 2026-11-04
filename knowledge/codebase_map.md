@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `68`
-- **Total Classes**: `150`
-- **Total Top-Level Functions**: `936`
-- **Total Class Methods**: `1102`
-- **Total Source Lines**: `41720`
+- **Total Classes**: `151`
+- **Total Top-Level Functions**: `940`
+- **Total Class Methods**: `1104`
+- **Total Source Lines**: `41976`
 
 ---
 
@@ -771,7 +771,10 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `672` lines (`31366` bytes)
+**Size**: `839` lines (`39256` bytes)
+
+**Classes:**
+- `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
 
 **Functions:**
 - `def shannon_entropy(value)` - *Bits of entropy per character; random credentials score high, English prose low.*
@@ -795,7 +798,11 @@
 - `def iter_tracked_files(gaps, repo, include_self)`
 - `def scan_all(gaps, repo)`
 - `def scan_agent_memory(gaps, repo)` - *PRINCIPLE-019 Rule 3: agent working memory is tracked output. The ledger's free-text impact*
-- `def run_scan(mode, target, verbose, repo, commits)` - *Scan the requested surface plus agent memory, reporting tersely (PRINCIPLE-012 R4).*
+- `def fingerprint_finding(label, detector, excerpt)` - *Stable identity of one finding (IDEA-1132).*
+- `def _baseline_detector_names()` - *Detectors a baseline entry may name: raw plus encoded twins.*
+- `def load_baseline(path)` - *Read and validate a baseline file; closed schema (IDEA-1132).*
+- `def apply_baseline(findings, baseline, *, today)` - *Split findings against the baseline (IDEA-1132); pure, no I/O.*
+- `def run_scan(mode, target, verbose, repo, commits, baseline)` - *Scan the requested surface plus agent memory, reporting tersely (PRINCIPLE-012 R4).*
 
 ---
 
@@ -1798,7 +1805,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13068` lines (`718656` bytes)
+**Size**: `13157` lines (`723344` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2102,6 +2109,8 @@
   - Method `.test_weak_allowlist_cannot_veto_a_pattern_match()`
   - Method `.test_weak_allowlist_still_suppresses_entropy_fallback()`
   - Method `.test_encoded_pass_detects_base64_and_hex_payloads_bounded()`
+  - Method `.test_expiring_owner_bound_baseline_acknowledges_and_lapses()`
+  - Method `.test_baseline_file_mode_suppresses_owned_findings()`
   - Method `.test_explicit_pragma_suppresses_everything()`
   - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
   - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`
