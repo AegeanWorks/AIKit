@@ -8111,6 +8111,111 @@ class TestSubagentDelegation(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("timed out after 5s", output)
 
+class TestDelegateTranscript(unittest.TestCase):
+    """S-E: every delegate run writes an append-only JSONL transcript; replay returns the identical verdict."""
+
+    def setUp(self):
+        self.kit = Path(tempfile.mkdtemp(prefix="test_transcript_kit_"))
+        self.addCleanup(shutil.rmtree, self.kit, ignore_errors=True)
+        (self.kit / ".agents").mkdir(parents=True)
+        (self.kit / ".agents" / "task_ledger.json").write_text(
+            json.dumps({"version": 1, "active_task": None, "checkpoints": []}),
+            encoding="utf-8")
+        self.calls = []
+
+    def runner(self, returncode=0, stdout="ok", stderr=""):
+        def run(cmd, cwd, timeout):
+            self.calls.append((cmd, cwd, timeout))
+            return subprocess.CompletedProcess(cmd, returncode, stdout, stderr)
+        return run
+
+    def test_transcript_round_trip_returns_the_identical_verdict(self):
+        from scripts import delegate_transcript
+        path = self.kit / "delegate.jsonl"
+        code, output = delegate_subagent(
+            "worker", "summarize docs", workspace=self.kit,
+            runner=self.runner(stdout='{"type": "text", "part": {"text": "hello"}}'),
+            transcript_path=path)
+        self.assertEqual(code, 0)
+        self.assertTrue(path.is_file(), "delegate run must write its transcript")
+        before = list(self.calls)
+        rcode, rout = delegate_transcript.replay_transcript(path)
+        self.assertEqual((rcode, rout), (code, output))
+        self.assertEqual(self.calls, before, "replay must not invoke the runner again")
+        ok, detail = delegate_transcript.verify_transcript(path)
+        self.assertTrue(ok, detail)
+
+    def test_transcript_scrubs_secrets_before_writing(self):
+        from scripts import delegate_transcript
+        leak = "ghp_" + "A" * 36
+        path = self.kit / "leak.jsonl"
+        code, _ = delegate_subagent(
+            "worker", f"use {leak} now", workspace=self.kit,
+            runner=self.runner(stdout="done"), transcript_path=path)
+        self.assertEqual(code, 0)
+        raw = path.read_text(encoding="utf-8")
+        self.assertNotIn(leak, raw)
+        self.assertIn("[REDACTED]", raw)
+        ok, detail = delegate_transcript.verify_transcript(path)
+        self.assertTrue(ok, detail)
+
+    def test_replay_refuses_a_corrupt_transcript(self):
+        from scripts import delegate_transcript
+        path = self.kit / "bad.jsonl"
+        path.write_text('{"schema": 1, "seq": 1}\nnot json\n', encoding="utf-8")
+        ok, detail = delegate_transcript.verify_transcript(path)
+        self.assertFalse(ok)
+        self.assertIn("Why:", detail)
+        with self.assertRaises(ValueError):
+            delegate_transcript.replay_transcript(path)
+        self.assertEqual(self.calls, [], "corrupt replay must not run anything")
+
+
+class TestDelegateBudgets(unittest.TestCase):
+    """S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern)."""
+
+    def setUp(self):
+        self.kit = Path(tempfile.mkdtemp(prefix="test_budget_kit_"))
+        self.addCleanup(shutil.rmtree, self.kit, ignore_errors=True)
+        (self.kit / ".agents").mkdir(parents=True)
+        (self.kit / ".agents" / "task_ledger.json").write_text(
+            json.dumps({"version": 1, "active_task": None, "checkpoints": []}),
+            encoding="utf-8")
+        self.calls = []
+
+    def runner(self):
+        def run(cmd, cwd, timeout):
+            self.calls.append((cmd, cwd, timeout))
+            return subprocess.CompletedProcess(cmd, 0, "ok", "")
+        return run
+
+    def test_overlong_prompt_is_refused_before_running(self):
+        from scripts import subagent_delegate as delegate_mod
+        big = "x" * (delegate_mod.DELEGATE_MAX_PROMPT_CHARS + 1)
+        code, output = delegate_subagent(
+            "worker", big, workspace=self.kit, runner=self.runner())
+        self.assertEqual(code, 2)
+        self.assertIn("Why:", output)
+        self.assertIn("Fix:", output)
+        self.assertEqual(self.calls, [], "an overlong brief must never spawn")
+
+    def test_kill_file_refuses_before_running(self):
+        from scripts import subagent_delegate as delegate_mod
+        kill = delegate_mod.delegate_kill_path(self.kit)
+        kill.parent.mkdir(parents=True, exist_ok=True)
+        kill.write_text("stop", encoding="utf-8")
+        code, output = delegate_subagent(
+            "worker", "summarize docs", workspace=self.kit, runner=self.runner())
+        self.assertEqual(code, 1)
+        self.assertIn("Why:", output)
+        self.assertEqual(self.calls, [], "a killed delegate must never spawn")
+
+    def test_short_prompt_without_kill_file_still_runs(self):
+        code, output = delegate_subagent(
+            "worker", "summarize docs", workspace=self.kit, runner=self.runner())
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.calls), 1)
+
 class TestProjectGuidelines(unittest.TestCase):
     """A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129)."""
 

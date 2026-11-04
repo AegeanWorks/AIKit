@@ -85,6 +85,11 @@ PUBLIC_API_ALLOWLIST: Set[str] = {
     # evidence bundles (cause -> gate -> artifact) and compass reporting (scores as info).
     "emit_evidence",
     "compass_report",
+    # Delegate transcript replay: operators/tests replay a recorded transcript without
+    # invoking the runner again (S-E, ADR-321). No production path calls them; that is
+    # the point — replay must not spawn anything.
+    "verify_transcript",
+    "replay_transcript",
 }
 
 # Keys of third-party formats AIKit reads and never writes, so no AIKit writer can exist: the

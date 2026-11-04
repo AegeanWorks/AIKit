@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `65`
-- **Total Classes**: `142`
-- **Total Top-Level Functions**: `908`
-- **Total Class Methods**: `1071`
-- **Total Source Lines**: `40453`
+- **Total Python Modules**: `66`
+- **Total Classes**: `144`
+- **Total Top-Level Functions**: `918`
+- **Total Class Methods**: `1081`
+- **Total Source Lines**: `40814`
 
 ---
 
@@ -753,7 +753,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `370` lines (`16333` bytes)
+**Size**: `375` lines (`16609` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -819,6 +819,23 @@
 - `def run_tier(module, runner, attempts, retry_delay)` - *Measure one tier, or None when its output carried no summary. A green run over the ceiling is*
 - `def budget_errors(results)` - *One line per tier that is over its ceiling; empty when every tier fits.*
 - `def run_check(runner, verbose, retry_delay, sequential)`
+
+---
+
+### [`scripts/delegate_transcript.py`](scripts/delegate_transcript.py)
+> *Append-only JSONL transcript for sub-agent delegation (S-E).*
+
+**Size**: `200` lines (`8896` bytes)
+
+**Functions:**
+- `def _scrub_data(obj)` - *Scrub every string inside `obj` (keys are ours, values may be theirs).*
+- `def _sha(text)`
+- `def append_event(path, kind, data)` - *Append one scrubbed event; returns the stored event (with `seq`/`ts`).*
+- `def append_request(path, role, prompt, file, model, timeout, output_format)` - *Log a delegate invocation (prompt scrubbed, plus len+sha for replay audit).*
+- `def append_result(path, exit_code, output, duration_s)` - *Log a delegate outcome (output scrubbed, plus len+sha for identical-verdict proof).*
+- `def _load_events(path)` - *Parse every line; raises ValueError with Why/Fix on the first corrupt line.*
+- `def verify_transcript(path)` - *Check schema/seq/order/kinds/secrets; (True, detail) or (False, Why/Fix detail).*
+- `def replay_transcript(path)` - *Return the recorded (exit_code, output) without invoking any runner.*
 
 ---
 
@@ -1358,9 +1375,11 @@
 ### [`scripts/subagent_delegate.py`](scripts/subagent_delegate.py)
 > *Sub-agent delegation: run one OpenCode sub-agent on a bounded brief (ADR-126, ADR-128).*
 
-**Size**: `225` lines (`11491` bytes)
+**Size**: `276` lines (`14323` bytes)
 
 **Functions:**
+- `def delegate_kill_path(workspace)` - *Default kill-file location for `workspace` (S-D F2).*
+- `def delegate_killed(workspace, target)` - *A present kill file in workspace or target memory, else None (S-D F2).*
 - `def load_opencode_config(path)` - *The OpenCode configuration; its `providers` declare which Gemini models are free-tier.*
 - `def is_free_model(model, config)` - *Whether `model` (`provider/name`) costs nothing to call: an OpenCode `-free` or OpenRouter*
 - `def subagent_roles(agents_dir)` - *The roles OpenCode can run: one per profile in `.opencode/agents/` (the single source).*
@@ -1368,7 +1387,7 @@
 - `def opencode_command(runner_bin, role, prompt, file, model)` - *The `opencode run` argv for one headless sub-agent call.*
 - `def direct_executable(found)` - *The program to start for `found`: the executable an npm `.cmd` shim forwards to when it exists,*
 - `def _run_supervised(cmd, cwd, timeout)`
-- `def delegate_subagent(role, prompt, file, project_name, model, timeout, output_format, runner, workspace)` - *Run `role` on `prompt` in AIKit or in project `project_name`; returns (exit code, report).*
+- `def delegate_subagent(role, prompt, file, project_name, model, timeout, output_format, runner, workspace, transcript_path)` - *Run `role` on `prompt` in AIKit or in project `project_name`; returns (exit code, report).*
 - `def answer_text(stdout)` - *The sub-agent's own words from OpenCode's `--format json` event stream: the `text` parts in*
 
 ---
@@ -1740,7 +1759,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12651` lines (`699587` bytes)
+**Size**: `12756` lines (`704472` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2389,6 +2408,18 @@
   - Method `.test_json_and_failure_reports_scrub_credentials()`
   - Method `.test_a_changed_ledger_is_reported_and_never_overwritten()`
   - Method `.test_timeout_is_reported()`
+- `class TestDelegateTranscript` - *S-E: every delegate run writes an append-only JSONL transcript; replay returns the identical verdict.*
+  - Method `.setUp()`
+  - Method `.runner(returncode, stdout, stderr)`
+  - Method `.test_transcript_round_trip_returns_the_identical_verdict()`
+  - Method `.test_transcript_scrubs_secrets_before_writing()`
+  - Method `.test_replay_refuses_a_corrupt_transcript()`
+- `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
+  - Method `.setUp()`
+  - Method `.runner()`
+  - Method `.test_overlong_prompt_is_refused_before_running()`
+  - Method `.test_kill_file_refuses_before_running()`
+  - Method `.test_short_prompt_without_kill_file_still_runs()`
 - `class TestProjectGuidelines` - *A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129).*
   - Method `.setUp()`
   - Method `.rules(*lines)`

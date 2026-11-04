@@ -3392,3 +3392,19 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Stdlib-only `sanitized_env()` drops `PYTHONPATH`/`LD_PRELOAD`/`LD_LIBRARY_PATH`/`DYLD_*` (API keys kept); `supervised(..., env=None)` uses it by default with explicit-`env` override; `cwd_inside_repo()` + `run_cli()` refuses a repo-internal cwd with Why/Fix before spawning. No new dep, no daemon, win32/POSIX parity kept.
 - **Consequences**: Injection env no longer reaches supervised children (`subagent_delegate._run_supervised`, `project_gates.run_shell`, `reforge` verification inherit the scrub); dogfood tracks cannot accidentally run on the host tree. Failing-first pins in `TestSandboxHardening` (3 tests) plus regenerated `knowledge/codebase_map.md`.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-015 (jail + teardown), PRINCIPLE-010 (bounded spawn unchanged), PRINCIPLE-003 R4 (platform parity) and PRINCIPLE-014 (failing-first, reachability clean).
+
+### ADR-321: Append-only delegate transcript plus identical-verdict replay (S-E)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Sweep S-E deep-read `OpenHands:controller/replay.py + state_tracker.py + test_replay.py` (append-only event log + `ReplayManager`), `SWE-agent:sweagent/run/run_replay.py` (`.traj` bundle + `ReplayModel` + `--validate_only`) and OTel `gen-ai-spans` (content-by-reference `*_ref` URIs): `delegate_subagent` returned a report string and `answer_text()` deliberately strips tool calls, so no replay without a new model call existed.
+- **Decision**: Stdlib-only `scripts/delegate_transcript.py` (`request` then `result` JSONL, scrubbed on write, `len`+`sha256` per payload, fsync per append); `delegate_subagent(..., transcript_path=None)` logs opt-in (best-effort, never breaks the run); `verify_transcript` checks schema/seq/order/kinds/secrets and `replay_transcript` returns the recorded verdict without spawning. `verify/replay` are deliberate public API (reachability allowlist: replay must not spawn).
+- **Consequences**: Every opted-in delegate run is auditable and replayable end to end; secrets never touch the transcript (verified by re-scrub); token frugality kept (hashes on the hot path, sidecar only on replay). Failing-first pins in `TestDelegateTranscript` (3 tests) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-015 (transcript before autonomy), PRINCIPLE-019 (scrubbed at write, re-checked at verify), PRINCIPLE-012 (hashes not context) and PRINCIPLE-014 (failing-first, reachability clean).
+
+### ADR-322: Bounded delegate invocation — 16k prompt cap plus kill file (S-D F2 / S-B)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Sweep S-D deep-read `microsoft/autogen:conditions/_terminations.py` (composable `MaxMessage`/`TokenUsage`/`Timeout`/`ExternalTermination` kill-switch) and S-B deep-read `langgraph:tool_validator.py` (pre-execution validation): `delegate_subagent` accepted an unbounded brief and had no global stop; timeouts existed per-spawn but nothing bounded the invocation itself.
+- **Decision**: Stdlib-only `DELEGATE_MAX_PROMPT_CHARS = 16384` (PRINCIPLE-012 R1) refused with exit 2 before anything spawns, plus a polled kill file (`delegate_kill_path` in `.agents/` or `.aikit/`, `delegate_killed` over workspace+target) refused with exit 1 — a file, never a signal handler, so win32/POSIX parity holds. No new dep, no env reads.
+- **Consequences**: Overlong briefs and killed delegations never spawn (proven by `TestDelegateBudgets`: 2 refusals leave zero runner calls); normal runs unchanged. Failing-first pins (3 tests) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-012 (payload budget), PRINCIPLE-010 (bounded spawn), PRINCIPLE-008 (bounded brief) and PRINCIPLE-014 (failing-first, reachability clean).

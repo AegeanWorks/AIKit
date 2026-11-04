@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from scripts.check_secrets import scrub_text
+from scripts.delegate_transcript import append_request, append_result
 from scripts.disruption_recovery import ROOT_DIR, workspace_ledger_path
 from scripts.project_registry import ProjectError, find_project
 
@@ -32,6 +33,28 @@ SHELL_SCRIPT_SUFFIXES = (".cmd", ".bat")
 CMD_META_CHARS = frozenset('"%!^&|<>\r\n')
 # The executable an npm shim forwards to: `"%dp0%\node_modules\...\opencode.exe"   %*`.
 SHIM_TARGET_RE = re.compile(r'"%~?dp0%?\\?([^"%]+?\.exe)"', re.IGNORECASE)
+# Bounded invocation (S-D F2 autogen ExternalTermination + S-B pre-validation):
+# PRINCIPLE-012 R1 caps LLM payloads at 16k chars; a kill file is the portable
+# global stop (a polled file, never a signal handler, so win32/POSIX parity holds).
+DELEGATE_MAX_PROMPT_CHARS = 16384
+DELEGATE_KILL_FILENAME = "delegate.kill"
+
+
+def delegate_kill_path(workspace: Path) -> Path:
+    """Default kill-file location for `workspace` (S-D F2)."""
+    return Path(workspace) / ".agents" / DELEGATE_KILL_FILENAME
+
+
+def delegate_killed(workspace: Path, target: Path) -> Optional[Path]:
+    """A present kill file in workspace or target memory, else None (S-D F2)."""
+    for base in (Path(workspace), Path(target)):
+        for hit in (delegate_kill_path(base), base / ".aikit" / DELEGATE_KILL_FILENAME):
+            try:
+                if hit.is_file():
+                    return hit
+            except OSError:  # hygiene: allow unreadable probe; the next candidate is checked
+                continue
+    return None
 
 
 def load_opencode_config(path: Path = OPENCODE_CONFIG) -> Dict[str, Any]:
@@ -111,10 +134,14 @@ def delegate_subagent(
     output_format: str = "text",
     runner: Optional[Callable[..., subprocess.CompletedProcess]] = None,
     workspace: Path = ROOT_DIR,
+    transcript_path: Optional[Path] = None,
 ) -> Tuple[int, str]:
     """
     Run `role` on `prompt` in AIKit or in project `project_name`; returns (exit code, report).
     `runner(cmd, cwd=, timeout=)` defaults to a supervised OpenCode process (PRINCIPLE-009 R4).
+    When `transcript_path` is given, the scrubbed brief and the scrubbed outcome are
+    appended to that JSONL transcript (S-E), and `replay_transcript` can later return
+    the identical verdict without invoking the runner again.
     """
     roles = subagent_roles()
     if role not in roles:
@@ -131,6 +158,10 @@ def delegate_subagent(
         return 2, _triad("empty prompt provided.",
                          "a sub-agent needs a bounded brief (PRINCIPLE-008 R6).",
                          "pass the task as a non-empty quoted prompt.")
+    if len(prompt) > DELEGATE_MAX_PROMPT_CHARS:
+        return 2, _triad(f"prompt is {len(prompt)} characters; the limit is {DELEGATE_MAX_PROMPT_CHARS}.",
+                         "an unbounded brief burns the lead agent's context (PRINCIPLE-012 R1).",
+                         "narrow the brief (PRINCIPLE-008 R1) or split it across delegates.")
     target = workspace
     if project_name:
         try:
@@ -141,6 +172,11 @@ def delegate_subagent(
         return 2, _triad(f"target file '{file}' does not exist.",
                          "the sub-agent cannot inspect a file that is not there.",
                          "check the path (relative to the project), or omit --file.")
+    killed = delegate_killed(workspace, target)
+    if killed is not None:
+        return 1, _triad(f"delegate kill file present: {killed}.",
+                         "an operator stopped delegation (S-D F2 ExternalTermination).",
+                         "remove the kill file to resume delegation.")
 
     runner_bin = "opencode"
     if runner is None:
@@ -161,27 +197,42 @@ def delegate_subagent(
 
     ledgers = {workspace_ledger_path(workspace), workspace_ledger_path(target)}
     before = {path: path.read_bytes() if path.is_file() else None for path in ledgers}
+    transcript = Path(transcript_path) if transcript_path is not None else None
+    if transcript is not None:
+        try:
+            append_request(transcript, role, prompt, file, model, timeout, output_format)
+        except OSError:  # hygiene: allow transcript is observability; a failed log never breaks the run
+            transcript = None
     started = time.perf_counter()
+
+    def _logged(exit_code: int, report: str) -> Tuple[int, str]:
+        if transcript is not None:
+            try:
+                append_result(transcript, exit_code, report, time.perf_counter() - started)
+            except OSError:  # hygiene: allow best-effort result log; the verdict itself is returned
+                pass
+        return exit_code, report
+
     try:
         proc = runner(opencode_command(runner_bin, role, prompt, file, model), cwd=target, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return 1, _triad(f"subagent timed out after {timeout}s; its process tree was killed.",
-                         "an unbounded run holds the session (PRINCIPLE-010 R3).",
-                         "narrow the brief (PRINCIPLE-008 R1) or raise --timeout.")
+        return _logged(1, _triad(f"subagent timed out after {timeout}s; its process tree was killed.",
+                                 "an unbounded run holds the session (PRINCIPLE-010 R3).",
+                                 "narrow the brief (PRINCIPLE-008 R1) or raise --timeout."))
     except OSError as exc:
-        return 1, _triad(f"the subagent process could not start: {exc}",
-                         "the OpenCode binary failed to launch.",
-                         "run `opencode --version` to check the installation.")
+        return _logged(1, _triad(f"the subagent process could not start: {exc}",
+                                 "the OpenCode binary failed to launch.",
+                                 "run `opencode --version` to check the installation."))
     seconds = time.perf_counter() - started
 
     changed = [path for path, data in before.items()
                if (path.read_bytes() if path.is_file() else None) != data]
     if changed:
-        return 1, _triad(f"a task ledger changed during the subagent run: {', '.join(map(str, changed))}",
-                         "sub-agents must never write a ledger (PRINCIPLE-008 R6); a parallel session "
-                         "may also have checkpointed, so AIKit does not overwrite it.",
-                         "compare the file with `git diff`, keep the session's own entries, and remove "
-                         "any the sub-agent wrote.")
+        return _logged(1, _triad(f"a task ledger changed during the subagent run: {', '.join(map(str, changed))}",
+                                 "sub-agents must never write a ledger (PRINCIPLE-008 R6); a parallel session "
+                                 "may also have checkpointed, so AIKit does not overwrite it.",
+                                 "compare the file with `git diff`, keep the session's own entries, and remove "
+                                 "any the sub-agent wrote."))
 
     # Every report path is scrubbed here, not only inside `answer_text`: the JSON payload and the
     # failure text embed stdout/stderr directly, so a sub-agent could otherwise leak a credential
@@ -189,18 +240,18 @@ def delegate_subagent(
     safe_stdout, _ = scrub_text(proc.stdout or "")
     safe_stderr, _ = scrub_text(proc.stderr or "")
     if output_format == "json":
-        return proc.returncode, json.dumps({
+        return _logged(proc.returncode, json.dumps({
             "status": "success" if proc.returncode == 0 else "error",
             "agent": role,
             "exit_code": proc.returncode,
             "duration_seconds": round(seconds, 3),
             "output": safe_stdout.strip(),
             "ledger_shield": "unmutated",
-        }, indent=2)
+        }, indent=2))
     if proc.returncode != 0:
         detail = safe_stderr.strip() or safe_stdout.strip() or f"exit code {proc.returncode}"
-        return proc.returncode, f"[SUBAGENT ERROR ({role}, {seconds:.1f}s)]\n{detail}"
-    return 0, f"[SUBAGENT OK ({role}, {seconds:.1f}s)]\n{answer_text(proc.stdout)}"
+        return _logged(proc.returncode, f"[SUBAGENT ERROR ({role}, {seconds:.1f}s)]\n{detail}")
+    return _logged(0, f"[SUBAGENT OK ({role}, {seconds:.1f}s)]\n{answer_text(proc.stdout)}")
 
 
 def answer_text(stdout: str) -> str:
