@@ -3456,3 +3456,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Stdlib-only scripts/proof_corpus.py under .aikit/proof_corpus/: witness_key binds base plus declared tests plus tree manifest plus gate digest (same evidence always files under the same key, drift files anew), store files receipt plus optional envelope atomically, replay re-proves and compares verdicts (match pass, drift fail, missing evidence inconclusive), prune keeps the newest 20 by default and refuses negative caps. No import cycle with proof_gate: the corpus reads receipt JSON and imports the prover lazily inside replay().
 - **Consequences**: Every sealed proof can be filed and re-audited later; retention stays bounded. Failing-first pins in TestProofCorpus (witness stability, store/list/prune order, replay match/drift/missing, traversal refusal) plus regenerated map.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first, reproducible proofs), PRINCIPLE-013 (atomic writes) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-329: Pre-execution schema validation for delegate invocation (S-B)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Sweep S-B deep-read the tool-validator pattern (pre-execution validation runs before the tool): `delegate_subagent(output_format=...)` accepted any string and silently degraded unknown values to the text path.
+- **Decision**: Allowlist `("text", "json")` refused with exit 2 before anything spawns, next to the prompt-length and kill-file guards. No new dep, no new symbols.
+- **Consequences**: Schema violations fail fast with Why/Fix instead of silently degrading. Failing-first pin in `TestDelegateSchema` (1 test); no map change (no new symbols). Numbered 329: 324-328 taken by IDEA-1202/1133/1168/1169/1156.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-008 (bounded brief), PRINCIPLE-011 (Why/Fix) and PRINCIPLE-014 (failing-first).

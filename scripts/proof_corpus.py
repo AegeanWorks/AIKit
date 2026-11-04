@@ -177,10 +177,10 @@ def replay(entry: Mapping[str, Any], *,
     if prove_fn is None:
         try:
             from proof_gate import prove as prove_fn  # type: ignore[import-not-found]
-        except Exception:
+        except ImportError:
             try:
                 from scripts.proof_gate import prove as prove_fn  # type: ignore[import-not-found]
-            except Exception:
+            except ImportError:
                 return {"outcome": OUTCOME_INCONCLUSIVE,
                         "reason": "no prover available in this context"}
     try:
@@ -188,8 +188,8 @@ def replay(entry: Mapping[str, Any], *,
         fresh = prove_fn(repo=Path(repo), base=str(receipt.get("base", "")),
                          tests=[Path(value) for value in tests])
     except Exception as exc:
-        return {"outcome": OUTCOME_INCONCLUSIVE,
-                "reason": f"replay could not run: {exc}"}
+        detail = f"replay could not run: {exc}"
+        return {"outcome": OUTCOME_INCONCLUSIVE, "reason": detail}
     was_proof = bool(receipt.get("proof", False))
     is_proof = bool(fresh.get("proof", False))
     if is_proof == was_proof:
