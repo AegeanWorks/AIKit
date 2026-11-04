@@ -151,6 +151,7 @@ portable_agent_kit/
 │   ├── brand_catalog.json        <- Authored unique project identities
 │   ├── check_secrets.py          <- Secret/sensitive data scanner
 │   ├── evidence_outcome.py       <- Shared no-evidence inconclusive outcome (IDEA-1118)
+│   ├── proof_envelope.py         <- Sealed HMAC commit-proof envelope (IDEA-1168)
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
 │   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree

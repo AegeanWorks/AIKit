@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `64`
-- **Total Classes**: `140`
-- **Total Top-Level Functions**: `900`
-- **Total Class Methods**: `1066`
-- **Total Source Lines**: `40175`
+- **Total Python Modules**: `65`
+- **Total Classes**: `142`
+- **Total Top-Level Functions**: `908`
+- **Total Class Methods**: `1071`
+- **Total Source Lines**: `40453`
 
 ---
 
@@ -1298,6 +1298,26 @@
 
 ---
 
+### [`scripts/proof_envelope.py`](scripts/proof_envelope.py)
+> *Signed commit-proof envelope (IDEA-1168).*
+
+**Size**: `232` lines (`9939` bytes)
+
+**Classes:**
+- `class EnvelopeError` - *The envelope could not be sealed or read.*
+
+**Functions:**
+- `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (IDEA-1168).*
+- `def default_keys()` - *Key ring from the environment (IDEA-1168 custody: env only).*
+- `def seal(payload, *, key, keyid, ttl_seconds, now)` - *Seal a receipt payload into a signed envelope (IDEA-1168).*
+- `def verify(envelope, *, keys, now)` - *Verify a sealed envelope (IDEA-1168); fail-closed, never raises.*
+- `def build_parser()`
+- `def _read_json(path)`
+- `def _write_json(path, value)`
+- `def main(argv)`
+
+---
+
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
@@ -1720,7 +1740,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12605` lines (`697433` bytes)
+**Size**: `12651` lines (`699587` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2703,6 +2723,12 @@
   - Method `.test_tree_manifest_hashes_declared_files_sorted()`
   - Method `.test_write_receipt_records_dirty_and_digests()`
   - Method `.test_receipt_cli_flag_writes_file()`
+- `class TestProofEnvelope` - *IDEA-1168: canonical HMAC envelope seals a receipt; verify fails closed.*
+  - Method `.test_seal_then_verify_passes()`
+  - Method `.test_canonical_form_is_key_order_independent()`
+  - Method `.test_tampered_payload_fails_not_inconclusive()`
+  - Method `.test_expired_and_unknown_key_are_inconclusive()`
+  - Method `.test_empty_key_refuses_to_seal()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

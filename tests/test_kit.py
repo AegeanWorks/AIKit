@@ -12601,5 +12601,51 @@ class TestProofReceipt(unittest.TestCase):
         self.assertEqual(args.tests, ["tests/test_x.py"])
 
 
+class TestProofEnvelope(unittest.TestCase):
+    """IDEA-1168: canonical HMAC envelope seals a receipt; verify fails closed."""
+
+    def test_seal_then_verify_passes(self) -> None:
+        from scripts import proof_envelope
+
+        payload = {"proof": True, "base": "abc", "tests": ["a.py"]}
+        envelope = proof_envelope.seal(payload, key="k" * 32, now=1000)
+        result = proof_envelope.verify(envelope, keys={"local": "k" * 32}, now=1001)
+        self.assertEqual(result["outcome"], "pass")
+
+    def test_canonical_form_is_key_order_independent(self) -> None:
+        from scripts import proof_envelope
+
+        first = proof_envelope.seal({"b": 1, "a": 2}, key="k" * 32, now=1000)
+        second = proof_envelope.seal({"a": 2, "b": 1}, key="k" * 32, now=1000)
+        self.assertEqual(first["sig"], second["sig"])
+        self.assertEqual(first["payload_sha256"], second["payload_sha256"])
+
+    def test_tampered_payload_fails_not_inconclusive(self) -> None:
+        from scripts import proof_envelope
+
+        envelope = proof_envelope.seal({"proof": True}, key="k" * 32, now=1000)
+        envelope["payload"]["proof"] = False
+        result = proof_envelope.verify(envelope, keys={"local": "k" * 32}, now=1001)
+        self.assertEqual(result["outcome"], "fail")
+
+    def test_expired_and_unknown_key_are_inconclusive(self) -> None:
+        from scripts import proof_envelope
+
+        envelope = proof_envelope.seal({"proof": True}, key="k" * 32,
+                                       ttl_seconds=10, now=1000)
+        self.assertEqual(
+            proof_envelope.verify(envelope, keys={"local": "k" * 32},
+                                  now=2000)["outcome"], "inconclusive")
+        fresh = proof_envelope.seal({"proof": True}, key="k" * 32, now=1000)
+        self.assertEqual(
+            proof_envelope.verify(fresh, keys={"other": "k" * 32},
+                                  now=1001)["outcome"], "inconclusive")
+
+    def test_empty_key_refuses_to_seal(self) -> None:
+        from scripts import proof_envelope
+
+        with self.assertRaises(proof_envelope.EnvelopeError):
+            proof_envelope.seal({"proof": True}, key="")
+
 if __name__ == "__main__":
     unittest.main()
