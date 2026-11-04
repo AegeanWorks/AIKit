@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `66`
-- **Total Classes**: `144`
+- **Total Classes**: `145`
 - **Total Top-Level Functions**: `918`
-- **Total Class Methods**: `1081`
-- **Total Source Lines**: `40814`
+- **Total Class Methods**: `1087`
+- **Total Source Lines**: `40944`
 
 ---
 
@@ -1338,7 +1338,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `829` lines (`34177` bytes)
+**Size**: `887` lines (`37131` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1360,7 +1360,7 @@
 - `def _git(repo, *args, timeout)`
 - `def _resolve_base(repo, base, timeout)`
 - `def _copy_tests(repo, worktree, tests)` - *Copy each declared test into the base worktree and return its repo-relative path.*
-- `def prove(repo, *, base, tests, sources, mutants, min_killed, require_mutation, waive, timeout, runner)` - *Run the declared tests on the base and current trees and return the proof record.*
+- `def prove(repo, *, base, tests, pass_to_pass, sources, mutants, min_killed, require_mutation, waive, timeout, runner)` - *Run the declared tests on the base and current trees and return the proof record.*
 - `def _sha256_file(path)` - *SHA-256 of one file, or empty when unreadable (IDEA-1202 manifest).*
 - `def tree_manifest(repo, paths)` - *Content hashes of declared paths, repo-relative, sorted (IDEA-1202).*
 - `def gate_digest()` - *Hashes of the gate's own logic files (IDEA-1202 gate digest).*
@@ -1759,7 +1759,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12756` lines (`704472` bytes)
+**Size**: `12828` lines (`707786` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2420,6 +2420,13 @@
   - Method `.test_overlong_prompt_is_refused_before_running()`
   - Method `.test_kill_file_refuses_before_running()`
   - Method `.test_short_prompt_without_kill_file_still_runs()`
+- `class TestPassToPass` - *S-F: optional pass-to-pass frame — neighbors must hold on base and current.*
+  - Method `._repo()`
+  - Method `._runner(repo, keep_current)`
+  - Method `._prove(keep_current, with_p2p)`
+  - Method `.test_p2p_holds_alongside_fail_to_pass()`
+  - Method `.test_broken_p2p_fails_the_proof()`
+  - Method `.test_absent_p2p_keeps_the_old_contract()`
 - `class TestProjectGuidelines` - *A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129).*
   - Method `.setUp()`
   - Method `.rules(*lines)`

@@ -495,6 +495,7 @@ def prove(
     *,
     base: str = "HEAD~1",
     tests: Sequence[Path],
+    pass_to_pass: Sequence[Path] = (),
     sources: Sequence[Path] = (),
     mutants: int = 0,
     min_killed: int = DEFAULT_MIN_KILLED,
@@ -503,7 +504,12 @@ def prove(
     timeout: float = DEFAULT_TIMEOUT_SECONDS,
     runner: Runner = run_command,
 ) -> Dict[str, object]:
-    """Run the declared tests on the base and current trees and return the proof record."""
+    """Run the declared tests on the base and current trees and return the proof record.
+
+    `pass_to_pass` names neighbor tests that must hold on both trees (SWE-bench
+    Verified FAIL_TO_PASS + PASS_TO_PASS, S-F): the change under proof must not
+    break what already worked. Empty by default, so the old contract is unchanged.
+    """
     repo = Path(repo).resolve()
     if timeout <= 0:
         raise ProofError("timeout must be greater than zero")
@@ -561,7 +567,40 @@ def prove(
                     f"{test}: current verdict is {current_result['verdict']}, not a pass"
                 )
         failures.extend(fail_to_pass_failures)
-        for value in tests:
+        p2p_results: List[Dict[str, object]] = []
+        p2p_failures: List[str] = []
+        if pass_to_pass:
+            p2p_copied = _copy_tests(repo, worktree, pass_to_pass)
+            for relative in p2p_copied:
+                base_code, base_output = runner(test_argv(relative), worktree, timeout)
+                current_code, current_output = runner(test_argv(relative), repo, timeout)
+                p2p_results.append({
+                    "test": relative.as_posix(),
+                    "base": {
+                        "exit": base_code,
+                        "verdict": classify_run(base_code, base_output),
+                        "output": tail(base_output),
+                    },
+                    "current": {
+                        "exit": current_code,
+                        "verdict": classify_run(current_code, current_output),
+                        "output": tail(current_output),
+                    },
+                })
+            for row in p2p_results:
+                name = str(row["test"])
+                if row["base"]["verdict"] != "passed":
+                    p2p_failures.append(
+                        f"{name}: pass-to-pass base verdict is "
+                        f"{row['base']['verdict']}, not a pass"
+                    )
+                if row["current"]["verdict"] != "passed":
+                    p2p_failures.append(
+                        f"{name}: pass-to-pass current verdict is "
+                        f"{row['current']['verdict']}, not a pass"
+                    )
+        failures.extend(p2p_failures)
+        for value in list(tests) + list(pass_to_pass):
             source = value if value.is_absolute() else repo / value
             try:
                 text = source.read_text(encoding="utf-8")
@@ -599,8 +638,10 @@ def prove(
             _git(repo, "worktree", "remove", "--force", str(worktree), timeout=timeout)
         shutil.rmtree(tree, ignore_errors=True)
 
+    p2p_names = [str(row["test"]) for row in p2p_results]
     reason = "; ".join(failures) if failures else (
         "every test failed on base and passes now"
+        + (f"; pass-to-pass {len(p2p_results)}/{len(p2p_results)} hold" if p2p_results else "")
         + (f"; mutation {mutation['killed']}/{mutation['scored']} killed"
            + (f", {mutation['waived']} waived" if mutation["waived"] else "")
            if mutation else "")
@@ -611,6 +652,9 @@ def prove(
         "tests": [str(result["test"]) for result in results],
         "proof": not failures,
         "fail_to_pass": not fail_to_pass_failures,
+        "pass_to_pass": p2p_names,
+        "pass_to_pass_ok": not p2p_failures,
+        "p2p_results": p2p_results,
         "mutation": mutation,
         "reason": reason,
         "results": results,
@@ -702,6 +746,8 @@ def write_receipt(result: Dict[str, object], dest: Path) -> Dict[str, object]:
         "schema": 1,
         "base": result.get("base", ""),
         "tests": list(result.get("tests", [])),
+        "pass_to_pass": list(result.get("pass_to_pass", [])),
+        "pass_to_pass_ok": bool(result.get("pass_to_pass_ok", True)),
         "proof": bool(result.get("proof", False)),
         "reason": str(result.get("reason", "")),
         "tree_manifest": manifest,
@@ -740,13 +786,22 @@ def render_text(result: Dict[str, object]) -> str:
     """A terse human report for the CLI."""
     lines = [
         f"{'[OK]' if result['proof'] else '[FAIL]'} {result['reason']}",
-        f"       base {result['base']} · {len(result['tests'])} test file(s)",
+        f"       base {result['base']} · {len(result['tests'])} test file(s)"
+        + (f" · {len(result.get('pass_to_pass', []))} pass-to-pass"
+           if result.get("pass_to_pass") else ""),
     ]
     for row in result["results"]:
         base = row["base"]
         current = row["current"]
         lines.append(
             f"       {row['test']}: base {base['verdict']} (exit {base['exit']}) · "
+            f"current {current['verdict']} (exit {current['exit']})"
+        )
+    for row in result.get("p2p_results", []):
+        base = row["base"]
+        current = row["current"]
+        lines.append(
+            f"       {row['test']} [p2p]: base {base['verdict']} (exit {base['exit']}) · "
             f"current {current['verdict']} (exit {current['exit']})"
         )
     mutation = result.get("mutation")
@@ -774,6 +829,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--base", default="HEAD~1", help="base commit or revision (default: HEAD~1)")
     parser.add_argument("--tests", nargs="+", required=True, metavar="PATH",
                         help="declared test file(s), relative to the repository")
+    parser.add_argument("--pass-to-pass", nargs="+", default=[], metavar="PATH",
+                        help="neighbor test file(s) that must pass on base and current")
     parser.add_argument("--sources", nargs="+", default=[], metavar="PATH",
                         help="changed source file(s) to mutate; enables mutation scoring")
     parser.add_argument("--mutants", type=int, default=0,
@@ -799,6 +856,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = prove(
             Path(args.repo), base=args.base,
             tests=[Path(value) for value in args.tests],
+            pass_to_pass=[Path(value) for value in args.pass_to_pass],
             sources=[Path(value) for value in args.sources],
             mutants=args.mutants, min_killed=args.min_killed,
             require_mutation=args.require_mutation, waive=args.waive, timeout=args.timeout,

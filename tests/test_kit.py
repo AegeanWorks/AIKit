@@ -8216,6 +8216,78 @@ class TestDelegateBudgets(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(len(self.calls), 1)
 
+
+class TestPassToPass(unittest.TestCase):
+    """S-F: optional pass-to-pass frame — neighbors must hold on base and current.
+
+    Unit tier forbids spawns, so git plumbing is mocked at `_git`/`_resolve_base`
+    (real worktree behavior is covered by the integration `prove()` tests); the
+    test-runner decisions are faked per tree, which is exactly the P2P logic.
+    """
+
+    def _repo(self):
+        from scripts import proof_gate
+        root = Path(tempfile.mkdtemp(prefix="proof_p2p_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        repo = root / "repo"
+        (repo / "tests").mkdir(parents=True)
+        (repo / "app.py").write_text("VALUE = 2\n", encoding="utf-8")
+        (repo / "tests" / "test_fix.py").write_text(
+            "import unittest\nfrom app import VALUE\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_run(self):\n        self.assertEqual(VALUE, 2)\n",
+            encoding="utf-8")
+        (repo / "tests" / "test_keep.py").write_text(
+            "import unittest\nfrom app import VALUE\n"
+            "class T(unittest.TestCase):\n"
+            "    def test_run(self):\n        self.assertGreaterEqual(VALUE, 1)\n",
+            encoding="utf-8")
+        return proof_gate, repo
+
+    def _runner(self, repo, keep_current):
+        def run(argv, cwd, timeout):
+            module = argv[-1]
+            on_base = Path(cwd) != Path(repo).resolve()
+            if module == "tests.test_fix":
+                return (1, "FAILED (failures=1)") if on_base else (0, "OK")
+            if module == "tests.test_keep":
+                if on_base:
+                    return (0, "OK")
+                return (0, "OK") if keep_current else (1, "FAILED (failures=1)")
+            raise AssertionError(f"unexpected module {module}")
+        return run
+
+    def _prove(self, keep_current, with_p2p):
+        proof_gate, repo = self._repo()
+        with mock.patch.object(proof_gate, "_resolve_base", return_value="0" * 40), \
+             mock.patch.object(proof_gate, "_git", return_value=(0, "")):
+            return proof_gate.prove(
+                repo, base="HEAD", tests=[Path("tests/test_fix.py")],
+                timeout=5.0, runner=self._runner(repo, keep_current),
+                **({"pass_to_pass": [Path("tests/test_keep.py")]} if with_p2p else {}))
+
+    def test_p2p_holds_alongside_fail_to_pass(self):
+        result = self._prove(keep_current=True, with_p2p=True)
+        self.assertTrue(result["proof"], result["reason"])
+        self.assertTrue(result["pass_to_pass_ok"])
+        self.assertEqual(len(result["p2p_results"]), 1)
+        row = result["p2p_results"][0]
+        self.assertEqual(row["base"]["verdict"], "passed")
+        self.assertEqual(row["current"]["verdict"], "passed")
+
+    def test_broken_p2p_fails_the_proof(self):
+        result = self._prove(keep_current=False, with_p2p=True)
+        self.assertFalse(result["proof"])
+        self.assertFalse(result["pass_to_pass_ok"])
+        self.assertIn("pass-to-pass", result["reason"])
+
+    def test_absent_p2p_keeps_the_old_contract(self):
+        result = self._prove(keep_current=True, with_p2p=False)
+        self.assertTrue(result["proof"], result["reason"])
+        self.assertEqual(result["pass_to_pass"], [])
+        self.assertTrue(result["pass_to_pass_ok"])
+
+
 class TestProjectGuidelines(unittest.TestCase):
     """A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129)."""
 
