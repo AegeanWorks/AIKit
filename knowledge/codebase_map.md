@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `67`
-- **Total Classes**: `147`
+- **Total Classes**: `149`
 - **Total Top-Level Functions**: `922`
-- **Total Class Methods**: `1092`
-- **Total Source Lines**: `41231`
+- **Total Class Methods**: `1097`
+- **Total Source Lines**: `41323`
 
 ---
 
@@ -1391,7 +1391,7 @@
 ### [`scripts/subagent_delegate.py`](scripts/subagent_delegate.py)
 > *Sub-agent delegation: run one OpenCode sub-agent on a bounded brief (ADR-126, ADR-128).*
 
-**Size**: `276` lines (`14323` bytes)
+**Size**: `280` lines (`14647` bytes)
 
 **Functions:**
 - `def delegate_kill_path(workspace)` - *Default kill-file location for `workspace` (S-D F2).*
@@ -1775,7 +1775,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12917` lines (`712192` bytes)
+**Size**: `13005` lines (`716097` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2436,6 +2436,17 @@
   - Method `.test_overlong_prompt_is_refused_before_running()`
   - Method `.test_kill_file_refuses_before_running()`
   - Method `.test_short_prompt_without_kill_file_still_runs()`
+- `class TestEvidencePolicy` - *IDEA-1169: a named policy decides step attestations; fail always wins.*
+  - Method `.test_closed_vocabulary_rejects_unknown_policy()`
+  - Method `.test_require_all_needs_every_pass_and_refuses_empty()`
+  - Method `.test_quorum_counts_passes_but_never_outvotes_a_fail()`
+  - Method `.test_sealed_attestation_is_decided_by_envelope_verification()`
+  - Method `.test_verify_commit_accepts_a_policy_and_keeps_default_verdicts()`
+- `class TestProofCorpus` - *IDEA-1156: receipts file under content witness keys; replay compares verdicts.*
+  - Method `._receipt(**overrides)`
+  - Method `.test_witness_key_is_stable_and_content_bound()`
+  - Method `.test_store_lists_and_prunes_oldest_first()`
+  - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
 - `class TestPassToPass` - *S-F: optional pass-to-pass frame — neighbors must hold on base and current.*
   - Method `._repo()`
   - Method `._runner(repo, keep_current)`
@@ -2443,6 +2454,8 @@
   - Method `.test_p2p_holds_alongside_fail_to_pass()`
   - Method `.test_broken_p2p_fails_the_proof()`
   - Method `.test_absent_p2p_keeps_the_old_contract()`
+- `class TestDelegateSchema` - *S-B: pre-execution schema validation — unknown enums never spawn (ValidationNode pattern).*
+  - Method `.test_unknown_output_format_is_refused_before_running()`
 - `class TestProjectGuidelines` - *A project's own rules, below AIKit's principles (PRINCIPLE-001 R4, PRINCIPLE-000 R6, ADR-129).*
   - Method `.setUp()`
   - Method `.rules(*lines)`
@@ -2783,12 +2796,6 @@
   - Method `.test_tampered_payload_fails_not_inconclusive()`
   - Method `.test_expired_and_unknown_key_are_inconclusive()`
   - Method `.test_empty_key_refuses_to_seal()`
-- `class TestEvidencePolicy` - *IDEA-1169: a named policy decides step attestations; fail always wins.*
-  - Method `.test_closed_vocabulary_rejects_unknown_policy()`
-  - Method `.test_require_all_needs_every_pass_and_refuses_empty()`
-  - Method `.test_quorum_counts_passes_but_never_outvotes_a_fail()`
-  - Method `.test_sealed_attestation_is_decided_by_envelope_verification()`
-  - Method `.test_verify_commit_accepts_a_policy_and_keeps_default_verdicts()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`
