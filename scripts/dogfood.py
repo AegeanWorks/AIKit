@@ -59,6 +59,30 @@ PROC_TIMEOUT = 10  # PRINCIPLE-010 R3: no unbounded subprocess
 MAX_REPORT_LINES = 15  # PRINCIPLE-015 R7: terse dashboard
 FINGERPRINT_CHUNK = 1 << 20  # PRINCIPLE-010: stream dirty files instead of reading them whole
 
+# Code-injection vectors scrubbed from every supervised child (S-A F1/F2: nsjail
+# `clone_newnet`/seccomp-deny + Codex deny-net/protected-paths, ported stdlib-only).
+# API keys are NOT scrubbed: free-tier providers still need their keys and existing
+# delegation paths rely on the parent environment.
+SANITIZED_ENV_DENY = frozenset({
+    "PYTHONPATH", "LD_PRELOAD", "LD_LIBRARY_PATH",
+    "DYLD_INSERT_LIBRARIES", "DYLD_FALLBACK_LIBRARY_PATH",
+})
+
+
+def sanitized_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """Child env without code-injection vectors (S-A F1/F2)."""
+    source = base if base is not None else os.environ
+    return {k: v for k, v in source.items() if k not in SANITIZED_ENV_DENY}
+
+
+def cwd_inside_repo(cwd: Path) -> bool:
+    """Whether `cwd` resolves inside the AIKit checkout (dogfood must never run there)."""
+    try:
+        Path(cwd).resolve().relative_to(ROOT_DIR.resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
 
 # --------------------------------------------------------------------------------------
 # Process supervision (PRINCIPLE-015 Rule 2)
@@ -96,14 +120,18 @@ def terminate_process_tree(proc: "subprocess.Popen") -> None:
 
 
 @contextmanager
-def supervised(argv: Union[str, List[str]], cwd: Path):
+def supervised(argv: Union[str, List[str]], cwd: Path,
+               env: Optional[Dict[str, str]] = None):
     """
     RAII supervisor: guarantees recursive teardown even if the body raises. `argv` is a list, or
     on Windows a command line string for commands whose quoting `list2cmdline` would mangle.
+    The child env is scrubbed of code-injection vectors unless the caller passes `env`
+    explicitly (S-A F1/F2).
     """
     kwargs: Dict[str, Any] = {}
     if sys.platform != "win32":
         kwargs["start_new_session"] = True  # own process group, so killpg reaches children
+    child_env = dict(env) if env is not None else sanitized_env()
     # Decode as UTF-8 explicitly. AIKit's CLIs reconfigure stdout to UTF-8 on Windows and emit
     # non-ASCII status glyphs, so letting Python fall back to the locale codec (e.g. cp1254 on a
     # Turkish Windows install) kills the reader thread with UnicodeDecodeError and silently
@@ -111,7 +139,7 @@ def supervised(argv: Union[str, List[str]], cwd: Path):
     proc = subprocess.Popen(  # hygiene: allow caller bounds communicate(timeout=PROC_TIMEOUT) in run_cli
         argv, cwd=str(cwd), stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, encoding="utf-8", errors="replace", **kwargs,
+        text=True, encoding="utf-8", errors="replace", env=child_env, **kwargs,
     )
     try:
         yield proc
@@ -142,7 +170,14 @@ def run_cli(script: Path, args: List[str], cwd: Path) -> Tuple[int, str, str]:
 
     Note: `disruption_recovery.py` anchors its ledger to the repository, not to the working
     directory, so callers MUST pass `--workspace` to keep writes inside the jail.
+    A cwd inside the repository is refused before spawning (S-A F2 protected-paths):
+    dogfood tracks must run inside the jail, never on the host tree.
     """
+    if cwd_inside_repo(cwd):
+        return (1, "",
+                "[REFUSED] dogfood run_cli cwd inside the repository\n"
+                "Why: running the CLI on the host tree can mutate tracked content.\n"
+                "Fix: run inside the sandbox jail, not the repository.")
     with supervised([sys.executable, str(script), *args], cwd) as proc:
         try:
             out, err = proc.communicate(timeout=PROC_TIMEOUT)

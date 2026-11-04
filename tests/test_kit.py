@@ -1757,6 +1757,59 @@ class TestDogfoodFingerprint(unittest.TestCase):
         self.assertFalse(any("retry" in line for line in log))
 
 
+class TestSandboxHardening(unittest.TestCase):
+    """S-A F1/F2: supervised() must not leak code-injection env; run_cli() must not run inside the repo."""
+
+    def test_sanitized_env_drops_injection_vars(self):
+        from scripts import dogfood
+        base = {"PATH": "/bin", "PYTHONPATH": "/tmp/evil",
+                "LD_PRELOAD": "/tmp/evil.so", "LD_LIBRARY_PATH": "/tmp",
+                "KEEP": "yes"}
+        cleaned = dogfood.sanitized_env(base)
+        self.assertNotIn("PYTHONPATH", cleaned)
+        self.assertNotIn("LD_PRELOAD", cleaned)
+        self.assertNotIn("LD_LIBRARY_PATH", cleaned)
+        self.assertEqual(cleaned.get("KEEP"), "yes")
+        self.assertEqual(cleaned.get("PATH"), "/bin")
+
+    def test_supervised_scrubs_child_env(self):
+        from scripts import dogfood
+        seen = {}
+
+        class FakeProc:
+            def poll(self):
+                return 0
+
+            def wait(self, timeout=None):
+                return 0
+
+        def fake_popen(argv, cwd=None, stdin=None, stdout=None, stderr=None,
+                       text=None, encoding=None, errors=None, env=None, **kwargs):
+            seen["env"] = env
+            return FakeProc()
+
+        jail = Path(tempfile.mkdtemp(prefix="test_sandbox_env_"))
+        self.addCleanup(shutil.rmtree, jail, ignore_errors=True)
+        with mock.patch.dict("os.environ", {"PYTHONPATH": "/tmp/evil",
+                                             "LD_PRELOAD": "/tmp/evil.so"}), \
+             mock.patch.object(dogfood.subprocess, "Popen", side_effect=fake_popen):
+            with dogfood.supervised([sys.executable, "--version"], jail):
+                pass
+        self.assertIsNotNone(seen.get("env"), "child env must be explicit, not inherited")
+        self.assertNotIn("PYTHONPATH", seen["env"])
+        self.assertNotIn("LD_PRELOAD", seen["env"])
+
+    def test_run_cli_refuses_repo_cwd(self):
+        from scripts import dogfood
+        with mock.patch("scripts.dogfood.supervised") as sup:
+            code, out, err = dogfood.run_cli(
+                dogfood.LEDGER_CLI, ["--help"], dogfood.ROOT_DIR)
+        self.assertEqual(code, 1)
+        self.assertIn("Why:", err)
+        self.assertIn("Fix:", err)
+        sup.assert_not_called()
+
+
 class TestAdrRegister(unittest.TestCase):
     """PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069)."""
 

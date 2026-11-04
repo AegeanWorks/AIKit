@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `64`
-- **Total Classes**: `138`
-- **Total Top-Level Functions**: `900`
-- **Total Class Methods**: `1062`
-- **Total Source Lines**: `40205`
+- **Total Classes**: `139`
+- **Total Top-Level Functions**: `902`
+- **Total Class Methods**: `1065`
+- **Total Source Lines**: `40293`
 
 ---
 
@@ -915,11 +915,13 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `637` lines (`28820` bytes)
+**Size**: `672` lines (`30503` bytes)
 
 **Functions:**
+- `def sanitized_env(base)` - *Child env without code-injection vectors (S-A F1/F2).*
+- `def cwd_inside_repo(cwd)` - *Whether `cwd` resolves inside the AIKit checkout (dogfood must never run there).*
 - `def terminate_process_tree(proc)` - *Kill a process and all of its children (PRINCIPLE-015 Rule 2).*
-- `def supervised(argv, cwd)` - *RAII supervisor: guarantees recursive teardown even if the body raises. `argv` is a list, or*
+- `def supervised(argv, cwd, env)` - *RAII supervisor: guarantees recursive teardown even if the body raises. `argv` is a list, or*
 - `def sandbox_jail()` - *Ephemeral workspace outside the repository and outside host user directories*
 - `def run_cli(script, args, cwd)` - *Invoke a CLI as a real binary with stdin closed (PRINCIPLE-015 Rule 3 EOF safety).*
 - `def _is_transient_fixture(path)` - *Transient test scaffolding invisible to the blast hash (Stage 4 CHECK convention).*
@@ -1723,7 +1725,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12484` lines (`691725` bytes)
+**Size**: `12537` lines (`693958` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1860,6 +1862,10 @@
   - Method `.test_readonly_gates_retry_a_timeout_once_then_pass()`
   - Method `.test_readonly_gates_still_fail_on_double_timeout()`
   - Method `.test_readonly_gates_never_retry_a_real_failure()`
+- `class TestSandboxHardening` - *S-A F1/F2: supervised() must not leak code-injection env; run_cli() must not run inside the repo.*
+  - Method `.test_sanitized_env_drops_injection_vars()`
+  - Method `.test_supervised_scrubs_child_env()`
+  - Method `.test_run_cli_refuses_repo_cwd()`
 - `class TestAdrRegister` - *PRINCIPLE-016 R3 / PRINCIPLE-000 R3: ADR IDs are unique and consecutive (ADR-069).*
   - Method `.register(*numbers)`
   - Method `.test_consecutive_ids_pass()`
