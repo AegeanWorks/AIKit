@@ -3416,3 +3416,35 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Opt-in `prove(..., pass_to_pass=())` plus `--pass-to-pass`: each neighbor runs on base and current and must pass on both; failures fail the proof with `pass-to-pass` in the reason. Record gains `pass_to_pass`, `pass_to_pass_ok`, `p2p_results`; receipt and `render_text` carry the frame; default empty keeps the old contract byte-identical. No new dep.
 - **Consequences**: A change that fixes its target while breaking a neighbor no longer proves. Failing-first pins in `TestPassToPass` (3, mocked git plumbing; real worktree path covered by integration `prove()` tests) plus regenerated map.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first, no vacuous pass), PRINCIPLE-000 R5 (fail-closed) and PRINCIPLE-016 (paired here).
+
+### ADR-324: Reproducible proof receipt with tree manifest and gate digest (IDEA-1202)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: `prove()` kept its verdict in memory and deleted the base worktree (`rmtree`), so no artifact bound a green run to the tree and gates that produced it; a later tree could claim an earlier proof.
+- **Decision**: Stdlib-only receipt in `scripts/proof_gate.py`: `tree_manifest` (sorted sha256 of declared tests+sources, unreadable entries hash empty), `gate_digest` (hashes of `proof_gate.py` + `evidence_outcome.py`), `dirty_paths` (porcelain list, None = unknown, never reported clean), atomic `write_receipt` (temp + fsync + replace, schema 1) plus `--receipt` CLI flag. Dirty/unknown trees are recorded, never reported clean. Additive: `prove()` return shape unchanged.
+- **Consequences**: Every proof can persist a self-describing receipt; the corpus (IDEA-1156) and envelope (IDEA-1168) build on it. Failing-first pins in `TestProofReceipt` (manifest order/hashes, receipt schema, CLI flag) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first, reproducible proof), PRINCIPLE-013 (atomic write) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-325: Bounded encoded-payload passes for the secret scanner (IDEA-1133)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: `scan_text` matched raw lines only, so a credential pasted as base64/hex (folded env files, copied blobs) sailed through every pattern and entropy pass.
+- **Decision**: Bounded second pass in `scripts/check_secrets.py`: at most 2 candidates/line, 160 chars each, single decode depth, stdlib only; findings report `encoded-<detector>` so raw and decoded surfaces triage separately; a scoped pragma naming either the encoded or raw detector excuses the finding while `DETECTOR_NAMES` stays closed. The byte-to-text gate decodes strict-first and rejects replacement-heavy output, so a base64 reading of a hex string cannot shadow the true hex decode.
+- **Consequences**: Encoded twins of every known shape are caught with no measurable budget impact (bounded work, early break on first hit); prose and digests unaffected. The failing-first test caught a real shadowing bug before landing. Failing-first pins in `TestSecretHygieneScanner.test_encoded_pass_detects_base64_and_hex_payloads_bounded` plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-019 (no silent credential surface), PRINCIPLE-010 (bounded work inside the 20ms unit budget) and PRINCIPLE-014 (failing-first); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-326: Signed commit-proof envelope (IDEA-1168)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: prove() verdicts lived in memory and verify_commit appended plain text; no tamper-evident binding existed between a verdict and the evidence it cited.
+- **Decision**: Stdlib-only scripts/proof_envelope.py: canonical JSON (sorted keys, compact separators), HMAC-SHA256 seal with keyid plus 90-day default TTL, expiry refusal; custody is symmetric key via AIKIT_PROOF_KEY env only, never logged or stored. Verify returns pass, fail on tamper evidence (bad signature, payload hash mismatch), inconclusive on unverifiable (expired, unknown keyid, bad shape).
+- **Consequences**: Sealed receipts are self-verifying; the evidence policy (IDEA-1169) builds on verify(). Failing-first pins in TestProofEnvelope (seal/verify round-trip, canonical stability, tamper-fails, expiry and unknown-key inconclusive, empty-key refusal) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first), PRINCIPLE-019 (key never logged) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.
+
+### ADR-327: Named evidence policy over step attestations (IDEA-1169)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: verify_commit hardcoded all-must-pass over a fixed six-gate list with no named policy and no way to verify sealed evidence; any quorum or sealed-evidence rule would have meant editing the verdict logic inline.
+- **Decision**: Stdlib-only scripts/evidence_policy.py (closed vocabulary require-all and quorum:N, attest() records step plus shared-model outcome plus evidence hash, evaluate() fail-closed with tamper-always-wins and sealed-envelope hook into proof_envelope.verify); verify_commit builds attestations from gate results, evaluates the default require-all (byte-identical verdicts), and accepts --policy for the named alternative. A sealed attestation carrying an envelope is decided by envelope verification when keys are supplied.
+- **Consequences**: The gate set can grow policy without touching the fail-closed core; sealed evidence plugs in without a flag day. Failing-first pins in TestEvidencePolicy (vocabulary, require-all, quorum veto, sealed override, verify_commit policy plumbing) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first), PRINCIPLE-009 (pluggable policy) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.

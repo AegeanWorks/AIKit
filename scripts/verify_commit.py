@@ -34,8 +34,29 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 PROOF_FILE = Path(".aikit") / "proof.json"
 # The declaration schema: these are the keys the reader below consumes, kept in one literal so
 # the reachability shield can see every persisted key has a producer. This file runs directly
-# (`python scripts/verify_commit.py`), so it takes no `from scripts` imports; the min_killed
-# default is pinned to proof_gate.DEFAULT_MIN_KILLED by a unit test instead of an import.
+# (`python scripts/verify_commit.py`), so `from scripts` imports live behind a direct-run-first
+# fallback (the min_killed default is still pinned to proof_gate.DEFAULT_MIN_KILLED by a unit
+# test instead of an import).
+try:  # hygiene: allow [silent-except] optional shared-policy import fallback path
+    from evidence_policy import (  # type: ignore[import-not-found]
+        OUTCOME_PASS,
+        PolicyError,
+        attest,
+        evaluate,
+    )
+except Exception:  # pragma: no cover - import fallback for test imports
+    try:
+        from scripts.evidence_policy import (  # type: ignore[import-not-found]
+            OUTCOME_PASS,
+            PolicyError,
+            attest,
+            evaluate,
+        )
+    except Exception:
+        OUTCOME_PASS = "pass"
+        PolicyError = ValueError  # type: ignore[no-redef]
+        attest = None  # type: ignore[no-redef]
+        evaluate = None  # type: ignore[no-redef]
 PROOF_DEFAULTS = {
     "tests": [],
     "sources": [],
@@ -269,10 +290,13 @@ def recovery_fix(ref: str, resolved: str, repo: Path, run: Runner) -> str:
 
 
 def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
-                  runner: Optional[Runner] = None) -> Tuple[int, List[str]]:
+                   runner: Optional[Runner] = None,
+                   policy: str = "require-all") -> Tuple[int, List[str]]:
     """
     Run every gate against `ref` checked out on its own; returns (exit code, report lines).
     `runner` defaults to real subprocesses (PRINCIPLE-009 R4: the tests inject a double).
+    `policy` names the evidence policy over the step attestations (IDEA-1169);
+    the default keeps the historical all-must-pass verdict byte-identical.
     """
     run = runner or run_command
     report: List[str] = []
@@ -295,28 +319,34 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
                        "Fix: fix the git error above, then run this gate again."]
         worktree_added = True
         failures = []
+        steps: List[Tuple[str, bool, str]] = []
         for name, argv, timeout in gate_commands(secret_range):
             # An injected runner declares two arguments, so only the real one receives the bound.
             code, output = (run_command(argv, worktree, timeout) if runner is None
                             else run(argv, worktree))
             report.append(f"[{'PASS' if code == 0 else 'FAIL'}] {name}")
+            tail = "\n".join([line for line in output.splitlines() if line.strip()]
+                             [-FAILURE_TAIL_LINES:])
+            steps.append((name, code == 0, tail))
             if code != 0:
                 failures.append(name)
-                report += [f"       {line}" for line in
-                           [l for l in output.splitlines() if l.strip()][-FAILURE_TAIL_LINES:]]
+                report += [f"       {line}" for line in tail.splitlines()]
         try:
             proof_command = proof_gate_command(worktree, ref, run)
         except (OSError, ValueError) as exc:
             report.append(f"[FAIL] proof declaration: {exc}")
             failures.append("proof")
+            steps.append(("proof", False, str(exc)))
         else:
             if proof_command:
                 code, output = run(proof_command, worktree)
                 report.append(f"[{'PASS' if code == 0 else 'FAIL'}] proof")
+                tail = "\n".join([line for line in output.splitlines() if line.strip()]
+                                 [-FAILURE_TAIL_LINES:])
+                steps.append(("proof", code == 0, tail))
                 if code != 0:
                     failures.append("proof")
-                    report += [f"       {line}" for line in
-                               [l for l in output.splitlines() if l.strip()][-FAILURE_TAIL_LINES:]]
+                    report += [f"       {line}" for line in tail.splitlines()]
     finally:
         # The worktree is removed whether or not a gate failed, and its registration with it.
         if worktree_added:
@@ -324,9 +354,25 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
         shutil.rmtree(tree, ignore_errors=True)
 
     report += shrink_warnings(ref, repo, run)
-    if failures:
+    # IDEA-1169: the verdict is the named policy over the step attestations.
+    # The default require-all keeps the historical verdict byte-identical.
+    if evaluate is None or attest is None:  # pragma: no cover - import fallback
+        bad, outcome = failures, ("pass" if not failures else "fail")
+    else:
+        try:
+            verdict = evaluate(
+                policy, [attest(name, "pass" if passed else "fail", evidence)
+                         for name, passed, evidence in steps])
+        except PolicyError as exc:
+            return 2, [f"Error: unknown policy {policy!r}: {exc}",
+                       "Why: the policy vocabulary is closed so a typo cannot silently "
+                       "weaken the gate.",
+                       "Fix: pass --policy require-all or --policy quorum:N."]
+        outcome = str(verdict.get("outcome", "fail"))
+        bad = list(verdict.get("failed", [])) or [name for name, ok, _ in steps if not ok]
+    if outcome != OUTCOME_PASS:
         return 1, report + [
-            f"Error: commit {resolved} does not pass on its own: {', '.join(failures)}.",
+            f"Error: commit {resolved} does not pass on its own: {', '.join(bad)}.",
             "Why: the pre-commit gates ran on the working tree, so the commit can hold less than "
             "what was tested (PRINCIPLE-018 R3, R7).",
             recovery_fix(ref, resolved, repo, run),
@@ -334,7 +380,7 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
     return 0, report + [f"[OK] Commit {resolved} passes every gate on its own."]
 
 
-KNOWN_FLAGS = {"--ref", "--verbose", "-v", "--help", "-h"}
+KNOWN_FLAGS = {"--ref", "--policy", "--verbose", "-v", "--help", "-h"}
 
 HELP_TEXT = """AIKit Post-Commit Verification (PRINCIPLE-018 R7)
 
@@ -348,6 +394,8 @@ without failing, when the commit leaves a modified file under half its parent si
 
 Options:
   --ref <commit>   The commit to verify (default: HEAD)
+  --policy <word>  Evidence policy over the step attestations: require-all
+                   (default) or quorum:N (IDEA-1169)
   --verbose, -v    Print the resolved commit range scanned for secrets
   -h, --help       Show this help message and exit
 
@@ -371,7 +419,7 @@ if __name__ == "__main__":
         print(HELP_TEXT, end="")
         sys.exit(0)
     unknown = [a for i, a in enumerate(argv) if a.startswith("-") and a not in KNOWN_FLAGS
-               and (i == 0 or argv[i - 1] != "--ref")]
+               and (i == 0 or argv[i - 1] not in ("--ref", "--policy"))]
     if unknown:
         print(f"[INVALID USAGE] Unrecognized option(s): {', '.join(unknown)}", file=sys.stderr)
         print(f"Why: this gate accepts only {', '.join(sorted(KNOWN_FLAGS))}.", file=sys.stderr)
@@ -387,13 +435,23 @@ if __name__ == "__main__":
             print("Fix: pass '--ref <commit>', or omit it to verify HEAD.", file=sys.stderr)
             sys.exit(2)
         target = argv[index + 1]
+    policy = "require-all"
+    if "--policy" in argv:
+        index = argv.index("--policy")
+        if index + 1 >= len(argv) or argv[index + 1].startswith("-"):
+            print("[INVALID USAGE] --policy requires a policy word.", file=sys.stderr)
+            print("Why: the policy vocabulary is closed so a typo cannot silently weaken the gate.",
+                  file=sys.stderr)
+            print("Fix: pass '--policy require-all' or '--policy quorum:N'.", file=sys.stderr)
+            sys.exit(2)
+        policy = argv[index + 1]
 
     print("=" * 58)
     print("POST-COMMIT VERIFICATION (PRINCIPLE-018 R7)")
     print("=" * 58)
     if "--verbose" in argv or "-v" in argv:
         print(f"Secret scan range: {scanned_range(ROOT_DIR, target, run_command)}")
-    exit_code, lines = verify_commit(target)
+    exit_code, lines = verify_commit(target, policy=policy)
     stream = sys.stdout if exit_code == 0 else sys.stderr
     for line in lines:
         print(line, file=stream)

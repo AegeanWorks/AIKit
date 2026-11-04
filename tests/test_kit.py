@@ -12824,5 +12824,94 @@ class TestProofEnvelope(unittest.TestCase):
         with self.assertRaises(proof_envelope.EnvelopeError):
             proof_envelope.seal({"proof": True}, key="")
 
+class TestEvidencePolicy(unittest.TestCase):
+    """IDEA-1169: a named policy decides step attestations; fail always wins."""
+
+    def test_closed_vocabulary_rejects_unknown_policy(self) -> None:
+        from scripts import evidence_policy
+
+        for bad in ("majority", "quorum:0", "quorum:x", "", "require-all-but-one"):
+            with self.assertRaises(evidence_policy.PolicyError):
+                evidence_policy.parse_policy(bad)
+        self.assertEqual(evidence_policy.parse_policy("require-all"), ("require-all", 0))
+        self.assertEqual(evidence_policy.parse_policy("quorum:2"), ("quorum", 2))
+
+    def test_require_all_needs_every_pass_and_refuses_empty(self) -> None:
+        from scripts import evidence_policy
+
+        good = [evidence_policy.attest("tiers", "pass"),
+                evidence_policy.attest("secrets", "pass")]
+        self.assertEqual(evidence_policy.evaluate("require-all", good)["outcome"], "pass")
+        mixed = good + [evidence_policy.attest("dogfood", "fail")]
+        failed = evidence_policy.evaluate("require-all", mixed)
+        self.assertEqual(failed["outcome"], "fail")
+        self.assertEqual(failed["failed"], ["dogfood"])
+        self.assertEqual(evidence_policy.evaluate("require-all", [])["outcome"],
+                         "inconclusive")
+
+    def test_quorum_counts_passes_but_never_outvotes_a_fail(self) -> None:
+        from scripts import evidence_policy
+
+        three = [evidence_policy.attest("a", "pass"), evidence_policy.attest("b", "pass"),
+                 evidence_policy.attest("c", "inconclusive")]
+        self.assertEqual(evidence_policy.evaluate("quorum:2", three)["outcome"], "pass")
+        self.assertEqual(evidence_policy.evaluate("quorum:3", three)["outcome"],
+                         "inconclusive")
+        vetoed = three + [evidence_policy.attest("d", "fail")]
+        refused = evidence_policy.evaluate("quorum:2", vetoed)
+        self.assertEqual(refused["outcome"], "fail")
+        self.assertEqual(refused["failed"], ["d"])
+
+    def test_sealed_attestation_is_decided_by_envelope_verification(self) -> None:
+        from scripts import evidence_policy, proof_envelope
+
+        payload = {"proof": True, "base": "abc"}
+        envelope = proof_envelope.seal(payload, key="k" * 32, now=1000)
+        sealed = evidence_policy.attest("proof", "pass", envelope=envelope)
+        at_1001 = lambda env, keys: proof_envelope.verify(env, keys=keys, now=1001)
+        verdict = evidence_policy.evaluate(
+            "require-all", [sealed], envelope_keys={"local": "k" * 32},
+            verify_sealed=at_1001)
+        self.assertEqual(verdict["outcome"], "pass")
+        tampered = dict(envelope)
+        tampered["payload"] = {"proof": False, "base": "abc"}
+        bad = evidence_policy.attest("proof", "pass", envelope=tampered)
+        refused = evidence_policy.evaluate(
+            "require-all", [bad], envelope_keys={"local": "k" * 32},
+            verify_sealed=at_1001)
+        self.assertEqual(refused["outcome"], "fail")
+
+    def test_verify_commit_accepts_a_policy_and_keeps_default_verdicts(self) -> None:
+        from scripts.verify_commit import verify_commit as verify_commit_fn
+
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "rev-parse --short" in joined:
+                return 0, "abc1234"
+            if "rev-parse" in joined:
+                return 0, "9999head"
+            return 0, "ok"
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
+                                        policy="quorum:6")
+        self.assertEqual(code, 0, report)
+        self.assertIn("[OK] Commit abc1234 passes every gate on its own.", report)
+
+        def failing(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "update_knowledge_base" in joined:
+                return 1, "[FAIL] codebase_map.md is stale"
+            return run(argv, cwd)
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=failing,
+                                        policy="quorum:2")
+        self.assertEqual(code, 1)
+        self.assertIn("does not pass on its own: knowledge", "\n".join(report))
+
+        code, report = verify_commit_fn(repo=Path("/repo"), runner=run,
+                                        policy="majority")
+        self.assertEqual(code, 2)
+        self.assertIn("unknown policy", "\n".join(report))
+
 if __name__ == "__main__":
     unittest.main()

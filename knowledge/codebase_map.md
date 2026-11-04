@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `66`
-- **Total Classes**: `145`
-- **Total Top-Level Functions**: `918`
-- **Total Class Methods**: `1087`
-- **Total Source Lines**: `40944`
+- **Total Python Modules**: `67`
+- **Total Classes**: `147`
+- **Total Top-Level Functions**: `922`
+- **Total Class Methods**: `1092`
+- **Total Source Lines**: `41231`
 
 ---
 
@@ -997,6 +997,22 @@
 
 ---
 
+### [`scripts/evidence_policy.py`](scripts/evidence_policy.py)
+> *Evidence policy over step attestations (IDEA-1169).*
+
+**Size**: `140` lines (`6123` bytes)
+
+**Classes:**
+- `class PolicyError` - *The policy text names no known policy.*
+
+**Functions:**
+- `def parse_policy(text)` - *Parse a policy word into (kind, n); closed vocabulary (IDEA-1169).*
+- `def evidence_hash(text)` - *Short stable digest of a step's evidence tail (IDEA-1169).*
+- `def attest(step, outcome, evidence, envelope)` - *One step attestation: what ran, its shared-model outcome, its evidence.*
+- `def evaluate(policy_text, attestations, *, envelope_keys, verify_sealed)` - *Evaluate attestations under the named policy (IDEA-1169); never raises.*
+
+---
+
 ### [`scripts/marked_blocks.py`](scripts/marked_blocks.py)
 > *Generated text inside a file the user owns, fenced by `<!-- aegean:<name>:start -->` and*
 
@@ -1553,7 +1569,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `401` lines (`19735` bytes)
+**Size**: `459` lines (`22693` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1566,7 +1582,7 @@
 - `def tree_sizes(ref, repo, run)` - *Blob sizes in `ref`'s tree by path; empty when git cannot list it.*
 - `def shrink_warnings(ref, repo, run)` - *`[WARN]` lines for files `ref` cut below half their parent size, with Why/Fix; none for a root*
 - `def recovery_fix(ref, resolved, repo, run)` - *The Fix line for a commit that fails on its own, chosen by where that commit is.*
-- `def verify_commit(ref, repo, runner)` - *Run every gate against `ref` checked out on its own; returns (exit code, report lines).*
+- `def verify_commit(ref, repo, runner, policy)` - *Run every gate against `ref` checked out on its own; returns (exit code, report lines).*
 
 ---
 
@@ -1759,7 +1775,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `12828` lines (`707786` bytes)
+**Size**: `12917` lines (`712192` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2767,6 +2783,12 @@
   - Method `.test_tampered_payload_fails_not_inconclusive()`
   - Method `.test_expired_and_unknown_key_are_inconclusive()`
   - Method `.test_empty_key_refuses_to_seal()`
+- `class TestEvidencePolicy` - *IDEA-1169: a named policy decides step attestations; fail always wins.*
+  - Method `.test_closed_vocabulary_rejects_unknown_policy()`
+  - Method `.test_require_all_needs_every_pass_and_refuses_empty()`
+  - Method `.test_quorum_counts_passes_but_never_outvotes_a_fail()`
+  - Method `.test_sealed_attestation_is_decided_by_envelope_verification()`
+  - Method `.test_verify_commit_accepts_a_policy_and_keeps_default_verdicts()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`
