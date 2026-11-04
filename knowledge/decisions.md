@@ -3408,3 +3408,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Stdlib-only `DELEGATE_MAX_PROMPT_CHARS = 16384` (PRINCIPLE-012 R1) refused with exit 2 before anything spawns, plus a polled kill file (`delegate_kill_path` in `.agents/` or `.aikit/`, `delegate_killed` over workspace+target) refused with exit 1 — a file, never a signal handler, so win32/POSIX parity holds. No new dep, no env reads.
 - **Consequences**: Overlong briefs and killed delegations never spawn (proven by `TestDelegateBudgets`: 2 refusals leave zero runner calls); normal runs unchanged. Failing-first pins (3 tests) plus regenerated map.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-012 (payload budget), PRINCIPLE-010 (bounded spawn), PRINCIPLE-008 (bounded brief) and PRINCIPLE-014 (failing-first, reachability clean).
+
+### ADR-323: Pass-to-pass frame in the proof gate (S-F)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: Sweep S-F deep-read `SWE-bench:run_evaluation.py` (FAIL_TO_PASS + PASS_TO_PASS, Verified 500) and arXiv:2609.02246 §5.3-5.5 (mechanical pre-checks override the judge): `prove()` showed only the fixed behavior and never asked whether neighbors still hold; terminal-bench-audit's lesson (83/83 gold patches survive deletion) is that final-state grading forgives destruction.
+- **Decision**: Opt-in `prove(..., pass_to_pass=())` plus `--pass-to-pass`: each neighbor runs on base and current and must pass on both; failures fail the proof with `pass-to-pass` in the reason. Record gains `pass_to_pass`, `pass_to_pass_ok`, `p2p_results`; receipt and `render_text` carry the frame; default empty keeps the old contract byte-identical. No new dep.
+- **Consequences**: A change that fixes its target while breaking a neighbor no longer proves. Failing-first pins in `TestPassToPass` (3, mocked git plumbing; real worktree path covered by integration `prove()` tests) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-014 (failing-first, no vacuous pass), PRINCIPLE-000 R5 (fail-closed) and PRINCIPLE-016 (paired here).

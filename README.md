@@ -150,8 +150,10 @@ portable_agent_kit/
 │   ├── project_artwork.py        <- image-model hero art + text overlay (ADR-239)
 │   ├── brand_catalog.json        <- Authored unique project identities
 │   ├── check_secrets.py          <- Secret/sensitive data scanner
+│   ├── delegate_transcript.py    <- Append-only delegate transcript + replay (S-E)
 │   ├── evidence_outcome.py       <- Shared no-evidence inconclusive outcome (IDEA-1118)
 │   ├── proof_envelope.py         <- Sealed HMAC commit-proof envelope (IDEA-1168)
+│   ├── evidence_policy.py        <- Named policy over step attestations (IDEA-1169)
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
 │   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree
