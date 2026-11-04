@@ -8366,7 +8366,70 @@ class TestProofCorpus(unittest.TestCase):
             raise RuntimeError("boom")
 
         self.assertEqual(proof_corpus.replay(entry, prove_fn=broken)["outcome"],
-                         "inconclusive")
+                        "inconclusive")
+
+
+class TestStagedTree(unittest.TestCase):
+    """IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree."""
+
+    def _runner(self, staged=True, commit_tree_ok=True):
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "diff --cached --quiet" in joined:
+                return (1, "") if staged else (0, "")
+            if "write-tree" in joined:
+                return 0, "tree123"
+            if "commit-tree" in joined:
+                return (0, "staged999") if commit_tree_ok else (1, "fatal: bad tree")
+            if "rev-parse --short" in joined:
+                return 0, "abc1234"
+            if "@{u}" in joined:
+                return 1, ""
+            if "rev-parse" in joined:
+                return 0, "9999head"
+            if "ls-tree" in joined:
+                return 1, ""
+            return 0, "ok"
+        return run
+
+    def test_staged_index_verifies_as_its_own_detached_commit(self) -> None:
+        from scripts.verify_commit import verify_staged
+
+        code, report = verify_staged(repo=Path("/repo"), runner=self._runner())
+        self.assertEqual(code, 0, report)
+        self.assertIn("[OK] Commit abc1234 passes every gate on its own.", report)
+
+    def test_empty_index_refuses_inconclusive(self) -> None:
+        from scripts.verify_commit import verify_staged
+
+        code, report = verify_staged(repo=Path("/repo"), runner=self._runner(staged=False))
+        self.assertEqual(code, 1)
+        self.assertIn("[INCONCLUSIVE] No staged changes", "\n".join(report))
+
+    def test_unreadable_index_reports_instead_of_passing(self) -> None:
+        from scripts.verify_commit import verify_staged
+
+        code, report = verify_staged(repo=Path("/repo"),
+                                     runner=self._runner(commit_tree_ok=False))
+        self.assertEqual(code, 1)
+        self.assertIn("could not be read", "\n".join(report))
+
+    def test_failing_gate_names_the_staged_context(self) -> None:
+        from scripts.verify_commit import verify_staged
+
+        base = self._runner()
+
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "update_knowledge_base" in joined:
+                return 1, "[FAIL] codebase_map.md is stale"
+            return base(argv, cwd)
+
+        code, report = verify_staged(repo=Path("/repo"), runner=run)
+        text = "\n".join(report)
+        self.assertEqual(code, 1)
+        self.assertIn("does not pass on its own: knowledge", text)
+        self.assertIn("staged index", text)
 
 
 class TestPassToPass(unittest.TestCase):

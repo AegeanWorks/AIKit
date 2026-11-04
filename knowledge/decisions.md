@@ -3464,3 +3464,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Allowlist `("text", "json")` refused with exit 2 before anything spawns, next to the prompt-length and kill-file guards. No new dep, no new symbols.
 - **Consequences**: Schema violations fail fast with Why/Fix instead of silently degrading. Failing-first pin in `TestDelegateSchema` (1 test); no map change (no new symbols). Numbered 329: 324-328 taken by IDEA-1202/1133/1168/1169/1156.
 - **Cross-principle check**: no principle section changed. Serves PRINCIPLE-008 (bounded brief), PRINCIPLE-011 (Why/Fix) and PRINCIPLE-014 (failing-first).
+
+### ADR-330: Staged-tree verification via write-tree plus commit-tree (IDEA-1116)
+- **Date**: 2026-11-04
+- **Status**: Accepted
+- **Context**: verify_commit checked out the commit, never the staged index, so staged-but-uncommitted content (the normal R2 case) went unverified; a green tree could stage a red subset.
+- **Decision**: Stdlib-plus-plumbing verify_staged() in scripts/verify_commit.py: refuse empty indexes inconclusive (IDEA-1118), wrap the index with git write-tree plus git commit-tree against HEAD (object-db writes only, no ref, stash or worktree moves), run the full gate set on the detached staged commit through the named evidence policy, and note the staged context on failure; --staged CLI flag, --ref plus --staged refused as misuse.
+- **Consequences**: The pre-commit gate proves exactly what git is about to record. Failing-first pins in TestStagedTree (detached staged commit verifies green, empty index inconclusive, unreadable index reported, failing gate names the staged context) plus regenerated map.
+- **Cross-principle check**: no principle section changed. Serves PRINCIPLE-018 R2/R7 (prove the staged subset), PRINCIPLE-014 (failing-first) and PRINCIPLE-016 (paired here); PRINCIPLE-000 R5 is unchanged.

@@ -289,6 +289,62 @@ def recovery_fix(ref: str, resolved: str, repo: Path, run: Runner) -> str:
             "what is missing, and commit again.")
 
 
+def stage_commit(repo: Path, run: Runner) -> str:
+    """
+    A commit object for exactly what is staged, without touching any ref.
+
+    `git write-tree` reads the index and `git commit-tree` wraps it, so the
+    detached worktree below proves the index, not the tree or HEAD
+    (IDEA-1116). Object-db writes only; no branch, stash or worktree moves.
+    Raises ValueError when there is nothing staged or git cannot answer.
+    """
+    code, _ = run(["git", "diff", "--cached", "--quiet"], repo)
+    if code == 0:
+        raise ValueError("nothing staged")
+    code, tree = run(["git", "write-tree"], repo)
+    tree = tree.strip()
+    if code != 0 or not tree:
+        raise ValueError(f"`git write-tree` failed: {tree[-200:]}")
+    parent = run(["git", "rev-parse", "HEAD"], repo)
+    argv = ["git", "commit-tree", tree, "-m",
+            "aikit: staged-tree verification (detached, never pushed)"]
+    if parent[0] == 0 and parent[1].strip():
+        argv[3:3] = ["-p", parent[1].strip()]
+    code, made = run(argv, repo)
+    made = made.strip()
+    if code != 0 or not made:
+        raise ValueError(f"`git commit-tree` failed: {made[-200:]}")
+    return made
+
+
+def verify_staged(repo: Path = ROOT_DIR, runner: Optional[Runner] = None,
+                  policy: str = "require-all") -> Tuple[int, List[str]]:
+    """
+    Verify the staged index on its own (IDEA-1116); returns (exit code, report).
+
+    An empty index is inconclusive (IDEA-1118): there is nothing to prove, so
+    nothing may read as green.
+    """
+    run = runner or run_command
+    try:
+        staged = stage_commit(repo, run)
+    except ValueError as exc:
+        if "nothing staged" in str(exc):
+            return 1, ["[INCONCLUSIVE] No staged changes: nothing to verify.",
+                       "Why: an empty index cannot prove a pass.",
+                       "Fix: stage what the commit should record, then rerun "
+                       "`python scripts/verify_commit.py --staged`."]
+        return 1, [f"Error: the staged tree could not be read: {exc}",
+                   "Why: `git write-tree` / `git commit-tree` must answer.",
+                   "Fix: fix the git error above, then run this gate again."]
+    code, report = verify_commit(staged, repo, runner, policy)
+    if code != 0:
+        report = report + ["Note: this verified the staged index as a detached commit; "
+                           "unstage files that should not ship and stage files that "
+                           "should, then rerun."]
+    return code, report
+
+
 def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
                    runner: Optional[Runner] = None,
                    policy: str = "require-all") -> Tuple[int, List[str]]:
@@ -380,7 +436,7 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
     return 0, report + [f"[OK] Commit {resolved} passes every gate on its own."]
 
 
-KNOWN_FLAGS = {"--ref", "--policy", "--verbose", "-v", "--help", "-h"}
+KNOWN_FLAGS = {"--ref", "--policy", "--staged", "--verbose", "-v", "--help", "-h"}
 
 HELP_TEXT = """AIKit Post-Commit Verification (PRINCIPLE-018 R7)
 
@@ -396,6 +452,9 @@ Options:
   --ref <commit>   The commit to verify (default: HEAD)
   --policy <word>  Evidence policy over the step attestations: require-all
                    (default) or quorum:N (IDEA-1169)
+  --staged         Verify the staged index instead of a commit: the index is
+                   wrapped with write-tree/commit-tree (no ref moves) and the
+                   gates run on that (IDEA-1116)
   --verbose, -v    Print the resolved commit range scanned for secrets
   -h, --help       Show this help message and exit
 
@@ -435,6 +494,13 @@ if __name__ == "__main__":
             print("Fix: pass '--ref <commit>', or omit it to verify HEAD.", file=sys.stderr)
             sys.exit(2)
         target = argv[index + 1]
+    if "--ref" in argv and "--staged" in argv:
+        print("[INVALID USAGE] --ref and --staged verify different trees; pass one.",
+              file=sys.stderr)
+        print("Why: --ref checks out a commit while --staged wraps the index.",
+              file=sys.stderr)
+        print("Fix: drop one of the two flags and rerun.", file=sys.stderr)
+        sys.exit(2)
     policy = "require-all"
     if "--policy" in argv:
         index = argv.index("--policy")
@@ -450,8 +516,14 @@ if __name__ == "__main__":
     print("POST-COMMIT VERIFICATION (PRINCIPLE-018 R7)")
     print("=" * 58)
     if "--verbose" in argv or "-v" in argv:
-        print(f"Secret scan range: {scanned_range(ROOT_DIR, target, run_command)}")
-    exit_code, lines = verify_commit(target, policy=policy)
+        if "--staged" in argv:
+            print("Staged index scan: the staged range is verified, not a commit range.")
+        else:
+            print(f"Secret scan range: {scanned_range(ROOT_DIR, target, run_command)}")
+    if "--staged" in argv:
+        exit_code, lines = verify_staged(ROOT_DIR, None, policy)
+    else:
+        exit_code, lines = verify_commit(target, policy=policy)
     stream = sys.stdout if exit_code == 0 else sys.stderr
     for line in lines:
         print(line, file=stream)

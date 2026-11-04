@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `68`
-- **Total Classes**: `149`
-- **Total Top-Level Functions**: `934`
-- **Total Class Methods**: `1097`
-- **Total Source Lines**: `41585`
+- **Total Classes**: `150`
+- **Total Top-Level Functions**: `936`
+- **Total Class Methods**: `1102`
+- **Total Source Lines**: `41720`
 
 ---
 
@@ -1590,7 +1590,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `459` lines (`22693` bytes)
+**Size**: `531` lines (`26051` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1603,6 +1603,8 @@
 - `def tree_sizes(ref, repo, run)` - *Blob sizes in `ref`'s tree by path; empty when git cannot list it.*
 - `def shrink_warnings(ref, repo, run)` - *`[WARN]` lines for files `ref` cut below half their parent size, with Why/Fix; none for a root*
 - `def recovery_fix(ref, resolved, repo, run)` - *The Fix line for a commit that fails on its own, chosen by where that commit is.*
+- `def stage_commit(repo, run)` - *A commit object for exactly what is staged, without touching any ref.*
+- `def verify_staged(repo, runner, policy)` - *Verify the staged index on its own (IDEA-1116); returns (exit code, report).*
 - `def verify_commit(ref, repo, runner, policy)` - *Run every gate against `ref` checked out on its own; returns (exit code, report lines).*
 
 ---
@@ -1796,7 +1798,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13005` lines (`716097` bytes)
+**Size**: `13068` lines (`718656` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2468,6 +2470,12 @@
   - Method `.test_witness_key_is_stable_and_content_bound()`
   - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
+- `class TestStagedTree` - *IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree.*
+  - Method `._runner(staged, commit_tree_ok)`
+  - Method `.test_staged_index_verifies_as_its_own_detached_commit()`
+  - Method `.test_empty_index_refuses_inconclusive()`
+  - Method `.test_unreadable_index_reports_instead_of_passing()`
+  - Method `.test_failing_gate_names_the_staged_context()`
 - `class TestPassToPass` - *S-F: optional pass-to-pass frame — neighbors must hold on base and current.*
   - Method `._repo()`
   - Method `._runner(repo, keep_current)`
