@@ -3,41 +3,15 @@
   "active_task": {
     "task_id": "verify-push-v2",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1793908535.6027305,
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1793909302.2942367,
     "owner": "kilo:verify-push-v2",
     "started_by": "kilo:verify-push-v2",
     "continuations": [],
-    "impact_assessment": {
-      "why": "Uncommitted ADR-333 adds P016 R7 but test_kit still pins 6 rules; integration pin already fixed in tree",
-      "benefits": "Restores 100 percent test gate and catches any remaining last-push regressions before push",
-      "risks": "contract: test-only plus docs sync; dependency: stdlib only; concurrency: none; state: ledger append only",
-      "mitigation": "Explicit file staging, full Phase 4 gates, staged verification before push"
-    }
+    "completed_at": 1793909306.454049
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-gates-1116",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] IDEA-1116 staged-tree verification with write-tree plus commit-tree and failing-first pins",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793819722.136064,
-      "timestamp_str": "2026-11-04 22:15:22",
-      "agent": "kilo:goal-aikit"
-    },
-    {
-      "task_id": "aikit-gates-1116",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-gates-1116' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793819939.1529722,
-      "timestamp_str": "2026-11-04 22:18:59",
-      "agent": "kilo:goal-aikit"
-    },
     {
       "task_id": "aikit-gates-1132",
       "phase": "in_progress",
@@ -277,6 +251,27 @@
         "mitigation": "Explicit file staging, full Phase 4 gates, staged verification before push"
       },
       "plan_digest": "d479a276e51ad1b01212e39252bed5ffe9c0ca51dae23636d837c1ec8ec1242a"
+    },
+    {
+      "task_id": "verify-push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/3] Phase 4 green: 873 unit 14ms, 13 auto-register, 86 integration 490ms sequential, dogfood 5/5, secrets/reachability/principles/map/licenses clean; citing pins fixed, reports inbox tracked, proof-corpus signature probe",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793909302.2942367,
+      "timestamp_str": "2026-11-05 23:08:22",
+      "agent": "kilo:verify-push-v2"
+    },
+    {
+      "task_id": "verify-push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793909306.4540508,
+      "timestamp_str": "2026-11-05 23:08:26",
+      "agent": "kilo:verify-push-v2"
     }
   ]
 }
