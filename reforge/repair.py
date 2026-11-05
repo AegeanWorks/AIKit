@@ -16,7 +16,6 @@ class _Edit:
     start: int
     end: int
     text: str
-    priority: int = 0
 
 
 def _lines(text: str) -> List[str]:
@@ -153,7 +152,7 @@ def _mutable_default_edits(lines: Sequence[str], located: _MutableDefault,
     guard = (f"{indent}if {located.argument.arg} is None:{newline}"
              f"{indent}    {located.argument.arg} = {_default_constructor(default)}(){newline}")
     guard_at = _offset(lines, first.lineno, 0)
-    return [_Edit(start, end, "None"), _Edit(guard_at, guard_at, guard, priority=1)]
+    return [_Edit(start, end, "None"), _Edit(guard_at, guard_at, guard)]
 
 
 def _edits_for(text: str, finding: Finding, tree: ast.Module) -> List[_Edit]:

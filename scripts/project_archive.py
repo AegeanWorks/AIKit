@@ -70,7 +70,7 @@ def validate_archive_move(src: Path, dst: Path) -> Optional[str]:
         same = src_resolved == dst_resolved
         if not same and _os.path.normcase(str(src_resolved)) == _os.path.normcase(str(dst_resolved)):
             same = True
-    except OSError:
+    except (OSError, RuntimeError, ValueError):
         return _triad(f"cannot resolve the archive destination {dst}.",
                       "the operating system denied the path lookup.",
                       "check the path permissions, then retry.")
@@ -87,7 +87,7 @@ def validate_archive_move(src: Path, dst: Path) -> Optional[str]:
             return _triad(f"cannot archive '{src.name}' inside itself ({dst}).",
                           "the destination sits inside the folder being moved.",
                           "pass a destination outside the project, e.g. the default `projects/archive/`.")
-    except OSError:
+    except (OSError, RuntimeError, ValueError):
         return _triad(f"cannot resolve the archive destination {dst}.",
                       "the operating system denied the path lookup.",
                       "check the path permissions, then retry.")
@@ -214,7 +214,7 @@ def _forget_or_move_attached(workspace: Path, name: str, src: Path, dst: Path) -
             return
         try:
             inside = dst.resolve().is_relative_to(projects_dir(Path(workspace)).resolve())
-        except OSError:
+        except (OSError, RuntimeError, ValueError):
             inside = False
         if inside:
             attached.pop(name, None)
@@ -474,9 +474,10 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
             # "already archived" is the CLI sentence; JSON `{"archived": true}`
             # also means already archived. A bare `archived ... true` without a
             # colon/equals (e.g. "archived flag must be true") is a different
-            # error and must not be swallowed.
+            # error and must not be swallowed. The word boundary keeps
+            # `unarchived` from matching `archived`.
             already = "already archived" in lowered or bool(
-                re.search(r'["\']?archived["\']?\s*[:=]\s*true', lowered)
+                re.search(r'["\']?\barchived\b["\']?\s*[:=]\s*true', lowered)
             )
             if already:
                 notes.append("The GitHub repository was already archived.")

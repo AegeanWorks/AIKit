@@ -67,13 +67,21 @@ def plan_next_stage(repo: Path, run: Dict[str, object]) -> StagePlan:
             "an empty history has nothing to audit.",
             "commit the code, then run the audit again.",
         )
-    start = int(run.get("start") or DEFAULT_START)
-    step = int(run.get("step") or DEFAULT_STEP)
+    # Explicit None checks: `or` would hide corrupt 0/"" behind the default.
+    raw_start = run.get("start")
+    raw_step = run.get("step")
+    raw_stage = run.get("stage")
+    raw_window = run.get("window")
+    start = int(raw_start if raw_start is not None else DEFAULT_START)
+    step = int(raw_step if raw_step is not None else DEFAULT_STEP)
     stop = run.get("stop")
-    stage = int(run.get("stage") or 0) + 1
-    previous = int(run.get("window") or 0)
-    wanted = window_for_stage(stage, start, step, stop if isinstance(stop, int) else None)
-    if stop is not None and previous >= int(stop):
+    # 0 means unlimited (CLI --stop 0); normalize so a corrupt 0 never caps the window at 0.
+    stop_norm = stop if type(stop) is int and stop != 0 else None
+    stage = int(raw_stage if raw_stage is not None else 0) + 1
+    previous = int(raw_window if raw_window is not None else 0)
+    # type() excludes bool: True would otherwise masquerade as stop=1.
+    wanted = window_for_stage(stage, start, step, stop_norm)
+    if stop_norm is not None and previous >= int(stop_norm):
         raise ReforgeError(
             f"Audit run {run.get('id')} already reached its stop of {stop} commits.",
             "its stop is the largest window this run may audit.",
@@ -94,7 +102,7 @@ def plan_next_stage(repo: Path, run: Dict[str, object]) -> StagePlan:
     return StagePlan(stage=stage, window=min(wanted, total), commits=tuple(commits),
                      new_shas=new_shas, prior_shas=prior_shas,
                      run_id=str(run.get("id") or ""), start=start, step=step,
-                     stop=stop if isinstance(stop, int) else None)
+                     stop=stop_norm)
 
 
 def _prior_context(repo: Path, plan: StagePlan, history: Sequence[Dict[str, object]]

@@ -83,11 +83,11 @@ def _safe_rel(root: Path, rel: str) -> Optional[Path]:
     try:
         resolved_root = root.resolve()
         resolved = (root / candidate).resolve()
-    except OSError:
+    except (OSError, RuntimeError, ValueError):
         return None
     try:
         resolved.relative_to(resolved_root)
-    except ValueError:
+    except (ValueError, RuntimeError, OSError):
         return None
     return root / candidate
 
@@ -330,7 +330,7 @@ def _surface_paths(project_root: Path, evidence: List[str]) -> List[str]:
     paths: List[str] = []
     try:
         resolved_root = project_root.resolve()
-    except OSError:
+    except (OSError, RuntimeError, ValueError):
         resolved_root = project_root
     for relative in evidence:
         if not isinstance(relative, str) or not relative:
@@ -346,6 +346,11 @@ def _surface_paths(project_root: Path, evidence: List[str]) -> List[str]:
         if (project_root / relative).is_file() and relative not in paths:
             paths.append(relative)
     for relative, pattern in (("src", "src/**"), ("game.js", "game.js"), ("public", "public/**")):
+        try:
+            resolved_fixed = (project_root / relative).resolve()
+            resolved_fixed.relative_to(resolved_root)
+        except (OSError, ValueError, RuntimeError):
+            continue
         if (project_root / relative).exists() and pattern not in paths:
             paths.append(pattern)
     return paths

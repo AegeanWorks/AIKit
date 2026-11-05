@@ -457,7 +457,9 @@ def mark_delivered(root: Path, state: Dict[str, object], run: Dict[str, object],
 def run_complete(run: Dict[str, object], window: int,
                  total_commits: Optional[int] = None) -> bool:
     stop = run.get("stop")
-    if isinstance(stop, int):
+    # type() excludes bool: True would otherwise masquerade as stop=1.
+    # 0 means unlimited (normalized to None on write); a corrupt 0 stays unbounded.
+    if type(stop) is int and stop != 0:
         return window >= stop
     if total_commits is None:
         return False
@@ -471,10 +473,10 @@ def completion_total(run: Dict[str, object], live: Optional[int] = None) -> Opti
 
     A bounded run ignores both because `run_complete` answers from its stop.
     """
-    if isinstance(live, int):
+    if type(live) is int:
         return live
     stored = run.get("total_commits")
-    return int(stored) if isinstance(stored, int) else None
+    return int(stored) if type(stored) is int else None
 
 
 def settle_run(run: Dict[str, object], state: Dict[str, object],
@@ -701,8 +703,11 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
             exit_code=2,
         )
     try:
-        new_start = int(run.get("start") or DEFAULT_START) if start is None else int(start)
-        new_step = int(run.get("step") or DEFAULT_STEP) if step is None else int(step)
+        raw_start = run.get("start") if start is None else start
+        raw_step = run.get("step") if step is None else step
+        # Explicit None check: `or` would hide 0/"" corrupt values behind the default.
+        new_start = int(raw_start if raw_start is not None else DEFAULT_START)
+        new_step = int(raw_step if raw_step is not None else DEFAULT_STEP)
     except (TypeError, ValueError) as exc:
         raise ReforgeError(
             "The run's window settings are not integers.",
@@ -731,11 +736,15 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
                 "pass --stop 0 for unlimited or a positive integer.",
                 exit_code=2,
             ) from exc
+        # Normalize every zero form ("00", " 0 ") the same way as 0/"0".
+        if new_stop == 0:
+            new_stop = None
     validate_settings(new_start, new_step, new_stop)  # type: ignore[arg-type]
     # Fail closed on a corrupt stage: an unknown stage type blocks a start
     # change rather than silently allowing the window to shift mid-run.
     try:
-        _stage_num = int(run.get("stage") or 0)
+        stage_raw = run.get("stage")
+        _stage_num = int(stage_raw if stage_raw is not None else 0)
     except (TypeError, ValueError):
         _stage_num = 1
     if start is not None and new_start != run.get("start") and _stage_num > 0:

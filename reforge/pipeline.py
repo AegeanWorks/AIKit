@@ -110,6 +110,9 @@ def _stop_value(stop: Optional[int]) -> Optional[int]:
             "the stop window must be an integer.",
             "pass --stop 0 for unlimited or a positive integer.",
         ) from exc
+    # 0 means unlimited: normalize every zero form ("0", "00", " 0 ") the same way.
+    if value == 0:
+        return None
     return value
 
 
@@ -377,14 +380,21 @@ def _review_error(run: Dict[str, object], pending: Sequence[Dict[str, object]]) 
 
 def _plan_from_last(run: Dict[str, object], last: Dict[str, object]) -> StagePlan:
     """Rebuild the stage a `fix` must apply, from the run and its last audit entry."""
+    _raw_start = run.get("start")
+    _raw_step = run.get("step")
+    _raw_stage = last.get("stage")
+    _raw_window = last.get("window")
     return StagePlan(
-        stage=int(last.get("stage") or 0), window=int(last.get("window") or 0),
+        stage=int(_raw_stage if _raw_stage is not None else 0),
+        window=int(_raw_window if _raw_window is not None else 0),
         commits=(), new_shas=tuple(last.get("new_commits") or []),
         prior_shas=tuple(last.get("prior_commits") or []),
         run_id=str(run.get("id") or ""),
-        start=int(run.get("start") or DEFAULT_START),
-        step=int(run.get("step") or DEFAULT_STEP),
-        stop=run.get("stop") if isinstance(run.get("stop"), int) else None,
+        # Explicit None checks: `or` would hide corrupt 0/"" behind the default.
+        start=int(_raw_start if _raw_start is not None else DEFAULT_START),
+        step=int(_raw_step if _raw_step is not None else DEFAULT_STEP),
+        # type() excludes bool: True/False are never valid windows; 0 means unlimited.
+        stop=run.get("stop") if type(run.get("stop")) is int and run.get("stop") != 0 else None,
     )
 
 
@@ -622,7 +632,8 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
         state = load_state(root)
         if mode == "fix":
             run = current_run(state, run_id)
-            total_commits = (None if isinstance(run.get("stop"), int)
+            _stop = run.get("stop")
+            total_commits = (None if type(_stop) is int and _stop != 0
                              else (commit_count(root) or None))
             last = run.get("last_audit")
             if not isinstance(last, dict):
@@ -789,8 +800,9 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
         if mode == "audit":
             entry = entry_from_stage(plan, findings, [], skipped=skipped,
                                      reviewed=len(reviewed), review=review_meta)
+            _stop_a = run.get("stop")
             record_stage(root, state, run, entry,
-                         total_commits=(None if isinstance(run.get("stop"), int)
+                         total_commits=(None if type(_stop_a) is int and _stop_a != 0
                                         else (commit_count(root) or None)))
             return _payload(root, mode, plan, run, findings, [], {}, {}, skipped,
                             _note_stage(root, run, plan, entry, findings, skipped),
@@ -808,8 +820,9 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                                  reviewed=len(reviewed), review=review_meta)
         entry["dirty_targets"] = sorted(
             {item.path for item in findings if item.fixable} & preexisting)
+        _stop_b = run.get("stop")
         record_stage(root, state, run, entry,
-                     total_commits=(None if isinstance(run.get("stop"), int)
+                     total_commits=(None if type(_stop_b) is int and _stop_b != 0
                                     else (commit_count(root) or None)))
         mark_repairs(root, state, run, repairs)
         commit_paths = sorted(set(repair_paths(repairs, root)) | {STATE_REL.as_posix()})
@@ -837,7 +850,8 @@ def review_stage(root: Path, run_id: Optional[str] = None, stage: Optional[int] 
     with run_lock(root):
         state = load_state(root)
         run = current_run(state, run_id)
-        total_commits = (None if isinstance(run.get("stop"), int)
+        _stop_c = run.get("stop")
+        total_commits = (None if type(_stop_c) is int and _stop_c != 0
                          else (commit_count(root) or None))
         entry = next((item for item in (run.get("history") or [])
                       if isinstance(item, dict) and item.get("stage") == stage), None)
@@ -1005,13 +1019,18 @@ def status_payload(root: Path) -> Dict[str, object]:
     root = Path(root)
     state = load_state(root)
     run = find_run(state)
-    stage = int((run or {}).get("stage") or 0)
+    _raw_stage = (run or {}).get("stage")
+    stage = int(_raw_stage if _raw_stage is not None else 0)
     pending = len(pending_fixable(run)) if run else 0
     next_window = None
     if run and run.get("status") == "active":
-        next_window = window_for_stage(stage + 1, int(run.get("start") or DEFAULT_START),
-                                       int(run.get("step") or DEFAULT_STEP),
-                                       run.get("stop") if isinstance(run.get("stop"), int) else None)
+        _rs = run.get("start")
+        _rp = run.get("step")
+        _rst = run.get("stop")
+        next_window = window_for_stage(stage + 1,
+                                       int(_rs if _rs is not None else DEFAULT_START),
+                                       int(_rp if _rp is not None else DEFAULT_STEP),
+                                       _rst if type(_rst) is int and _rst != 0 else None)
     last = (run or {}).get("last_audit")
     review = (last.get("review") or last.get("ai") or {}) if isinstance(last, dict) else {}
     return {

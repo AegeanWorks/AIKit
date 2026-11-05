@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
-- **Total Classes**: `156`
+- **Total Classes**: `157`
 - **Total Top-Level Functions**: `976`
-- **Total Class Methods**: `1173`
-- **Total Source Lines**: `44652`
+- **Total Class Methods**: `1184`
+- **Total Source Lines**: `44853`
 
 ---
 
@@ -250,7 +250,7 @@
 ### [`reforge/audit.py`](reforge/audit.py)
 > *Configurable progressive commit-window analysis with cross-commit interaction evidence.*
 
-**Size**: `235` lines (`10943` bytes)
+**Size**: `243` lines (`11412` bytes)
 
 **Functions:**
 - `def window_for_stage(stage, start, step, stop)` - *Window N: start + step*(N-1), capped by the run's stop (3,6,9 by default).*
@@ -444,7 +444,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `1045` lines (`52147` bytes)
+**Size**: `1064` lines (`53041` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -487,7 +487,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `488` lines (`21311` bytes)
+**Size**: `487` lines (`21277` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -555,7 +555,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `798` lines (`32800` bytes)
+**Size**: `807` lines (`33329` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -1055,7 +1055,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `553` lines (`28753` bytes)
+**Size**: `554` lines (`28918` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1360,7 +1360,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `384` lines (`15760` bytes)
+**Size**: `389` lines (`16046` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1853,7 +1853,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14205` lines (`775277` bytes)
+**Size**: `14365` lines (`782524` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2953,6 +2953,18 @@
   - Method `.test_archive_already_archived_rejects_unrelated_error()`
   - Method `.test_update_settings_rejects_float_windows()`
   - Method `.test_repair_findings_reports_unsafe_path()`
+- `class TestVerifyFollowupHardening` - *Regression pins for the followup verify pass (zero-norm, bool-stop, archive, UI).*
+  - Method `.test_stop_value_normalizes_all_zero_forms()`
+  - Method `.test_update_settings_normalizes_zero_string_forms()`
+  - Method `.test_update_settings_fails_closed_on_corrupt_start()`
+  - Method `.test_bool_stop_never_counts_as_bounded()`
+  - Method `.test_archive_unarchived_json_not_swallowed()`
+  - Method `.test_ui_fixed_paths_reject_symlink_escape()`
+  - Method `.test_mutable_default_repair_has_no_priority_field()`
+  - Method `.test_plan_from_last_keeps_corrupt_zero_visible()`
+  - Method `.test_ui_safe_rel_survives_resolve_failure()`
+  - Method `.test_archive_validate_survives_resolve_failure()`
+  - Method `.test_run_complete_zero_stop_stays_unbounded()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

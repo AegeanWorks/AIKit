@@ -14201,5 +14201,165 @@ class TestVerify3PushSafeFixes(unittest.TestCase):
             applied = rp.apply_text_patches(root, [patched])
             self.assertTrue(any("escapes repository" in (r.summary or "") for r in applied))
 
+
+class TestVerifyFollowupHardening(unittest.TestCase):
+    """Regression pins for the followup verify pass (zero-norm, bool-stop, archive, UI)."""
+
+    def test_stop_value_normalizes_all_zero_forms(self) -> None:
+        from reforge import pipeline as pl
+        self.assertIsNone(pl._stop_value("00"))
+        self.assertIsNone(pl._stop_value(" 0 "))
+        self.assertIsNone(pl._stop_value("0\n"))
+        self.assertEqual(pl._stop_value("15"), 15)
+        self.assertEqual(pl._stop_value(" 15 "), 15)
+
+    def test_update_settings_normalizes_zero_string_forms(self) -> None:
+        from reforge import state as st
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            updated = st.update_settings(root, s, run, stop="00")
+            self.assertIsNone(updated.get("stop"))
+            updated = st.update_settings(root, s, run, stop=" 0 ")
+            self.assertIsNone(updated.get("stop"))
+
+    def test_update_settings_fails_closed_on_corrupt_start(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            run["start"] = 0
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run)
+            run["start"] = 3
+            run["stage"] = ""
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, start=5)
+
+    def test_bool_stop_never_counts_as_bounded(self) -> None:
+        from reforge import state as st
+        from reforge import pipeline as pl
+        run = {"id": "run-1", "stop": True, "audited_commits": [], "stage": 0, "window": 0}
+        self.assertFalse(st.run_complete(run, 5, total_commits=None))
+        self.assertIsNone(st.completion_total(run, live=True))  # type: ignore[arg-type]
+        last = {"stage": 1, "window": 3, "new_commits": [], "prior_commits": []}
+        plan = pl._plan_from_last({"id": "run-1", "start": 3, "step": 3, "stop": True}, last)
+        self.assertIsNone(plan.stop)
+
+    def test_archive_unarchived_json_not_swallowed(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+
+        def _fake_run(argv, cwd):
+            if argv[:3] == ["git", "remote", "get-url"]:
+                return (0, "https://github.com/example/demo.git")
+            if argv[:2] == ["git", "status"]:
+                return (0, "")
+            if argv[:2] == ["gh", "repo"]:
+                return (1, '{"unarchived": true}')
+            return (0, "")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text('{"schema": 1, "name": "demo"}',
+                                                        encoding="utf-8")
+            code, report = project_archive.archive_project(
+                src, "demo", "retired", workspace=Path(tmp),
+                offline=False, runner=_fake_run)
+            self.assertEqual(code, 1)
+            self.assertNotIn("already archived", report.lower())
+
+    def test_ui_fixed_paths_reject_symlink_escape(self) -> None:
+        from scripts import project_ui
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.py").write_text("x = 1\n", encoding="utf-8")
+            real_resolve = Path.resolve
+
+            def _fake_resolve(self, *args, **kwargs):
+                if self.name == "src":
+                    return (root.parent / "outside").resolve()
+                return real_resolve(self, *args, **kwargs)
+
+            with mock.patch.object(Path, "resolve", _fake_resolve):
+                paths = project_ui._surface_paths(root, ["app.py"])
+            self.assertIn("app.py", paths)
+            self.assertNotIn("src/**", paths)
+
+    def test_mutable_default_repair_has_no_priority_field(self) -> None:
+        import dataclasses
+        from reforge import repair as rp
+        names = {f.name for f in dataclasses.fields(rp._Edit)}
+        self.assertEqual(names, {"start", "end", "text"})
+
+    def test_plan_from_last_keeps_corrupt_zero_visible(self) -> None:
+        from reforge import pipeline as pl
+        run = {"id": "run-1", "start": 0, "step": 0, "stop": 0}
+        last = {"stage": 0, "window": 0, "new_commits": [], "prior_commits": []}
+        plan = pl._plan_from_last(run, last)
+        self.assertEqual(plan.start, 0)
+        self.assertEqual(plan.step, 0)
+        self.assertIsNone(plan.stop)
+
+    def test_ui_safe_rel_survives_resolve_failure(self) -> None:
+        from scripts import project_ui
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.py").write_text("x = 1\n", encoding="utf-8")
+
+            def _boom(self, *args, **kwargs):
+                raise RuntimeError("symlink loop")
+
+            with mock.patch.object(Path, "resolve", _boom):
+                self.assertIsNone(project_ui._safe_rel(root, "app.py"))
+                # _surface_paths must not raise; it falls back and skips.
+                paths = project_ui._surface_paths(root, ["app.py"])
+                self.assertEqual(paths, [])
+
+    def test_archive_validate_survives_resolve_failure(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            dst = Path(tmp) / "out" / "demo"
+
+            def _boom(self, *args, **kwargs):
+                raise RuntimeError("symlink loop")
+
+            with mock.patch.object(Path, "resolve", _boom):
+                refusal = project_archive.validate_archive_move(src, dst)
+            self.assertIsNotNone(refusal)
+            self.assertIn("resolve", refusal.lower())
+
+    def test_run_complete_zero_stop_stays_unbounded(self) -> None:
+        from reforge import state as st
+        # 0 means unlimited; a corrupt 0 must not complete the run at window 0.
+        run = {"id": "run-1", "stop": 0, "audited_commits": [], "stage": 0, "window": 0}
+        self.assertFalse(st.run_complete(run, 0, total_commits=None))
+        self.assertFalse(st.run_complete(run, 5, total_commits=None))
+
 if __name__ == "__main__":
     unittest.main()
