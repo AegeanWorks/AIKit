@@ -1,4 +1,4 @@
-# Reports inbox (local-only, git-ignored via .git/info/exclude)
+# Reports inbox (local-only; only this README is tracked, via a `.gitignore` exception)
 
 Drop analysis, scan, review and literature reports here for triage.
 Lifecycle, no exceptions:
@@ -15,6 +15,6 @@ Lifecycle, no exceptions:
    or judged not worth keeping. Reports rot fast (trees move on); a stale
    report that stays looks authoritative and is not.
 
-Do not commit this folder. Do not let files accumulate here: an inbox with
+Do not commit report files (only this README is tracked). Do not let files accumulate here: an inbox with
 17 files is a backlog, not an archive. If a report's content matters, it
 belongs in `.idea-catcher/` (dossiers, ideas, reviews) — nowhere else.
