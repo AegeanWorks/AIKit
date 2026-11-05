@@ -49,6 +49,15 @@ def _now() -> str:
 
 def validate_settings(start: int, step: int, stop: Optional[int]) -> None:
     """A run's window plan: start >= 2, step >= 1, and an optional stop at or past start."""
+    # bool is an int subclass but never a valid window; fail closed instead of
+    # letting True coerce to 1 and slip past the bounds.
+    if type(start) is not int or type(step) is not int or (stop is not None and type(stop) is not int):
+        raise ReforgeError(
+            f"Invalid window settings start={start!r} step={step!r} stop={stop!r}.",
+            "start, step and stop must be integers.",
+            "pass --start 2 or more, --step 1 or more, --stop 0 (unlimited) or larger.",
+            exit_code=2,
+        )
     if start < 2:
         raise ReforgeError(
             f"--start must be at least 2, not {start}.",
@@ -241,6 +250,21 @@ def load_state(root: Path) -> Dict[str, object]:
             raise ReforgeError(
                 f"{path} is structurally invalid.",
                 f"run {run.get('id')} has a non-integer stage/window.",
+                "restore the file from its .bak shadow or a committed copy.",
+            )
+        for field in ("start", "step"):
+            value = run.get(field)
+            if value is not None and type(value) is not int:
+                raise ReforgeError(
+                    f"{path} is structurally invalid.",
+                    f"run {run.get('id')} has a non-integer {field}.",
+                    "restore the file from its .bak shadow or a committed copy.",
+                )
+        stop_value = run.get("stop")
+        if stop_value is not None and type(stop_value) is not int:
+            raise ReforgeError(
+                f"{path} is structurally invalid.",
+                f"run {run.get('id')} has a non-integer stop.",
                 "restore the file from its .bak shadow or a committed copy.",
             )
         if not isinstance(run.get("history", []), list) or not isinstance(run.get("audited_commits", []), list):
@@ -661,6 +685,21 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
     is the documented recovery for a "no new commits" window (audit.py). Guarding
     step would strand that path and contradict the CLI contract.
     """
+    for label, value in (("start", start), ("step", step)):
+        if value is not None and isinstance(value, bool):
+            raise ReforgeError(
+                "The run's window settings are not integers.",
+                f"could not parse {label}: {value!r}.",
+                "restore .aikit/reforge.json from its .bak shadow or start a new run.",
+                exit_code=2,
+            )
+    if stop is not _UNSET and stop is not None and isinstance(stop, bool):
+        raise ReforgeError(
+            "The run's window settings are not integers.",
+            f"could not parse stop: {stop!r}.",
+            "pass --stop 0 for unlimited or a positive integer.",
+            exit_code=2,
+        )
     try:
         new_start = int(run.get("start") or DEFAULT_START) if start is None else int(start)
         new_step = int(run.get("step") or DEFAULT_STEP) if step is None else int(step)
@@ -671,10 +710,27 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
             "restore .aikit/reforge.json from its .bak shadow or start a new run.",
             exit_code=2,
         ) from exc
-    new_stop = run.get("stop") if stop is _UNSET else stop
+    if stop is _UNSET:
+        new_stop = run.get("stop")
+    elif stop in (None, 0, "0"):
+        new_stop = None
+    else:
+        try:
+            new_stop = int(stop)  # type: ignore[arg-type]
+        except (TypeError, ValueError) as exc:
+            raise ReforgeError(
+                "The run's window settings are not integers.",
+                f"could not parse stop: {exc}.",
+                "pass --stop 0 for unlimited or a positive integer.",
+                exit_code=2,
+            ) from exc
     validate_settings(new_start, new_step, new_stop)  # type: ignore[arg-type]
-    _stage = run.get("stage") or 0
-    _stage_num = _stage if type(_stage) is int else 0
+    # Fail closed on a corrupt stage: an unknown stage type blocks a start
+    # change rather than silently allowing the window to shift mid-run.
+    try:
+        _stage_num = int(run.get("stage") or 0)
+    except (TypeError, ValueError):
+        _stage_num = 1
     if start is not None and new_start != run.get("start") and _stage_num > 0:
         raise ReforgeError(
             "The start window cannot change after a run has audited a stage.",

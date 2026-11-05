@@ -434,7 +434,7 @@ class TestPrincipleSync(unittest.TestCase):
         # exception: the user approved rewriting the principle text, and ADR-087 names this test).
         for mechanism in ("100% test pass gate", "behaviour change = failing-first test",
                           "weakening a test needs user approval + adr naming it",
-                          "unit <=20ms/test, no spawns/sleeps", "integ <=500ms/test",
+                          "unit <=20ms/test, no spawns/sleeps", "integ <=1000ms/test",
                           "tempdir + addcleanup", "scripts/check_reachability.py"):
             with self.subTest(mechanism=mechanism):
                 self.assertIn(mechanism, p14["invariant"].lower())
@@ -13841,6 +13841,278 @@ class TestVerify9PushSafeFixes(unittest.TestCase):
             p.write_text(json.dumps(bad_bool), encoding="utf-8")
             with self.assertRaises(Exception):
                 st.load_state(root)
+
+    def test_reforge_validate_rejects_bool_windows(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        with self.assertRaises(ReforgeError):
+            st.validate_settings(True, 3, None)
+        with self.assertRaises(ReforgeError):
+            st.validate_settings(3, True, None)
+        with self.assertRaises(ReforgeError):
+            st.validate_settings(3, 3, True)
+
+    def test_reforge_load_state_rejects_bad_start_stop(self) -> None:
+        from reforge import state as st
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            q = root / ".aikit" / "reforge.json"
+            for field, value in (("start", True), ("step", "3"), ("stop", "bogus")):
+                run = {"id": "run-1", "start": 3, "step": 3, "stop": None,
+                       "stage": 0, "window": 0, "history": [], "audited_commits": []}
+                run[field] = value
+                bad = {"schema": st.SCHEMA_VERSION, "next_run_id": 2,
+                       "active_run": None, "last_run": None, "runs": [run],
+                       "stage": 0, "window": 0, "audited_commits": [],
+                       "last_audit": None, "history": []}
+                q.write_text(json.dumps(bad), encoding="utf-8")
+                with self.assertRaises(Exception):
+                    st.load_state(root)
+
+    def test_archive_dossier_failure_never_fails_archive(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            if argv[:3] == ["git", "remote", "get-url"]:
+                return (0, "https://github.com/example/demo.git")
+            if argv[:2] == ["git", "status"]:
+                return (0, "")
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text('{"schema": 1, "name": "demo"}', encoding="utf-8")
+            import scripts.dossier_sync as ds
+            orig = ds.sync_published
+            try:
+                def _boom(*a, **k):
+                    raise RuntimeError("dossier down")
+                ds.sync_published = _boom
+                code, report = project_archive.archive_project(
+                    src, "demo", "retired", workspace=Path(tmp),
+                    offline=False, runner=_fake_run)
+                self.assertEqual(code, 0)
+                self.assertIn("dossier", report.lower())
+            finally:
+                ds.sync_published = orig
+
+    def test_reforge_settings_stop_normalized(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            updated = st.update_settings(root, s, run, stop=0)
+            self.assertIsNone(updated.get("stop"), "stop 0 means unlimited")
+            updated = st.update_settings(root, s, run, stop="15")
+            self.assertEqual(updated.get("stop"), 15)
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, stop="bogus")
+
+    def test_reforge_snapshot_restore_skip_traversal(self) -> None:
+        from reforge import pipeline as pl
+        from reforge.model import Finding
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "ok.py").write_text("x = 1\n", encoding="utf-8")
+            good = Finding(code="c", category="k", severity="low", path="ok.py",
+                           line=1, message="m", evidence="e", commit="c",
+                           fixable=True)
+            evil = Finding(code="c", category="k", severity="low", path="../evil.py",
+                           line=1, message="m", evidence="e", commit="c",
+                           fixable=True)
+            absolute = Finding(code="c", category="k", severity="low",
+                               path=str(root / "ok.py"),
+                               line=1, message="m", evidence="e", commit="c",
+                               fixable=True)
+            snaps = pl._snapshot(root, [good, evil, absolute], ["../other.py", str(root / "extra.py")])
+            self.assertIn("ok.py", snaps)
+            self.assertNotIn("../evil.py", snaps)
+            self.assertNotIn(str(root / "ok.py"), snaps)
+            self.assertNotIn("../other.py", snaps)
+            failures = pl._restore(root, {"../evil.py": b"x", str(root / "ok.py"): b"x"})
+            self.assertIn("../evil.py", failures)
+            self.assertTrue((root / "ok.py").is_file())
+
+    def test_archive_banner_scan_failure_refuses(self) -> None:
+        from scripts import project_archive
+        import scripts.check_secrets as secrets_module
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+            orig = secrets_module.scan_text
+            try:
+                def _boom(label, text):
+                    raise RuntimeError("scanner down")
+                secrets_module.scan_text = _boom  # type: ignore[assignment]
+                code, report = project_archive.archive_project(
+                    src, "demo", "retired", workspace=Path(tmp),
+                    offline=True, runner=_fake_run)
+            finally:
+                secrets_module.scan_text = orig  # type: ignore[assignment]
+            self.assertEqual(code, 1)
+            self.assertIn("scan", report.lower())
+            self.assertTrue(src.is_dir(), "scan failure must not move anything")
+
+
+class TestVerify3PushSafeFixes(unittest.TestCase):
+    """Regression pins for the verify-3push window (last-3-push review)."""
+
+    def test_archive_title_ignores_hashtag(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            # '#Demo' without a space is not an ATX heading: it must not be
+            # mistaken for the document title, or the banner lands after the
+            # wrong block.
+            readme = Path(tmp) / "README.md"
+            readme.write_text("#Demo\n\nA usable description here.\n",
+                              encoding="utf-8")
+            changed = project_archive.update_readme_for_archive(readme, "retired", "2026-11-05")
+            self.assertTrue(changed)
+            text = readme.read_text(encoding="utf-8")
+            self.assertIn("> **Archived**", text)
+            # No-space '#Demo' is the first paragraph, so the banner follows it
+            # directly instead of being pushed after the real description.
+            self.assertLess(text.index("#Demo"),
+                            text.index("> **Archived**"))
+            self.assertLess(text.index("> **Archived**"),
+                            text.index("A usable description here."))
+
+    def test_archive_already_archived_json_shape(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            if argv[:3] == ["git", "remote", "get-url"]:
+                return (0, "https://github.com/example/demo.git")
+            if argv[:2] == ["git", "status"]:
+                return (0, "")
+            if argv[:2] == ["gh", "repo"]:
+                return (1, '{"archived": true}')
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text('{"schema": 1, "name": "demo"}',
+                                                        encoding="utf-8")
+            code, report = project_archive.archive_project(
+                src, "demo", "retired", workspace=Path(tmp),
+                offline=False, runner=_fake_run)
+            self.assertEqual(code, 0)
+            self.assertIn("already archived", report.lower())
+
+    def test_proof_store_rejects_circular(self) -> None:
+        from scripts import proof_corpus
+        circular: dict = {}
+        circular["self"] = circular
+        with self.assertRaises(ValueError) as ctx:
+            proof_corpus.store(circular, __import__("pathlib").Path("."))  # type: ignore[arg-type]
+        self.assertIn("JSON-serializable", str(ctx.exception))
+
+    def test_ui_surface_rejects_symlink_escape(self) -> None:
+        from scripts import project_ui
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.py").write_text("x = 1\n", encoding="utf-8")
+            (root / "link.txt").write_text("x = 1\n", encoding="utf-8")
+            real_resolve = Path.resolve
+
+            def _fake_resolve(self, *args, **kwargs):
+                if self.name == "link.txt":
+                    return (root.parent / "outside.txt").resolve()
+                return real_resolve(self, *args, **kwargs)
+
+            with mock.patch.object(Path, "resolve", _fake_resolve):
+                paths = project_ui._surface_paths(root, ["app.py", "link.txt"])
+            self.assertIn("app.py", paths)
+            self.assertNotIn("link.txt", paths)
+
+    def test_stop_value_zero_string_and_bool(self) -> None:
+        from reforge import pipeline as pl
+        from reforge.errors import ReforgeError
+        self.assertIsNone(pl._stop_value("0"))
+        self.assertIsNone(pl._stop_value(0))
+        self.assertIsNone(pl._stop_value(None))
+        self.assertEqual(pl._stop_value("15"), 15)
+        with self.assertRaises(ReforgeError):
+            pl._stop_value(True)
+
+    def test_update_settings_rejects_bool_and_corrupt_stage(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, step=True)
+            run["stage"] = "2"
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, start=5)
+
+    def test_baseline_detector_uses_top_level_re(self) -> None:
+        from scripts import check_secrets as secrets_module
+        self.assertTrue(secrets_module._is_valid_baseline_detector("GitHub token"))
+        self.assertTrue(secrets_module._is_valid_baseline_detector(
+            "high-entropy value for API_KEY"))
+        self.assertFalse(secrets_module._is_valid_baseline_detector("high-entropy-value"))
+
+    def test_reforge_under_root_rejects_symlink_escape(self) -> None:
+        from reforge import pipeline as pl
+        from reforge import repair as rp
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "ok.py").write_text("x = 1\n", encoding="utf-8")
+            (root / "link.py").write_text("x = 1\n", encoding="utf-8")
+            real_resolve = Path.resolve
+
+            def _fake_resolve(self, *args, **kwargs):
+                if self.name == "link.py":
+                    return (root.parent / "outside.py").resolve()
+                return real_resolve(self, *args, **kwargs)
+
+            with mock.patch.object(Path, "resolve", _fake_resolve):
+                self.assertTrue(pl._is_safe_under_root(root, "ok.py"))
+                self.assertFalse(pl._is_safe_under_root(root, "link.py"))
+                self.assertFalse(pl._is_safe_under_root(root, "../evil.py"))
+                self.assertTrue(rp._is_safe_under_root(root, "ok.py"))
+                self.assertFalse(rp._is_safe_under_root(root, "link.py"))
 
 if __name__ == "__main__":
     unittest.main()

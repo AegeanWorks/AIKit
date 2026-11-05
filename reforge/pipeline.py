@@ -81,8 +81,15 @@ def _scanner(label: str, text: str):
 
 
 def _stop_value(stop: Optional[int]) -> Optional[int]:
-    if stop in (None, 0):
+    if stop in (None, 0, "0"):
         return None
+    if isinstance(stop, bool):
+        from reforge.errors import ReforgeError as _ReforgeError
+        raise _ReforgeError(
+            f"Invalid stop window {stop!r}.",
+            "the stop window must be an integer.",
+            "pass --stop 0 for unlimited or a positive integer.",
+        )
     try:
         value = int(stop)  # type: ignore[arg-type]
     except (TypeError, ValueError) as exc:
@@ -95,10 +102,45 @@ def _stop_value(stop: Optional[int]) -> Optional[int]:
     return value
 
 
+def _is_safe_relative(relative: str) -> bool:
+    """Only repo-relative paths may be snapshotted, restored or repaired.
+
+    Model answers and on-disk state are untrusted input: an absolute path or
+    a `..` segment would turn `root / relative` into a write outside the
+    repository. The review layer allowlists model paths to the stage diff, so
+    this never triggers on honest input; it is defense in depth for corrupted
+    state or future callers.
+    """
+    if not isinstance(relative, str) or not relative:
+        return False
+    candidate = Path(relative)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return False
+    return True
+
+
+def _is_safe_under_root(root: Path, relative: str) -> bool:
+    """Relative plus symlink check: the resolved path must stay under root.
+
+    `_is_safe_relative` blocks `..` and absolute paths but not a symlink like
+    `a/link` pointing outside the repo; resolving catches that escape the same
+    way `project_ui._surface_paths` does.
+    """
+    if not _is_safe_relative(relative):
+        return False
+    try:
+        resolved_root = Path(root).resolve()
+        resolved = (Path(root) / relative).resolve()
+        resolved.relative_to(resolved_root)
+    except (OSError, ValueError, RuntimeError):
+        return False
+    return True
+
+
 def _snapshot(root: Path, findings: Sequence[Finding],
               extra_paths: Sequence[str] = ()) -> Dict[str, Optional[bytes]]:
     from reforge.errors import ReforgeError as _ReforgeError
-    paths = {finding.path for finding in findings if finding.fixable}
+    paths = {finding.path for finding in findings if finding.fixable and _is_safe_under_root(root, finding.path)}
     try:
         paths.add(str(regression_test_path(root).relative_to(root)).replace("\\", "/"))
     except ValueError as exc:
@@ -107,7 +149,7 @@ def _snapshot(root: Path, findings: Sequence[Finding],
             str(exc),
             "run inside the repository so the regression path stays within it.",
         ) from exc
-    paths.update(path for path in extra_paths if path)
+    paths.update(path for path in extra_paths if path and _is_safe_under_root(root, path))
     snapshots: Dict[str, Optional[bytes]] = {}
     for relative in paths:
         snapshots[relative] = _fingerprint(root / relative)
@@ -118,6 +160,9 @@ def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> List[str]:
     """Restore snapshotted bytes; returns paths that could not be restored."""
     failures: List[str] = []
     for relative, original in snapshots.items():
+        if not _is_safe_under_root(root, relative):
+            failures.append(relative)
+            continue
         path = root / relative
         try:
             if original is None:

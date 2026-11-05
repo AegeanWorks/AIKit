@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
-- **Total Classes**: `155`
-- **Total Top-Level Functions**: `972`
-- **Total Class Methods**: `1155`
-- **Total Source Lines**: `44110`
+- **Total Classes**: `156`
+- **Total Top-Level Functions**: `976`
+- **Total Class Methods**: `1169`
+- **Total Source Lines**: `44540`
 
 ---
 
@@ -444,13 +444,15 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `989` lines (`49931` bytes)
+**Size**: `1034` lines (`51736` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
 - `def repair_from_dict(item)`
 - `def _scanner(label, text)`
 - `def _stop_value(stop)`
+- `def _is_safe_relative(relative)` - *Only repo-relative paths may be snapshotted, restored or repaired.*
+- `def _is_safe_under_root(root, relative)` - *Relative plus symlink check: the resolved path must stay under root.*
 - `def _snapshot(root, findings, extra_paths)`
 - `def _restore(root, snapshots)` - *Restore snapshotted bytes; returns paths that could not be restored.*
 - `def _relative_inside(root, path)` - *The repository-relative form of a supplied file, or an empty string when it is outside.*
@@ -485,7 +487,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `456` lines (`20030` bytes)
+**Size**: `492` lines (`21481` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -510,6 +512,8 @@
 - `def _test_body(code, relative)`
 - `def regression_test_path(root)`
 - `def _add_regression_tests(root, repairs)`
+- `def _is_safe_relative(relative)` - *Only repo-relative paths may be repaired (defense in depth, see pipeline).*
+- `def _is_safe_under_root(root, relative)` - *Relative plus symlink check: the resolved path must stay under root.*
 - `def repair_findings(root, findings, add_tests)` - *Apply safe repairs per file, then add one regression test per repaired rule and file.*
 - `def apply_text_patches(root, findings)` - *Apply reviewed exact replacements, one per finding, only when each is unambiguous.*
 - `def repair_paths(repairs, root)` - *The source and test paths a repair touched, for an explicit commit and patch review.*
@@ -551,7 +555,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `735` lines (`29837` bytes)
+**Size**: `791` lines (`32447` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -785,7 +789,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `884` lines (`41985` bytes)
+**Size**: `883` lines (`41961` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -824,7 +828,7 @@
 ### [`scripts/check_test_budgets.py`](scripts/check_test_budgets.py)
 > *Test Tier Budget Gate (PRINCIPLE-010 Rule 6, PRINCIPLE-014 Rule 3)*
 
-**Size**: `305` lines (`13269` bytes)
+**Size**: `306` lines (`13383` bytes)
 
 **Classes:**
 - `class TierResult` - *One tier's measured outcome; frozen so a report cannot edit what was measured.*
@@ -1051,7 +1055,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `530` lines (`27631` bytes)
+**Size**: `542` lines (`28225` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1356,7 +1360,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `375` lines (`15454` bytes)
+**Size**: `384` lines (`15760` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1381,7 +1385,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `350` lines (`15331` bytes)
+**Size**: `350` lines (`15352` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1849,7 +1853,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13846` lines (`757396` bytes)
+**Size**: `14118` lines (`770693` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2930,6 +2934,21 @@
   - Method `.test_archive_reason_secret_refused()`
   - Method `.test_reforge_settings_start_guard()`
   - Method `.test_reforge_load_state_validates_run_types()`
+  - Method `.test_reforge_validate_rejects_bool_windows()`
+  - Method `.test_reforge_load_state_rejects_bad_start_stop()`
+  - Method `.test_archive_dossier_failure_never_fails_archive()`
+  - Method `.test_reforge_settings_stop_normalized()`
+  - Method `.test_reforge_snapshot_restore_skip_traversal()`
+  - Method `.test_archive_banner_scan_failure_refuses()`
+- `class TestVerify3PushSafeFixes` - *Regression pins for the verify-3push window (last-3-push review).*
+  - Method `.test_archive_title_ignores_hashtag()`
+  - Method `.test_archive_already_archived_json_shape()`
+  - Method `.test_proof_store_rejects_circular()`
+  - Method `.test_ui_surface_rejects_symlink_escape()`
+  - Method `.test_stop_value_zero_string_and_bool()`
+  - Method `.test_update_settings_rejects_bool_and_corrupt_stage()`
+  - Method `.test_baseline_detector_uses_top_level_re()`
+  - Method `.test_reforge_under_root_rejects_symlink_escape()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

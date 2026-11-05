@@ -321,6 +321,29 @@ def _add_regression_tests(root: Path, repairs: Sequence[Repair]) -> List[Repair]
     return tests
 
 
+def _is_safe_relative(relative: str) -> bool:
+    """Only repo-relative paths may be repaired (defense in depth, see pipeline)."""
+    if not isinstance(relative, str) or not relative:
+        return False
+    candidate = Path(relative)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return False
+    return True
+
+
+def _is_safe_under_root(root: Path, relative: str) -> bool:
+    """Relative plus symlink check: the resolved path must stay under root."""
+    if not _is_safe_relative(relative):
+        return False
+    try:
+        resolved_root = Path(root).resolve()
+        resolved = (Path(root) / relative).resolve()
+        resolved.relative_to(resolved_root)
+    except (OSError, ValueError, RuntimeError):
+        return False
+    return True
+
+
 def repair_findings(root: Path, findings: Sequence[Finding],
                     add_tests: bool = True) -> List[Repair]:
     """Apply safe repairs per file, then add one regression test per repaired rule and file."""
@@ -328,9 +351,15 @@ def repair_findings(root: Path, findings: Sequence[Finding],
     by_path: Dict[str, List[Finding]] = {}
     for finding in findings:
         if finding.fixable:
+            if not _is_safe_under_root(root, finding.path):
+                continue
             by_path.setdefault(finding.path, []).append(finding)
     repairs: List[Repair] = []
     for relative, items in sorted(by_path.items()):
+        if not _is_safe_under_root(root, relative):
+            repairs.extend(Repair(item.code, relative, item.line, "not repaired: path escapes repository", "", False)
+                           for item in items)
+            continue
         path = root / relative
         try:
             with open(path, "r", encoding="utf-8", newline="") as handle:
@@ -392,9 +421,16 @@ def apply_text_patches(root: Path, findings: Sequence[Finding]) -> List[Repair]:
     by_path: Dict[str, List[Finding]] = {}
     for finding in findings:
         if finding.patch_old:
+            if not _is_safe_under_root(root, finding.path):
+                continue
             by_path.setdefault(finding.path, []).append(finding)
     applied: List[Repair] = []
     for relative, items in sorted(by_path.items()):
+        if not _is_safe_under_root(root, relative):
+            applied.extend(Repair(item.code, relative, item.line,
+                                  "not repaired: path escapes repository", "", False)
+                           for item in items)
+            continue
         path = root / relative
         try:
             with open(path, "r", encoding="utf-8", newline="") as handle:

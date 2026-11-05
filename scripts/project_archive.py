@@ -114,8 +114,12 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
         return False
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)
-    title = next((i for i, line in enumerate(lines)
-                  if line.lstrip().startswith("# ") or line.lstrip().startswith("#")), None)
+
+    def _is_title(line: str) -> bool:
+        stripped = line.lstrip()
+        return stripped == "#" or stripped.startswith("# ")
+
+    title = next((i for i, line in enumerate(lines) if _is_title(line)), None)
     start = (title + 1) if title is not None else 0
     # Find the description block: first non-empty, non-badge block after the title.
     idx = start
@@ -134,8 +138,13 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
             return False
         return True
     # Extend over the whole paragraph (consecutive non-empty lines).
+    # A '#' line ends the block only when it is a real ATX heading ('#' alone
+    # or '# ' prefix); '#hashtag' text is paragraph content, not a heading.
     end = idx
-    while end < len(lines) and lines[end].strip() != "" and not lines[end].strip().startswith("#"):
+    while end < len(lines) and lines[end].strip() != "":
+        stripped = lines[end].strip()
+        if stripped == "#" or stripped.startswith("# "):
+            break
         end += 1
     banner = archive_notice(reason, date_str)
     # Insert exactly one blank before and after the banner without touching
@@ -374,8 +383,11 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         from scripts.check_secrets import scan_text as _scan_text
         _banner_text = f"{reason}\n{new_desc}".replace("aikit:allow-secret", "x")
         _banner_findings = _scan_text(f"{name}/archive-reason", _banner_text)
-    except Exception:
-        _banner_findings = []
+    except (ImportError, AttributeError, ValueError, TypeError, RuntimeError, OSError) as exc:
+        return 1, _triad(f"could not scan the archive banner for '{name}': {exc}",
+                          "the banner, commit message and project record would publish "
+                          "the reason/description without a secret check.",
+                          "fix the scanner error shown, then archive again; nothing was moved.")
     if _banner_findings:
         return 1, _triad(f"refusing to archive '{name}': the reason/description looks like a credential.",
                           "the archive banner, commit message and project record would publish it.",
@@ -455,7 +467,7 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         code, out = run(["gh", "repo", "archive", slug, "--yes"], src)
         if code != 0:
             lowered = out.lower()
-            if "already archived" in lowered or "already/archived" in lowered:
+            if "already archived" in lowered or ("archived" in lowered and "true" in lowered):
                 notes.append("The GitHub repository was already archived.")
             else:
                 return 1, _triad(f"archiving the GitHub repository '{slug}' failed.\n{out[-800:]}",
@@ -498,19 +510,19 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                          "archive fields (archived, archived_at, archive_reason).")
     _forget_or_move_attached(workspace, name, src, dst)
     # Dossier catalogue is a networked publish side-effect (gh api): an offline
-    # archive must not touch the network. Online it is best-effort only.
+    # Dossier sync is best-effort only and must never fail the archive:
+    # the move and the .aikit record already succeeded above.
     if not offline:
         try:
             from scripts import dossier_sync as _dossier_sync
-            from scripts.project_registry import ProjectError as _DossierProjectError
             try:
                 _dossier_result = _dossier_sync.sync_published(dst, name)
-            except (_DossierProjectError, OSError, ValueError, KeyError) as _dossier_exc:
+            except Exception as _dossier_exc:
                 notes.append(f"Note: dossier catalogue sync skipped ({_dossier_exc}).")
             else:
                 if isinstance(_dossier_result, dict) and not _dossier_result.get("skipped"):
                     notes.append(f"Dossier catalogue updated for archived '{name}'.")
-        except (ImportError, AttributeError, ValueError) as _import_exc:
+        except Exception as _import_exc:
             notes.append(f"Note: dossier catalogue sync unavailable ({_import_exc}).")
     lines = [f"[OK] Archived '{name}' to {dst} with reason '{reason}'."]
     lines.extend(notes)

@@ -543,7 +543,6 @@ def _baseline_detector_names() -> Set[str]:
 
 def _is_valid_baseline_detector(detector: str) -> bool:
     """Whether a baseline entry detector names a real finding label."""
-    import re as _re
     valid = _baseline_detector_names()
     if detector in valid:
         return True
@@ -554,8 +553,8 @@ def _is_valid_baseline_detector(detector: str) -> bool:
     prefix = "high-entropy value for "
     if detector.startswith(prefix):
         suffix = detector[len(prefix):].strip()
-        if _re.fullmatch(r"[A-Za-z0-9_]+", suffix or "") and _re.search(
-            r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH", suffix, _re.IGNORECASE):
+        if re.fullmatch(r"[A-Za-z0-9_]+", suffix or "") and re.search(
+            r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH", suffix, re.IGNORECASE):
             return True
     return False
 

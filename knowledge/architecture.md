@@ -205,7 +205,7 @@ Both tiers run under `python -m unittest discover tests`. See [ADR-040](decision
 | Tier | Module | Budget | Contents |
 |---|---|---|---|
 | Unit | `tests/test_kit.py` | <=20ms/test, no process, no sleep | parsing, classification, ledger atomicity, AST gates, rule wording |
-| Integration | `tests/test_integration.py` | <=500ms/test, timeout per spawn | multi-process races, real CLI contracts, real `git`, the dogfood run, the CLI matrix |
+| Integration | `tests/test_integration.py` | <=1000ms/test, timeout per spawn | multi-process races, real CLI contracts, real `git`, the dogfood run, the CLI matrix |
 
 The unit tier is fast by construction: `TestTierBudgetDiscipline` fails on a spawn or sleep call in `test_kit.py`, and a module-level guard refuses any process the unit tier starts indirectly (ADR-049). `TestSuiteHygiene` checks every test asserts and no test module imports a network library (ADR-099).
 

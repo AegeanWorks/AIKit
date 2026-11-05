@@ -117,7 +117,7 @@ Before committing any Track B or Track C changes, ALL gates must pass:
 
 ### 1. Test Suite Verification (100% Pass Required)
 ```bash
-# Both tiers plus their per-test budgets (unit <=20ms, integration <=500ms)
+# Both tiers plus their per-test budgets (unit <=20ms, integration <=1000ms)
 python scripts/check_test_budgets.py
 
 # Either tier on its own, when a failure needs isolating

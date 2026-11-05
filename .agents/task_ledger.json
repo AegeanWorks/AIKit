@@ -1,146 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-9push-v3",
+    "task_id": "verify-3push",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793914622.263397,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793915391.3536968,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": [],
-    "completed_at": 1793914843.968744
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-push-v4",
-      "phase": "superseded",
-      "phase_num": 3,
-      "description": "Superseded by 'verify-6push' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793912873.4322891,
-      "timestamp_str": "2026-11-06 00:07:53",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-6push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-6push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793912954.9524746,
-      "timestamp_str": "2026-11-06 00:09:14",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-6push-pins",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Pin last-6-push fixes with regression tests",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793912967.0411115,
-      "timestamp_str": "2026-11-06 00:09:27",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "New TestVerifyPushV4SafeFixes pins arrived after push and need verification",
-        "benefits": "Locks hardening against regression",
-        "risks": "contract: test-only plus map; dependency: stdlib only; concurrency: none; state: ledger append only",
-        "mitigation": "Full unit plus gates, staged verification before push"
-      },
-      "plan_digest": "324fab8475a27b6f3c383d3a13ecf1655f3720b0f455ec6778d68301e84492f2"
-    },
-    {
-      "task_id": "verify-6push-pins",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Pins green: 893 unit OK, secrets/reachability/sync/map/licenses/dogfood clean",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793913014.0854967,
-      "timestamp_str": "2026-11-06 00:10:14",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-6push-pins",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-6push-pins' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793913072.0734282,
-      "timestamp_str": "2026-11-06 00:11:12",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-9push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Verify last-9-push window 103a9f8..HEAD with safe fixes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793913252.270106,
-      "timestamp_str": "2026-11-06 00:14:12",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "Goal requires verify last 9 pushes and fix gaps before push",
-        "benefits": "Catch regressions across archive, reforge, secrets, proof, UI, compat",
-        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
-        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
-      },
-      "plan_digest": "e68b4e8f2619f3be50bcc22a9a4534e94cbd645d019a9f33456094a0ef39d1da"
-    },
-    {
-      "task_id": "verify-9push-v2",
-      "phase": "superseded",
-      "phase_num": 2,
-      "description": "Superseded by 'verify-push-v4' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793913403.3818393,
-      "timestamp_str": "2026-11-06 00:16:43",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-push-v4",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Phase 4 green: 893 unit OK, 86 integration OK, budgets pass, secrets/reachability/sync/map/licenses/dogfood/verify_commit clean; evidence fail-closed plus proof/UI/archive/reforge hardening with 14 regression pins",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793913403.3818393,
-      "timestamp_str": "2026-11-06 00:16:43",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-9push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] Phase 4 green: 893 unit, 86 integ in budget, secrets/reachability/sync/map/licenses/dogfood clean, verify_commit HEAD passes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793913407.2565794,
-      "timestamp_str": "2026-11-06 00:16:47",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-push-v4",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'verify-9push-v2' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1793913407.2565794,
-      "timestamp_str": "2026-11-06 00:16:47",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-9push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-9push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793913407.3946953,
-      "timestamp_str": "2026-11-06 00:16:47",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "verify-6push",
       "phase": "in_progress",
@@ -250,6 +120,145 @@
       "status": "completed",
       "timestamp": 1793914843.968746,
       "timestamp_str": "2026-11-06 00:40:43",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-3push",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Verify last-3-push window 8f0fc43..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915115.4854743,
+      "timestamp_str": "2026-11-06 00:45:15",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires verify last 3 pushes and fix gaps before push",
+        "benefits": "Catch regressions in archive, reforge, proof, UI, secrets",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      },
+      "plan_digest": "717bff61595a1e18a75fb0ee41dafa332c41ea33456bec6261c4786c9ec6b03e"
+    },
+    {
+      "task_id": "verify-3push",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Adopt safe fixes for 3-push window (archive title/already-archived, proof serial, UI symlink, secrets import, reforge stop/stage)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915170.2850184,
+      "timestamp_str": "2026-11-06 00:46:10",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-3push",
+      "phase": "superseded",
+      "phase_num": 3,
+      "description": "Superseded by 'verify-12push' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793915287.4305787,
+      "timestamp_str": "2026-11-06 00:48:07",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Verify last-12-push window 0782a49..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915287.4305787,
+      "timestamp_str": "2026-11-06 00:48:07",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires re-verify of last 12 pushes and fix gaps before push",
+        "benefits": "Catch regressions in archive, reforge, proof, compat UI",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      },
+      "plan_digest": "78efd38d52fad6e8ea6755f1b41979695c1321908182c0258d8545c320c10f1e"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Adopt safe fixes for 12-push window (1000ms budget ADR-334 plus joint archive/reforge/UI/proof hardening)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915317.4383972,
+      "timestamp_str": "2026-11-06 00:48:37",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Verify last-6-push window HEAD~6..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915334.8874962,
+      "timestamp_str": "2026-11-06 00:48:54",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires verify last 6 pushes and fix gaps before push",
+        "benefits": "Catch regressions in reforge repair paths, archive banner scan, settings stop handling",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full unit plus gates, staged verification before push"
+      },
+      "plan_digest": "a063a1f18b31cbda9eae2b7b46d072100fd84e8c75d1a27034fd57bd144ba899"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "superseded",
+      "phase_num": 3,
+      "description": "Superseded by 'verify-6push-v2' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793915334.8874962,
+      "timestamp_str": "2026-11-06 00:48:54",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Adopt safe fixes for 6-push window (reforge traversal guard, stop normalization, archive scan fail-closed)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915337.8409026,
+      "timestamp_str": "2026-11-06 00:48:57",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Phase 4 partial green: 918 unit OK, 86 integ OK on retry, secrets/reachability/map clean; budget gate needs user approval (ADR-334 unapproved)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915340.2741055,
+      "timestamp_str": "2026-11-06 00:49:00",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-3push",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Phase 4 green: 919 unit OK, budgets pass, secrets/reachability/sync/map/licenses/dogfood clean; archive title/already-archived plus proof serial plus UI symlink plus reforge stop/stage with 7 pins",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793915391.3536968,
+      "timestamp_str": "2026-11-06 00:49:51",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'verify-3push' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793915391.3536968,
+      "timestamp_str": "2026-11-06 00:49:51",
       "agent": "kilo:goal"
     }
   ]

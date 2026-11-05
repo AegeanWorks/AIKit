@@ -126,7 +126,7 @@ def store(receipt: Mapping[str, Any], corpus: Path, *,
         raise ValueError(f"refusing to store non-mapping receipt {type(receipt).__name__}")
     try:
         receipt_json = json.loads(json.dumps(dict(receipt), sort_keys=True))
-    except TypeError as exc:
+    except (TypeError, ValueError) as exc:
         raise ValueError(f"receipt is not JSON-serializable: {exc}") from exc
     key = witness_key(receipt)
     entry: Dict[str, Any] = {
@@ -138,7 +138,7 @@ def store(receipt: Mapping[str, Any], corpus: Path, *,
     if envelope is not None:
         try:
             entry["envelope"] = json.loads(json.dumps(dict(envelope), sort_keys=True))
-        except TypeError as exc:
+        except (TypeError, ValueError) as exc:
             raise ValueError(f"envelope is not JSON-serializable: {exc}") from exc
     dest = entry_path(corpus, key)
     _atomic_write_json(dest, entry)
@@ -235,7 +235,7 @@ def replay(entry: Mapping[str, Any], *,
     if prove_fn is None:
         try:  # hygiene: prefer the in-repo prover so a same-named installed package cannot shadow it
             from scripts.proof_gate import prove as prove_fn  # type: ignore[import-not-found]
-        except (ImportError, SyntaxError, AttributeError, ValueError) as exc:
+        except (ImportError, SyntaxError, AttributeError, ValueError):
             try:
                 from proof_gate import prove as prove_fn  # type: ignore[import-not-found]
             except (ImportError, SyntaxError, AttributeError, ValueError) as exc2:

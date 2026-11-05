@@ -328,11 +328,20 @@ def ui_payload(project_root: Path) -> Dict[str, object]:
 def _surface_paths(project_root: Path, evidence: List[str]) -> List[str]:
     """The smallest practical surface: detected entry files plus a source tree if one exists."""
     paths: List[str] = []
+    try:
+        resolved_root = project_root.resolve()
+    except OSError:
+        resolved_root = project_root
     for relative in evidence:
         if not isinstance(relative, str) or not relative:
             continue
         candidate = Path(relative)
         if candidate.is_absolute() or ".." in candidate.parts:
+            continue
+        try:
+            resolved = (project_root / relative).resolve()
+            resolved.relative_to(resolved_root)
+        except (OSError, ValueError, RuntimeError):
             continue
         if (project_root / relative).is_file() and relative not in paths:
             paths.append(relative)
