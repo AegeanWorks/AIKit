@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import os
 import sys
@@ -167,6 +168,22 @@ def prune(corpus: Path, keep: int = DEFAULT_KEEP) -> List[str]:
     return deleted
 
 
+def _accepts_pass_to_pass(prove_fn: Callable[..., Any]) -> bool:
+    """Whether the prover accepts a `pass_to_pass` keyword (S-F contract).
+
+    Old test doubles only accept (repo, base, tests); probing the signature
+    keeps the fallback deterministic instead of matching `TypeError` text,
+    which varies by interpreter. A `**kwargs` prover is assumed to accept it;
+    an introspection failure fails open so the subsequent call decides.
+    """
+    try:
+        params = inspect.signature(prove_fn).parameters.values()
+    except (TypeError, ValueError):
+        return True
+    return any(param.kind == inspect.Parameter.VAR_KEYWORD for param in params) \
+        or "pass_to_pass" in [param.name for param in params]
+
+
 def replay(entry: Mapping[str, Any], *,
            prove_fn: Callable[..., Mapping[str, Any]] | None = None,
            repo: str | Path = ".") -> Dict[str, Any]:
@@ -193,14 +210,15 @@ def replay(entry: Mapping[str, Any], *,
         p2p = [str(value) for value in list(receipt.get("pass_to_pass") or [])]
         prove_kwargs: dict = {"repo": Path(repo), "base": str(receipt.get("base", "")),
                               "tests": [Path(value) for value in tests]}
-        if p2p:
+        if p2p and _accepts_pass_to_pass(prove_fn):
             prove_kwargs["pass_to_pass"] = [Path(value) for value in p2p]
         try:
             fresh = prove_fn(**prove_kwargs)
         except TypeError as exc:
-            # Old doubles that only accept (repo, base, tests) still replay the
-            # fail-to-pass verdict; pass-to-pass is then unchecked but recorded.
-            if "pass_to_pass" not in str(exc) or not p2p:
+            # Introspection said yes but the call refused (e.g. a wrapped
+            # double): retry without pass-to-pass so the fail-to-pass verdict
+            # still replays; pass-to-pass is then unchecked but recorded.
+            if "pass_to_pass" not in prove_kwargs or not p2p:
                 raise
             prove_kwargs.pop("pass_to_pass", None)
             fresh = prove_fn(**prove_kwargs)

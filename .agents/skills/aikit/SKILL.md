@@ -35,6 +35,9 @@ The user's software lives in its own project, never in AIKit's tree. The full co
 ## 🤝 Delegating to Sub-Agents (PRINCIPLE-008 R6, PRINCIPLE-012 R8)
 Before delegating, read `delegation.md`: the Claude Code roles, `aikit delegate` on free models, headless OpenCode runs, and the rule that no sub-agent writes a task ledger.
 
+## 📥 Research Reports Inbox (PRINCIPLE-016 R7)
+Analysis, scan, review and literature reports go in `reports/` (local-only, git-ignored; lifecycle in `reports/README.md`): triage each against the idea-catcher register and current trees, record what is worth keeping (`review-idea` / `add-idea` / `review-finish`, backdating `--decided-at` for past reports), then delete the file. Tell sub-agents doing research to write their notes there — never into `knowledge/` or the project tree.
+
 ## 🧭 Phase 1: Orientation & Cold-Start Recovery
 
 ### 1. Resume Interrupted Tasks

@@ -2331,7 +2331,7 @@ class TestRewrittenPrincipleWording(unittest.TestCase):
             "gone": ["remain concise", "(<15 lines)", "strictly prohibited", "bit-for-bit clean"],
         },
         "PRINCIPLE-016": {
-            "rules": 6,
+            "rules": 7,
             "present": [
                 "a section that does not apply says \"Not applicable\" and why, never template text",
                 "`architecture.md` when a module, layer or process boundary is added, removed or moved",
@@ -2343,8 +2343,14 @@ class TestRewrittenPrincipleWording(unittest.TestCase):
                 "A persisted schema has a version key",
                 "A reader refuses a version it does not support without modifying, quarantining or overwriting the file",
                 "read in slices (PRINCIPLE-004 R3)",
+                # ADR-333: reports inbox triage, then delete; an accumulating inbox is a backlog.
+                "land in `reports/`",
+                "never in `knowledge/` or the project tree",
+                "against the idea-catcher register",
+                "then deletes the report file",
+                "an inbox that accumulates is a backlog",
             ],
-            "gone": ["high-density", "instant cold-start", "`schema_version`", "`view_file`", "strictly prohibited"],
+            "gone": ["high-density", "`schema_version`", "`view_file`", "strictly prohibited"],
         },
         "PRINCIPLE-017": {
             "rules": 6,

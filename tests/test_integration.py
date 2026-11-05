@@ -536,9 +536,10 @@ class TestInvolvedCli(unittest.TestCase):
 
     def test_citing_lists_the_cross_principle_set_and_rejects_unknown_ids(self):
         # PRINCIPLE-000 R3: one computed list per changed principle, one ID per line.
+        # ADR-333: PRINCIPLE-016 R7 cites PRINCIPLE-019, so 016 joins 019's set.
         res = self._run("--citing", "PRINCIPLE-019")
         self.assertEqual(res.returncode, 0, res.stderr)
-        self.assertEqual(res.stdout.split(), ["PRINCIPLE-000", "PRINCIPLE-009", "PRINCIPLE-011", "PRINCIPLE-012", "PRINCIPLE-018"])
+        self.assertEqual(res.stdout.split(), ["PRINCIPLE-000", "PRINCIPLE-009", "PRINCIPLE-011", "PRINCIPLE-012", "PRINCIPLE-016", "PRINCIPLE-018"])
         bad = self._run("--citing", "PRINCIPLE-999")
         self.assertEqual(bad.returncode, 2)
         self.assertIn("Fix:", bad.stderr)

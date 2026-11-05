@@ -74,3 +74,8 @@ screenshot-*.png
 # Entire hosted-review exports: per-repo findings, reports, event logs and agent analysis.
 # Local-only audit evidence; never committed or published.
 /entire_audits/
+
+# Research reports inbox (PRINCIPLE-016 R7): triage locally, never commit.
+# The lifecycle README stays tracked so fresh clones know the triage rule.
+/reports/*
+!/reports/README.md

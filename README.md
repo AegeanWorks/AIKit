@@ -160,6 +160,8 @@ portable_agent_kit/
 │   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree
 ├── projects/                   <- Built software (each subfolder its own repo)
+├── reports/                    <- Local-only research inbox (PRINCIPLE-016 R7; only README.md tracked)
+│   └── README.md               <- Inbox lifecycle: triage into the register, then delete
 ├── tests/
 │   ├── test_kit.py               <- Unit tier (<=20ms per test)
 │   ├── test_auto_register.py     <- Unit tier: idea registration from commits

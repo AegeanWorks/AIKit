@@ -187,10 +187,9 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         # because a sample with main.py/app.py would otherwise settle as a
         # service before the explicit compat proof is consulted.
         try:
-            import json as _json
             compat_path = root / ".aikit" / "compat.json"
             if compat_path.is_file():
-                compat = _json.loads(compat_path.read_text(encoding="utf-8"))
+                compat = json.loads(compat_path.read_text(encoding="utf-8"))
                 if isinstance(compat, dict) and compat.get("kind") == "ui" and compat.get("has_ui"):
                     kind = UI_WEB
                     evidence.append(compat_path)

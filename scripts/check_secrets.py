@@ -529,21 +529,16 @@ def fingerprint_finding(label: str, detector: str, excerpt: str) -> str:
 
 def _baseline_detector_names() -> Set[str]:
     """Detectors a baseline entry may name: raw plus encoded twins."""
-    names = set(DETECTOR_NAMES)
     # Dash-form entropy names are pragma canonical names, never emitted
     # findings (scan_text emits "high-entropy value for X" and
     # "high-entropy string literal"). Accepting them here would validate but
-    # never match, surfacing only later as a stale entry.
-    names.discard("high-entropy-value")
-    names.discard("high-entropy-literal")
-    names.update(f"encoded-{name}" for name in list(names))
-    names.discard("encoded-high-entropy-value")
-    names.discard("encoded-high-entropy-literal")
-    # scan_encoded_passes only emits encoded pattern detectors, never entropy:
-    # accepting an encoded-entropy label would validate but never match,
-    # surfacing only later as a stale entry.
-    names.update({"high-entropy string literal"})
-    return names
+    # never match, surfacing only later as a stale entry. scan_encoded_passes
+    # only emits encoded pattern detectors, never entropy, so no
+    # encoded-entropy label is accepted either.
+    pattern_names = {name for name, _ in SECRET_PATTERNS}
+    return (set(pattern_names)
+            | {f"encoded-{name}" for name in pattern_names}
+            | {"high-entropy string literal"})
 
 
 def _is_valid_baseline_detector(detector: str) -> bool:

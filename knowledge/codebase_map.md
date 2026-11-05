@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `152`
-- **Total Top-Level Functions**: `968`
+- **Total Top-Level Functions**: `969`
 - **Total Class Methods**: `1122`
-- **Total Source Lines**: `43260`
+- **Total Source Lines**: `43279`
 
 ---
 
@@ -784,7 +784,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `870` lines (`40887` bytes)
+**Size**: `865` lines (`40680` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -1355,7 +1355,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `335` lines (`14024` bytes)
+**Size**: `334` lines (`13990` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1378,7 +1378,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `279` lines (`11892` bytes)
+**Size**: `297` lines (`12738` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1389,6 +1389,7 @@
 - `def load(corpus, key)` - *Read one entry by witness key; None when absent or unreadable.*
 - `def list_entries(corpus)` - *Every readable entry, oldest first (IDEA-1156 pruning order).*
 - `def prune(corpus, keep)` - *Delete oldest entries past the cap (IDEA-1156); returns deleted keys.*
+- `def _accepts_pass_to_pass(prove_fn)` - *Whether the prover accepts a `pass_to_pass` keyword (S-F contract).*
 - `def replay(entry, *, prove_fn, repo)` - *Re-prove a stored entry and compare verdicts (IDEA-1156); never raises.*
 - `def build_parser()`
 - `def _read_json(path)`
@@ -1684,7 +1685,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2159` lines (`111772` bytes)
+**Size**: `2160` lines (`111870` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1845,7 +1846,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13362` lines (`733880` bytes)
+**Size**: `13368` lines (`734214` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
