@@ -1,28 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "aikit-archive-v1",
+    "task_id": "crucible-verify-v2",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793904347.5048003,
+    "active_phase": 2,
+    "status": "in_progress",
+    "updated_at": 1793904832.6240203,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": [],
-    "completed_at": 1793904350.271652
+    "impact_assessment": {
+      "why": "c49a198 pushed archive+reforge+gates but crucible found entropy baseline unsuppressible, expired hides active, archive description and git-add gaps",
+      "benefits": "baseline suppresses real entropy findings, active leaks visible with baseline hygiene, archive refuses bad input safely",
+      "risks": "contract: baseline validation widens to actual entropy labels plus encoded twins; dependency: stdlib only; concurrency: none; state: no ledger change beyond checkpoints",
+      "mitigation": "failing-first pins for entropy baseline and expired-active reporting, targeted unit plus secret scan, map regen clean, no reforge architectural change this wave"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-gates-1169",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] IDEA-1169 policy module plus verify_commit wiring with failing-first pins, map regenerated clean",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793816470.8923514,
-      "timestamp_str": "2026-11-04 21:21:10",
-      "agent": "kilo:goal-aikit"
-    },
     {
       "task_id": "aikit-gates-1169",
       "phase": "completed",
@@ -267,6 +261,24 @@
       "timestamp": 1793904350.271654,
       "timestamp_str": "2026-11-05 21:45:50",
       "agent": "kilo:goal"
+    },
+    {
+      "task_id": "crucible-verify-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Crucible verify since last 3 pushes with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793904832.6240203,
+      "timestamp_str": "2026-11-05 21:53:52",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "c49a198 pushed archive+reforge+gates but crucible found entropy baseline unsuppressible, expired hides active, archive description and git-add gaps",
+        "benefits": "baseline suppresses real entropy findings, active leaks visible with baseline hygiene, archive refuses bad input safely",
+        "risks": "contract: baseline validation widens to actual entropy labels plus encoded twins; dependency: stdlib only; concurrency: none; state: no ledger change beyond checkpoints",
+        "mitigation": "failing-first pins for entropy baseline and expired-active reporting, targeted unit plus secret scan, map regen clean, no reforge architectural change this wave"
+      },
+      "plan_digest": "0920044636ad26315dd171e2f84fd766c358683609987158c8659e127eb42596"
     }
   ]
 }

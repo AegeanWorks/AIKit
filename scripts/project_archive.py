@@ -120,7 +120,10 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
     if idx >= len(lines):
         # No description block: append the banner at the end.
         updated = text.rstrip("\r\n") + newline + newline + archive_notice(reason, date_str) + newline
-        write_generated_file(readme_path, updated, newline="")
+        try:
+            write_generated_file(readme_path, updated, newline="")
+        except OSError:
+            return False
         return True
     # Extend over the whole paragraph (consecutive non-empty lines).
     end = idx
@@ -135,7 +138,10 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
         lines[end:end] = ["", banner]
     else:
         lines[end:end] = ["", banner, ""]
-    write_generated_file(readme_path, newline.join(lines).rstrip("\r\n") + newline, newline="")
+    try:
+        write_generated_file(readme_path, newline.join(lines).rstrip("\r\n") + newline, newline="")
+    except OSError:
+        return False
     return True
 
 
@@ -256,6 +262,10 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     original = extract_readme_description(src)
     if description is not None:
         override = description.strip()
+        if "\n" in override or "\r" in override:
+            return 1, _triad(f"invalid --description (must be one line).",
+                             f"an override holds one line of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters.",
+                             f"write one line of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters.")
         if len(override) < DESCRIPTION_MIN or len(override) > DESCRIPTION_MAX:
             return 1, _triad(f"invalid --description ({len(override)} characters).",
                              f"an override holds one line of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters.",
@@ -288,6 +298,13 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     repo_url = get_project_repo_url(src, runner=run)
     slug = repo_slug(src, name)
     needs_github = bool(repo_url) and not offline
+    if dirty and allow_dirty and needs_github:
+        return 1, _triad(f"'{name}' has uncommitted changes; nothing was archived online.",
+                         "git push only publishes commits, so an online archive would turn "
+                         "the GitHub repository read-only while uncommitted work can never "
+                         "be pushed afterwards.",
+                         "commit or discard the changes, then archive again, or retry with "
+                         "`--offline` to move them along locally; nothing was moved.")
     if offline:
         notes.append("Offline: the GitHub repository is left untouched; only the local folder moves.")
     elif not repo_url:
@@ -297,21 +314,36 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     readme_changed = update_readme_for_archive(readme_path, reason, day)
     committed = False
     if readme_changed:
-        run(["git", "add", "--", "README.md"], src)
-        msg = f"docs({name}): mark as archived"
-        code, out = run(["git", "commit", "-m", msg, "-m", reason], src)
-        if code == 0:
-            committed = True
-            notes.append(f"Committed the archive banner ({msg}).")
-        elif offline or not needs_github:
-            notes.append(f"Note: the archive banner could not be committed ({out.strip()[-200:]}); "
-                         "it moves along uncommitted.")
+        add_code, add_out = run(["git", "add", "--", "README.md"], src)
+        if add_code != 0:
+            if offline or not needs_github:
+                notes.append(f"Note: the archive banner could not be staged ({add_out.strip()[-200:]}); "
+                             "it moves along uncommitted.")
+                committed = False
+            else:
+                return 1, _triad(f"the archive banner for '{name}' could not be staged.\n{add_out.strip()[-800:]}",
+                                 "the remote must hold the archived README before the repository goes "
+                                 "read-only, so an unstaged banner cannot be archived online.",
+                                 "fix the git error shown, or retry with `--offline` to move locally "
+                                 "only; nothing was moved.")
+            add_ok = False
         else:
-            return 1, _triad(f"the archive banner for '{name}' could not be committed.\n{out.strip()[-800:]}",
-                             "the remote must hold the archived README before the repository goes "
-                             "read-only, so an uncommitted banner cannot be archived online.",
-                             "fix the git error shown (identity, hooks, permissions), or retry with "
-                             "`--offline` to move locally only; nothing was moved.")
+            add_ok = True
+        if add_ok:
+            msg = f"docs({name}): mark as archived"
+            code, out = run(["git", "commit", "-m", msg, "-m", reason], src)
+            if code == 0:
+                committed = True
+                notes.append(f"Committed the archive banner ({msg}).")
+            elif offline or not needs_github:
+                notes.append(f"Note: the archive banner could not be committed ({out.strip()[-200:]}); "
+                             "it moves along uncommitted.")
+            else:
+                return 1, _triad(f"the archive banner for '{name}' could not be committed.\n{out.strip()[-800:]}",
+                                 "the remote must hold the archived README before the repository goes "
+                                 "read-only, so an uncommitted banner cannot be archived online.",
+                                 "fix the git error shown (identity, hooks, permissions), or retry with "
+                                 "`--offline` to move locally only; nothing was moved.")
 
     if needs_github:
         if run(["gh", "auth", "status"], src)[0] != 0:

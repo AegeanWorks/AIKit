@@ -531,7 +531,27 @@ def _baseline_detector_names() -> Set[str]:
     """Detectors a baseline entry may name: raw plus encoded twins."""
     names = set(DETECTOR_NAMES)
     names.update(f"encoded-{name}" for name in DETECTOR_NAMES)
+    # Actual entropy finding labels use spaces, not dashes (scan_text emits
+    # "high-entropy value for <name>" and "high-entropy string literal").
+    names.update({"high-entropy string literal"})
     return names
+
+
+def _is_valid_baseline_detector(detector: str) -> bool:
+    """Whether a baseline entry detector names a real finding label."""
+    valid = _baseline_detector_names()
+    if detector in valid:
+        return True
+    lowered = detector.lower()
+    # Dynamic entropy label carries the variable name; canonical pragma name
+    # is "high-entropy-value" but findings report "high-entropy value for X".
+    if lowered.startswith("high-entropy value for ") and len(detector.strip()) > 24:
+        return True
+    if lowered.startswith("encoded-high-entropy value for ") and len(detector.strip()) > 32:
+        return True
+    if lowered == "encoded-high-entropy string literal":
+        return True
+    return False
 
 
 def load_baseline(path: Path) -> Dict[str, Any]:
@@ -547,7 +567,6 @@ def load_baseline(path: Path) -> Dict[str, Any]:
     entries = raw.get("entries")
     if not isinstance(entries, list):
         raise BaselineError(f"baseline {path} needs an 'entries' list")
-    valid = _baseline_detector_names()
     seen = set()
     clean = []
     for pos, item in enumerate(entries):
@@ -558,7 +577,7 @@ def load_baseline(path: Path) -> Dict[str, Any]:
             value = item.get(field)
             if not isinstance(value, str) or not value.strip():
                 raise BaselineError(f"{where} needs a non-empty {field!r}")
-        if item["detector"] not in valid:
+        if not _is_valid_baseline_detector(item["detector"]):
             raise BaselineError(f"{where} names unknown detector {item['detector']!r}")
         try:
             datetime.datetime.strptime(item["expires"], BASELINE_DATE_FORMAT)
@@ -683,6 +702,12 @@ def run_scan(mode: str = "staged", target: Optional[Path] = None,
             for entry in stale:
                 print(f"   - stale: {entry['path']} [{entry['detector']}] matches nothing "
                       f"(owner {entry['owner']})")
+            if findings:
+                print(f"   - active: {len(findings)} unacknowledged finding(s) still open:")
+                for label, lineno, detector, _excerpt in findings[:12]:
+                    print(f"      * {label}:{lineno} [{detector}]")
+                if len(findings) > 12:
+                    print(f"      ... and {len(findings) - 12} more")
             print("   Why: an expired acceptance re-opens the finding; a stale entry hides "
                   "that the code moved on.")
             print("   Fix: rotate and re-file, or delete the entry, then rerun.")

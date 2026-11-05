@@ -180,10 +180,12 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         kind = UI_WEB if kind == UI_LIBRARY else kind
         if not evidence:
             evidence.append(config_path(root))
-    if kind == UI_LIBRARY:
+    if kind in (UI_LIBRARY, UI_CLI, UI_SERVICE):
         # Compat UI samples (ADR-315) are Python with screenshots, not web
         # markers: a compat.json kind=ui contract proves a screenshotable
-        # surface exists, so classify it as web rather than library.
+        # surface exists, so classify it as web. CLI/SERVICE are included
+        # because a sample with main.py/app.py would otherwise settle as a
+        # service before the explicit compat proof is consulted.
         try:
             import json as _json
             compat_path = root / ".aikit" / "compat.json"

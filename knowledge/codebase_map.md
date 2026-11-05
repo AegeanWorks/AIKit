@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `152`
-- **Total Top-Level Functions**: `967`
-- **Total Class Methods**: `1120`
-- **Total Source Lines**: `43156`
+- **Total Top-Level Functions**: `968`
+- **Total Class Methods**: `1121`
+- **Total Source Lines**: `43228`
 
 ---
 
@@ -784,7 +784,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `839` lines (`39256` bytes)
+**Size**: `864` lines (`40517` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -813,6 +813,7 @@
 - `def scan_agent_memory(gaps, repo)` - *PRINCIPLE-019 Rule 3: agent working memory is tracked output. The ledger's free-text impact*
 - `def fingerprint_finding(label, detector, excerpt)` - *Stable identity of one finding (IDEA-1132).*
 - `def _baseline_detector_names()` - *Detectors a baseline entry may name: raw plus encoded twins.*
+- `def _is_valid_baseline_detector(detector)` - *Whether a baseline entry detector names a real finding label.*
 - `def load_baseline(path)` - *Read and validate a baseline file; closed schema (IDEA-1132).*
 - `def apply_baseline(findings, baseline, *, today)` - *Split findings against the baseline (IDEA-1132); pure, no I/O.*
 - `def run_scan(mode, target, verbose, repo, commits, baseline)` - *Scan the requested surface plus agent memory, reporting tersely (PRINCIPLE-012 R4).*
@@ -1049,7 +1050,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `387` lines (`19107` bytes)
+**Size**: `419` lines (`21046` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1354,7 +1355,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `333` lines (`13857` bytes)
+**Size**: `335` lines (`14024` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1844,7 +1845,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13330` lines (`732395` bytes)
+**Size**: `13343` lines (`732998` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2677,6 +2678,7 @@
   - Method `.test_a_timed_out_test_command_tears_down_the_process_tree()`
   - Method `.project(name, readme)`
   - Method `.test_ui_identity_detects_web_game_and_cli_projects()`
+  - Method `.test_compat_ui_contract_upgrades_cli_service_to_web()`
   - Method `.test_ui_work_refreshes_the_identifier()`
   - Method `.test_refresh_keeps_the_checked_date_when_the_identifier_is_unchanged()`
   - Method `.test_ui_identity_can_be_set_manually_and_reported()`

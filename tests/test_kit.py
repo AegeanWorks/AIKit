@@ -10255,6 +10255,19 @@ class TestReforgeCore(unittest.TestCase):
         self.assertFalse(project_ui.detect_ui(cli)["has_ui"])
         self.assertEqual(project_ui.detect_ui(cli)["kind"], "cli")
 
+    def test_compat_ui_contract_upgrades_cli_service_to_web(self):
+        import json as _json
+
+        root = self.root()
+        (root / "main.py").write_text("import argparse\nargparse.ArgumentParser()\n", encoding="utf-8")
+        compat_dir = root / ".aikit"
+        compat_dir.mkdir(parents=True, exist_ok=True)
+        (compat_dir / "compat.json").write_text(_json.dumps(
+            {"kind": "ui", "has_ui": True, "screenshots": {}}), encoding="utf-8")
+        detected = project_ui.detect_ui(root)
+        self.assertTrue(detected["has_ui"])
+        self.assertEqual(detected["kind"], "web")
+
     def test_ui_work_refreshes_the_identifier(self):
         root = self.project()
         refreshed = project_ui.refresh_ui_identifier(root)
