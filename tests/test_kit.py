@@ -13468,5 +13468,142 @@ class TestProofEnvelope(unittest.TestCase):
         with self.assertRaises(proof_envelope.EnvelopeError):
             proof_envelope.seal({"proof": True}, key="")
 
+
+class TestVerifyPushV4SafeFixes(unittest.TestCase):
+    """Regression pins for the verify-push-v4 window (last-3-push review)."""
+
+    def test_evidence_sealed_without_keys_is_inconclusive(self) -> None:
+        from scripts import evidence_policy
+        out = evidence_policy.evaluate(
+            "require-all",
+            [{"step": "proof", "outcome": "pass",
+              "evidence": "abc", "envelope": {"payload": {}}}])
+        self.assertEqual(out["outcome"], "inconclusive")
+
+    def test_evidence_verifier_crash_is_fail(self) -> None:
+        from scripts import evidence_policy
+
+        def boom(sealed, keys=None):
+            raise ValueError("broken verifier")
+
+        out = evidence_policy.evaluate(
+            "require-all",
+            [{"step": "proof", "outcome": "pass",
+              "evidence": "abc", "envelope": {"payload": {}}}],
+            envelope_keys={"k": "v"}, verify_sealed=boom)
+        self.assertEqual(out["outcome"], "fail")
+
+    def test_evidence_parse_policy_rejects_non_string(self) -> None:
+        from scripts import evidence_policy
+        with self.assertRaises(evidence_policy.PolicyError):
+            evidence_policy.parse_policy(None)  # type: ignore[arg-type]
+        with self.assertRaises(evidence_policy.PolicyError):
+            evidence_policy.parse_policy(b"require-all")  # type: ignore[arg-type]
+
+    def test_proof_entry_path_lowercases(self) -> None:
+        from scripts import proof_corpus
+        from pathlib import Path
+        upper = "A" * 64
+        p = proof_corpus.entry_path(Path("/tmp/corp"), upper)
+        self.assertIn("a" * 64, str(p))
+        with self.assertRaises(ValueError):
+            proof_corpus.entry_path(Path("/tmp/corp"), "!!!")
+
+    def test_proof_prune_rejects_non_int(self) -> None:
+        from scripts import proof_corpus
+        with self.assertRaises(ValueError):
+            proof_corpus.prune(Path("/tmp/nope"), keep="2")  # type: ignore[arg-type]
+        with self.assertRaises(ValueError):
+            proof_corpus.prune(Path("/tmp/nope"), keep=True)  # type: ignore[arg-type]
+
+    def test_proof_witness_key_tolerates_non_list(self) -> None:
+        from scripts import proof_corpus
+        k1 = proof_corpus.witness_key({"base": "b", "tests": "abc",
+                                       "tree_manifest": "x", "gate_digest": "y"})
+        k2 = proof_corpus.witness_key({"base": "b", "tests": [],
+                                       "tree_manifest": [], "gate_digest": {}})
+        self.assertEqual(len(k1), 64)
+        self.assertEqual(len(k2), 64)
+
+    def test_ui_safe_rel_rejects_traversal(self) -> None:
+        from scripts import project_ui
+        from pathlib import Path
+        root = Path("/tmp/proj")
+        self.assertIsNone(project_ui._safe_rel(root, "/etc/passwd"))
+        self.assertIsNone(project_ui._safe_rel(root, "../../outside.txt"))
+        self.assertIsNone(project_ui._safe_rel(root, ""))
+        ok = project_ui._safe_rel(root, "shots/before.png")
+        self.assertIsNotNone(ok)
+
+    def test_ui_is_small_boundary(self) -> None:
+        from scripts import project_ui
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False) as fh:
+            fh.write(b"x" * 10)
+            name = fh.name
+        try:
+            from pathlib import Path
+            self.assertTrue(project_ui._is_small(Path(name), 10))
+            self.assertFalse(project_ui._is_small(Path(name), 5))
+        finally:
+            import os
+            os.unlink(name)
+
+    def test_verify_string_list_rejects_flags(self) -> None:
+        from scripts import verify_commit
+        with self.assertRaises(ValueError):
+            verify_commit._string_list(["--evil"], "tests")
+        self.assertEqual(verify_commit._string_list(["a", "b"], "tests"), ["a", "b"])
+
+    def test_secrets_baseline_detector_validation(self) -> None:
+        from scripts import check_secrets
+        self.assertTrue(check_secrets._is_valid_baseline_detector("high-entropy value for API_KEY"))
+        self.assertFalse(check_secrets._is_valid_baseline_detector("high-entropy value for !!!"))
+        self.assertFalse(check_secrets._is_valid_baseline_detector("high-entropy-value"))
+        try:
+            check_secrets.load_baseline.__wrapped__  # type: ignore[attr-defined]
+        except AttributeError:
+            pass
+
+    def test_archive_reason_validation(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+            code, _ = project_archive.archive_project(
+                src, "demo", "line1\nline2", workspace=Path(tmp), offline=True)
+            self.assertEqual(code, 1)
+            code, _ = project_archive.archive_project(
+                src, "demo", "x" * 501, workspace=Path(tmp), offline=True)
+            self.assertEqual(code, 1)
+
+    def test_archive_is_archived_tolerates_corrupt(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp)
+            (p / ".aikit").mkdir(exist_ok=True)
+            (p / ".aikit" / "project.json").write_text("{ corrupt", encoding="utf-8")
+            self.assertFalse(project_archive.is_archived(p))
+
+    def test_reforge_registry_includes_review_analyze(self) -> None:
+        from scripts import aikit_cli
+        import inspect
+        src = inspect.getsource(aikit_cli.cmd_reforge)
+        self.assertIn("review", src)
+        self.assertIn("analyze", src)
+
+    def test_delivery_scrub_redacts_url_credentials(self) -> None:
+        from reforge import delivery
+        out = delivery._scrub_push_output("https://user:token@github.com/x.git failed")  # aikit:allow-secret
+        self.assertNotIn("user:token@", out)
+
 if __name__ == "__main__":
     unittest.main()

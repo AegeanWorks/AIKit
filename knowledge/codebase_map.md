@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
-- **Total Classes**: `152`
+- **Total Classes**: `153`
 - **Total Top-Level Functions**: `972`
-- **Total Class Methods**: `1128`
-- **Total Source Lines**: `43555`
+- **Total Class Methods**: `1142`
+- **Total Source Lines**: `43692`
 
 ---
 
@@ -1849,7 +1849,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13472` lines (`739568` bytes)
+**Size**: `13609` lines (`745761` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2900,6 +2900,21 @@
   - Method `.test_tampered_payload_fails_not_inconclusive()`
   - Method `.test_expired_and_unknown_key_are_inconclusive()`
   - Method `.test_empty_key_refuses_to_seal()`
+- `class TestVerifyPushV4SafeFixes` - *Regression pins for the verify-push-v4 window (last-3-push review).*
+  - Method `.test_evidence_sealed_without_keys_is_inconclusive()`
+  - Method `.test_evidence_verifier_crash_is_fail()`
+  - Method `.test_evidence_parse_policy_rejects_non_string()`
+  - Method `.test_proof_entry_path_lowercases()`
+  - Method `.test_proof_prune_rejects_non_int()`
+  - Method `.test_proof_witness_key_tolerates_non_list()`
+  - Method `.test_ui_safe_rel_rejects_traversal()`
+  - Method `.test_ui_is_small_boundary()`
+  - Method `.test_verify_string_list_rejects_flags()`
+  - Method `.test_secrets_baseline_detector_validation()`
+  - Method `.test_archive_reason_validation()`
+  - Method `.test_archive_is_archived_tolerates_corrupt()`
+  - Method `.test_reforge_registry_includes_review_analyze()`
+  - Method `.test_delivery_scrub_redacts_url_credentials()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

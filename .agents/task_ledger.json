@@ -1,55 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-6push",
+    "task_id": "verify-6push-pins",
     "last_phase": "in_progress",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1793912873.4322891,
+    "updated_at": 1793913014.0854967,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Fix PRINCIPLE-016 R7 test pins and verify last-3-push regressions",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793908535.6027305,
-      "timestamp_str": "2026-11-05 22:55:35",
-      "agent": "kilo:verify-push-v2",
-      "impact_assessment": {
-        "why": "Uncommitted ADR-333 adds P016 R7 but test_kit still pins 6 rules; integration pin already fixed in tree",
-        "benefits": "Restores 100 percent test gate and catches any remaining last-push regressions before push",
-        "risks": "contract: test-only plus docs sync; dependency: stdlib only; concurrency: none; state: ledger append only",
-        "mitigation": "Explicit file staging, full Phase 4 gates, staged verification before push"
-      },
-      "plan_digest": "d479a276e51ad1b01212e39252bed5ffe9c0ca51dae23636d837c1ec8ec1242a"
-    },
-    {
-      "task_id": "verify-push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] Phase 4 green: 873 unit 14ms, 13 auto-register, 86 integration 490ms sequential, dogfood 5/5, secrets/reachability/principles/map/licenses clean; citing pins fixed, reports inbox tracked, proof-corpus signature probe",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793909302.2942367,
-      "timestamp_str": "2026-11-05 23:08:22",
-      "agent": "kilo:verify-push-v2"
-    },
-    {
-      "task_id": "verify-push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793909306.4540508,
-      "timestamp_str": "2026-11-05 23:08:26",
-      "agent": "kilo:verify-push-v2"
-    },
     {
       "task_id": "verify-push-v2",
       "phase": "in_progress",
@@ -262,6 +223,45 @@
       "status": "superseded",
       "timestamp": 1793912873.4322891,
       "timestamp_str": "2026-11-06 00:07:53",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-6push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793912954.9524746,
+      "timestamp_str": "2026-11-06 00:09:14",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push-pins",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Pin last-6-push fixes with regression tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793912967.0411115,
+      "timestamp_str": "2026-11-06 00:09:27",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "New TestVerifyPushV4SafeFixes pins arrived after push and need verification",
+        "benefits": "Locks hardening against regression",
+        "risks": "contract: test-only plus map; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Full unit plus gates, staged verification before push"
+      },
+      "plan_digest": "324fab8475a27b6f3c383d3a13ecf1655f3720b0f455ec6778d68301e84492f2"
+    },
+    {
+      "task_id": "verify-6push-pins",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Pins green: 893 unit OK, secrets/reachability/sync/map/licenses/dogfood clean",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793913014.0854967,
+      "timestamp_str": "2026-11-06 00:10:14",
       "agent": "kilo:goal"
     }
   ]
