@@ -162,6 +162,12 @@ def _run_line(run: Dict[str, object]) -> str:
     unreviewed = run.get("unreviewed_stages") or []
     if unreviewed:
         line += " unreviewed=" + ",".join(str(stage) for stage in unreviewed)
+    unpushed = run.get("unpushed_stages") or []
+    if unpushed:
+        line += " unpushed=" + ",".join(str(stage) for stage in unpushed)
+    uncommitted = run.get("uncommitted_stages") or []
+    if uncommitted:
+        line += " uncommitted=" + ",".join(str(stage) for stage in uncommitted)
     return line
 
 
@@ -212,7 +218,12 @@ def _print_findings(payload: Dict[str, object]) -> None:
     elif payload["mode"] == "review":
         print(f"Stage {payload['stage']} is recorded as reviewed.")
     elif payload["mode"] in {"run", "fix"} and payload.get("repaired"):
-        print(f"Next: review the patch in {payload['root']}, then commit with --commit/--push.")
+        if (payload.get("delivery") or {}).get("commit"):
+            print(f"Window shipped: commit {(payload.get('delivery') or {}).get('short') or ''}"
+                  f"{' pushed' if (payload.get('delivery') or {}).get('pushed') else ' (not pushed)'}; "
+                  f"see delivery lines below.")
+        else:
+            print(f"Next: review the patch in {payload['root']}, then commit with --commit/--push.")
     elif payload["mode"] in {"run", "fix"}:
         print("No safe automatic repair: review the evidence above and fix by hand.")
     if payload.get("run_status") == "completed":
@@ -273,7 +284,6 @@ def _print_ledger(payload: Dict[str, object]) -> None:
 
 def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
     import reforge.pipeline as pipeline
-    from reforge.delivery import deliver
 
     action = getattr(args, "reforge_action", None) or args.command
     as_json = bool(getattr(args, "json", False))
@@ -304,6 +314,14 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
             unreviewed = payload.get("unreviewed_stages") or []
             if unreviewed:
                 print("Unreviewed: stage(s) " + ", ".join(str(stage) for stage in unreviewed))
+            unpushed = (run.get("unpushed_stages") or []) if run else []
+            if unpushed:
+                print("Unpushed:   stage(s) " + ", ".join(str(stage) for stage in unpushed)
+                      + " (verified-but-unpushed; rerun with --push)")
+            uncommitted = (run.get("uncommitted_stages") or []) if run else []
+            if uncommitted:
+                print("Uncommitted: stage(s) " + ", ".join(str(stage) for stage in uncommitted)
+                      + " (verified-but-uncommitted; publish with fix --commit)")
             review = payload.get("review") or {}
             if review:
                 packet = review.get("packet") or ""
@@ -334,10 +352,21 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
                                        sorted((entry.get("counts") or {}).items()))
                     skipped = len(entry.get("skipped") or [])
                     review = (entry.get("review") or {}).get("status") or "unreviewed"
+                    delivery = entry.get("delivery") if isinstance(entry.get("delivery"), dict) else {}
+                    if delivery.get("empty"):
+                        ship = "empty"
+                    elif delivery.get("pushed"):
+                        ship = f"pushed {delivery.get('short') or ''}".strip()
+                    elif delivery.get("commit"):
+                        ship = f"unpushed {delivery.get('short') or delivery.get('commit')}"
+                    elif sum(1 for r in (entry.get("repairs") or []) if r.get("applied")):
+                        ship = "uncommitted"
+                    else:
+                        ship = "no repairs"
                     print(f"    stage {entry['stage']} window {entry['window']}: "
                           f"{len(entry.get('new_commits') or [])} new, "
                           f"{int(entry.get('reviewed') or 0)} file(s), review {review}, "
-                          f"{len(entry.get('repairs') or [])} repair(s)"
+                          f"{len(entry.get('repairs') or [])} repair(s), ship {ship}"
                           f"{', ' + str(skipped) + ' binary not analysed' if skipped else ''}"
                           f"{' (' + counts + ')' if counts else ''}")
         return 0
@@ -393,6 +422,7 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
         return 0
 
     do_commit = bool(getattr(args, "commit", False) or getattr(args, "push", False))
+    do_push = bool(getattr(args, "push", False))
     payload = pipeline.run_pipeline(
         root, mode=action, add_tests=True, run_tests=not getattr(args, "no_tests", False),
         test_command=getattr(args, "test_command", None), gate_runner=gate_runner,
@@ -402,17 +432,8 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
         rules=bool(getattr(args, "rules", False)),
         findings_file=getattr(args, "findings", None),
         deliver=do_commit,
+        do_push=do_push,
     )
-    if do_commit:
-        run_name = payload.get("run") or "active"
-        if payload.get("repaired"):
-            message = f"fix(reforge): repair {run_name} stage {payload['stage']} findings"
-        else:
-            message = f"chore(reforge): record {run_name} stage {payload['stage']} audit"
-        delivery = deliver(root, message, bool(getattr(args, "push", False)),
-                           paths=payload.get("commit_paths"))
-        payload["delivery"] = delivery[0]
-        payload["delivery_lines"] = delivery[1]
     if as_json:
         print(json.dumps({"ok": True, "result": payload}, indent=2))
     else:

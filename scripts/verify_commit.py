@@ -59,6 +59,7 @@ except Exception:  # pragma: no cover - import fallback for test imports
         evaluate = None  # type: ignore[no-redef]
 PROOF_DEFAULTS = {
     "tests": [],
+    "pass_to_pass": [],
     "sources": [],
     "waive": [],
     "mutants": 0,
@@ -147,6 +148,8 @@ def proof_command_from_declaration(
             "Why: a misspelled key silently disables the proof it meant to configure. "
             "Fix: rename the key, or remove it.")
     tests = _string_list(declaration.get("tests"), "tests", required=True)
+    pass_to_pass = _string_list(declaration.get("pass_to_pass", PROOF_DEFAULTS["pass_to_pass"]),
+                                "pass_to_pass")
     sources = _string_list(declaration.get("sources", PROOF_DEFAULTS["sources"]), "sources")
     waive = _string_list(declaration.get("waive", PROOF_DEFAULTS["waive"]), "waive")
     mutants = declaration.get("mutants", PROOF_DEFAULTS["mutants"])
@@ -166,6 +169,8 @@ def proof_command_from_declaration(
         sys.executable, str(script), "--repo", str(worktree), "--base", parent,
         "--tests", *tests,
     ]
+    if pass_to_pass:
+        command += ["--pass-to-pass", *pass_to_pass]
     if sources:
         command += ["--sources", *sources]
     if mutants:

@@ -90,8 +90,9 @@ def evaluate(policy_text: str, attestations: Sequence[Mapping[str, Any]], *,
              envelope_keys: Mapping[str, str] | None = None,
              verify_sealed: Callable[[Mapping[str, Any]], Mapping[str, Any]] | None = None,
              ) -> Dict[str, Any]:
-    """Evaluate attestations under the named policy (IDEA-1169); never raises.
+    """Evaluate attestations under the named policy (IDEA-1169).
 
+    Raises PolicyError on an unknown policy word; otherwise never raises.
     A sealed attestation (one carrying an envelope) is decided by envelope
     verification when keys are supplied; tamper evidence (fail) always fails
     the run, and the pass bar decides between pass and inconclusive.
@@ -101,12 +102,12 @@ def evaluate(policy_text: str, attestations: Sequence[Mapping[str, Any]], *,
     verifier so callers only pass keys.
     """
     if verify_sealed is None and envelope_keys:
-        try:  # hygiene: allow [silent-except] bundled verifier fallback
-            from proof_envelope import verify as verify_sealed  # type: ignore[import-not-found]
+        try:  # hygiene: prefer the in-repo verifier so a same-named installed package cannot shadow it
+            from scripts.proof_envelope import (  # type: ignore[import-not-found]
+                verify as verify_sealed)
         except Exception:
             try:
-                from scripts.proof_envelope import (  # type: ignore[import-not-found]
-                    verify as verify_sealed)
+                from proof_envelope import verify as verify_sealed  # type: ignore[import-not-found]
             except Exception:
                 verify_sealed = None
     kind, quorum = parse_policy(policy_text)

@@ -1007,6 +1007,11 @@ def _registered_names(workspace: Path, attached: Optional[Dict[str, str]] = None
         for child in sorted(root.iterdir()):
             if config_path(child).is_file():
                 names.setdefault(child.name, child)
+        archive_root = root / "archive"
+        if archive_root.is_dir():
+            for child in sorted(archive_root.iterdir()):
+                if config_path(child).is_file():
+                    names.setdefault(child.name, child)
     return names
 
 

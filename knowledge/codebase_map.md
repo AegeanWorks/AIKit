@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `68`
-- **Total Classes**: `151`
-- **Total Top-Level Functions**: `940`
-- **Total Class Methods**: `1104`
-- **Total Source Lines**: `41974`
+- **Total Python Modules**: `69`
+- **Total Classes**: `152`
+- **Total Top-Level Functions**: `967`
+- **Total Class Methods**: `1120`
+- **Total Source Lines**: `43156`
 
 ---
 
@@ -268,7 +268,7 @@
 ### [`reforge/cli.py`](reforge/cli.py)
 > *The Reforge command grammar, shared by `python -m reforge` and `aikit.py reforge`.*
 
-**Size**: `458` lines (`22666` bytes)
+**Size**: `479` lines (`24013` bytes)
 
 **Classes:**
 - `class ReforgeArgumentParser` - *argparse whose usage errors carry the AIKit What/Why/Fix triad (PRINCIPLE-011).*
@@ -296,13 +296,14 @@
 ### [`reforge/delivery.py`](reforge/delivery.py)
 > *Explicit staging, conventional commit and never-forced push for accepted repairs.*
 
-**Size**: `117` lines (`4790` bytes)
+**Size**: `134` lines (`5491` bytes)
 
 **Functions:**
 - `def validate_message(message)`
 - `def _paths_to_commit(root)`
 - `def _not_ignored(root, paths)` - *Drop paths git ignores; an ignored state file is local, not a commit failure.*
 - `def commit_repairs(root, message, paths)` - *Stage exactly the repair paths, commit, and verify the commit holds them.*
+- `def push_committed(root)` - *Push already-committed window(s) without staging anything new.*
 - `def deliver(root, message, do_push, paths)` - *Commit only the reviewed repair paths plus the audit state, then optionally push.*
 
 ---
@@ -442,7 +443,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `766` lines (`37871` bytes)
+**Size**: `954` lines (`48347` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -457,14 +458,17 @@
 - `def _check_commit_targets(root, targets, allow_dirty, deliver, ignore, owned)` - *Refuse a commit whose target file already held work Reforge did not make.*
 - `def _fingerprint(path)`
 - `def _execute_repairs(root, findings, add_tests, run_tests, test_command, gate_runner, extra_allowed, preexisting)`
-- `def _payload(root, mode, plan, run, findings, repairs, tests, gates, skipped, ledger, reviewed, review)`
+- `def _payload(root, mode, plan, run, findings, repairs, tests, gates, skipped, ledger, reviewed, review, delivery, delivery_lines)`
 - `def _review_error(run, pending)`
 - `def _plan_from_last(run, last)` - *Rebuild the stage a `fix` must apply, from the run and its last audit entry.*
 - `def _collect_review(root, plan, reviewed, findings_file, packet, method)` - *Write the review packet and load the reviewer's answer, if one was supplied.*
 - `def _serialize_review(report)` - *The small JSON-safe form of a review kept in state and printed by the CLI.*
 - `def _note_stage(root, run, plan, entry, findings, skipped)` - *Mirror one stage into the repository's task ledger so cold start can see the audit.*
+- `def _delivery_message(run_id, stage, repaired)` - *Conventional message shared by the stage-close hook (no caller variants).*
+- `def _publish_backlog(root, state, run)` - *Push previously verified-but-unpushed windows before auditing the next one.*
+- `def _close_window(root, state, run, entry, commit_paths, do_commit, do_push)` - *Commit and push one verified window; empty windows never commit.*
 - `def _note_review(root, run, stage, review)` - *Mirror a host review into the task ledger, including the completion it may unlock.*
-- `def run_pipeline(root, mode, add_tests, run_tests, test_command, gate_runner, allow_dirty, run_id, start, step, stop, rules, findings_file, packet, deliver)` - *Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`).*
+- `def run_pipeline(root, mode, add_tests, run_tests, test_command, gate_runner, allow_dirty, run_id, start, step, stop, rules, findings_file, packet, deliver, do_push)` - *Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`).*
 - `def review_stage(root, run_id, stage, findings_file, method)` - *Record a host or analyzer review of any retained stage, including an older one.*
 - `def analyze_stage(root, run_id, stage, command, timeout)` - *Run the configured analyzer over one stage packet, then record its answer as the review.*
 - `def start_audit(root, start, step, stop)` - *Create a new independent run, refusing while another run is still active.*
@@ -546,7 +550,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `546` lines (`21651` bytes)
+**Size**: `679` lines (`27002` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -564,7 +568,15 @@
 - `def _migrate_v1(data)` - *A schema-1 state becomes run-1 without losing its stage, commits or history.*
 - `def load_state(root)` - *Read the state; a missing file is fresh, schema 1 migrates in memory, corrupt is refused.*
 - `def save_state(root, data)` - *Persist through AIKit's atomic writer under its advisory lock.*
+- `def new_delivery(empty)` - *Per-window ship record; `pushed` is True only after `push()` returns 0.*
 - `def entry_from_stage(plan, findings, repairs, tests, gates, skipped, reviewed, review)` - *One stage's durable record; `skipped` names binary files and `reviewed` counts the rest.*
+- `def _entry_applied(entry)`
+- `def _entry_verified(entry)` - *A stage that reached `record_stage` with passing gates; rollback already excluded failures.*
+- `def _delivery_of(entry)`
+- `def _stage_candidates(run)` - *History plus last_audit deduplicated by stage; last_audit wins on collision.*
+- `def find_unpushed_verified(run)` - *Verified stages with applied repairs that were committed but never pushed.*
+- `def find_uncommitted_verified(run)` - *Verified stages with applied repairs that were never committed.*
+- `def mark_delivered(root, state, run, stage, delivery)` - *Record one stage's push hash in history and last_audit, then persist.*
 - `def run_complete(run, window, total_commits)`
 - `def completion_total(run, live)` - *The repository commit count that closes an unlimited run: live first, then the stored one.*
 - `def settle_run(run, state, total_commits, *, reopen)` - *The one completed/active transition, shared by every entry point.*
@@ -634,7 +646,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1490` lines (`75587` bytes)
+**Size**: `1545` lines (`77958` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -667,6 +679,7 @@
 - `def cmd_check(args)`
 - `def cmd_fix(args)` - *Repair what AIKit can repair mechanically, then run the gates: everything left is the*
 - `def cmd_publish(args)`
+- `def cmd_archive(args)` - *Move a project to `projects/archive/` and archive its GitHub repository.*
 - `def cmd_license(args)`
 - `def _write_project_topics(project, topics, source)`
 - `def _topic_error(exc)`
@@ -684,14 +697,14 @@
 ### [`scripts/aikit_help.py`](scripts/aikit_help.py)
 > *Generated top-level CLI help for the `--help` fast path (ADR-180).*
 
-**Size**: `53` lines (`2992` bytes)
+**Size**: `55` lines (`3126` bytes)
 
 ---
 
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `296` lines (`20400` bytes)
+**Size**: `310` lines (`21536` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -753,7 +766,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `375` lines (`16609` bytes)
+**Size**: `379` lines (`16842` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -1007,7 +1020,7 @@
 ### [`scripts/evidence_policy.py`](scripts/evidence_policy.py)
 > *Evidence policy over step attestations (IDEA-1169).*
 
-**Size**: `140` lines (`6123` bytes)
+**Size**: `141` lines (`6210` bytes)
 
 **Classes:**
 - `class PolicyError` - *The policy text names no known policy.*
@@ -1016,7 +1029,7 @@
 - `def parse_policy(text)` - *Parse a policy word into (kind, n); closed vocabulary (IDEA-1169).*
 - `def evidence_hash(text)` - *Short stable digest of a step's evidence tail (IDEA-1169).*
 - `def attest(step, outcome, evidence, envelope)` - *One step attestation: what ran, its shared-model outcome, its evidence.*
-- `def evaluate(policy_text, attestations, *, envelope_keys, verify_sealed)` - *Evaluate attestations under the named policy (IDEA-1169); never raises.*
+- `def evaluate(policy_text, attestations, *, envelope_keys, verify_sealed)` - *Evaluate attestations under the named policy (IDEA-1169).*
 
 ---
 
@@ -1030,6 +1043,28 @@
 - `def block_span(text, name)` - *Where block `name` starts and ends in `text`, markers included; None unless both are in order.*
 - `def fenced(name, body)` - *`body` between the markers of block `name`, one per line, without a trailing newline.*
 - `def replace_block(text, name, body)` - *`text` with block `name` holding `body` and nothing outside it changed; None when it has no block.*
+
+---
+
+### [`scripts/project_archive.py`](scripts/project_archive.py)
+> *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
+
+**Size**: `387` lines (`19107` bytes)
+
+**Functions:**
+- `def _triad(what, why, fix)`
+- `def archive_dir(workspace)` - *The folder archived projects live in: ``projects/archive/`` (git-ignored via ``projects/``).*
+- `def archived_destination(workspace, name, to)` - *Where ``name`` moves to: ``to`` when given, else ``projects/archive/<name>``.*
+- `def validate_archive_move(src, dst)` - *The refusal triad when ``src`` cannot move to ``dst``, else None.*
+- `def archive_notice(reason, date_str)` - *The one-paragraph banner ``update_readme_for_archive`` inserts after the description.*
+- `def update_readme_for_archive(readme_path, reason, date_str)` - *Insert the archive banner after the README description; idempotent.*
+- `def archive_github_description(original, override)` - *The GitHub description for an archived repo: ``[ARCHIVED] <original>`` within 350 chars.*
+- `def _default_runner(argv, cwd)`
+- `def _attached_path(workspace)`
+- `def _forget_or_move_attached(workspace, name, src, dst)` - *Keep ``attached.json`` true after the move: forget inside-``projects/`` targets, else repoint.*
+- `def _record_archived_config(project_path, reason, date_str, repo, description)` - *Record the archive in ``.aikit/project.json`` without touching other keys.*
+- `def archive_project(project_path, name, reason, workspace, to, description, offline, allow_dirty, runner, date_str)` - *Move ``project_path`` to the archive and archive its GitHub repository.*
+- `def is_archived(project_path)` - *Whether ``.aikit/project.json`` records this project as archived.*
 
 ---
 
@@ -1091,11 +1126,12 @@
 ### [`scripts/project_compat.py`](scripts/project_compat.py)
 > *AI-compat scaffold and proof for generated projects (Track 2, now).*
 
-**Size**: `427` lines (`19063` bytes)
+**Size**: `440` lines (`19677` bytes)
 
 **Functions:**
 - `def _error(message, why, fix)`
-- `def minimal_png(variant)` - *A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders.*
+- `def minimal_png_rgb(red, green, blue)` - *A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders.*
+- `def minimal_png(variant)` - *Legacy single-channel placeholder; prefer ``minimal_png_rgb`` for pairs.*
 - `def _inventory_template(kind)`
 - `def _demo_template(kind)`
 - `def scaffold_compat(root, kind)` - *Write compat files for `headless` or `ui`; returns the compat record.*
@@ -1230,7 +1266,7 @@
 ### [`scripts/project_registry.py`](scripts/project_registry.py)
 > *Project registry: the projects AIKit builds (cockpit model, ADR-119).*
 
-**Size**: `1247` lines (`58422` bytes)
+**Size**: `1252` lines (`58658` bytes)
 
 **Classes:**
 - `class ProjectError` - *A request AIKit cannot carry out, with its reason and remedy (PRINCIPLE-011 R6).*
@@ -1318,7 +1354,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `314` lines (`12772` bytes)
+**Size**: `333` lines (`13857` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1341,7 +1377,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `262` lines (`10940` bytes)
+**Size**: `279` lines (`11892` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1597,7 +1633,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `531` lines (`26051` bytes)
+**Size**: `536` lines (`26294` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1647,7 +1683,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2033` lines (`104720` bytes)
+**Size**: `2159` lines (`111772` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1777,6 +1813,9 @@
   - Method `.test_a_commit_refuses_a_target_that_was_dirty_when_repaired()`
   - Method `.test_the_packet_shows_each_commit_hunk_in_order()`
   - Method `.test_a_findings_file_adds_and_applies_a_validated_fix()`
+  - Method `.test_per_window_push_records_hash_and_resume_knows()`
+  - Method `.test_network_failure_leaves_verified_but_unpushed_and_resume_pushes()`
+  - Method `.test_empty_window_commits_nothing()`
   - Method `.test_aikit_reforge_status_reaches_the_registry_and_state()`
 - `class TestIdeaCatcherCli` - *PRINCIPLE-011: `aikit.py idea-catcher` reaches the private register in one command.*
   - Method `.test_status_reads_the_register_named_by_the_root_override()`
@@ -1805,7 +1844,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13155` lines (`723342` bytes)
+**Size**: `13330` lines (`732395` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2477,6 +2516,7 @@
 - `class TestProofCorpus` - *IDEA-1156: receipts file under content witness keys; replay compares verdicts.*
   - Method `._receipt(**overrides)`
   - Method `.test_witness_key_is_stable_and_content_bound()`
+  - Method `.test_witness_key_omits_empty_pass_to_pass_for_compat()`
   - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
 - `class TestStagedTree` - *IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree.*
@@ -2547,6 +2587,19 @@
   - Method `.test_a_topic_failure_after_upload_is_a_note()`
   - Method `.test_publish_passes_extracted_description()`
   - Method `.test_auto_push_project()`
+- `class TestProjectArchive` - *`aikit archive`: retire a project locally and on GitHub with an archived README.*
+  - Method `.make_project(tmp, name, description)`
+  - Method `.runner(**replies)`
+  - Method `.test_banner_goes_after_description_and_is_idempotent()`
+  - Method `.test_github_description_prefixes_archived_once()`
+  - Method `.test_destination_defaults_to_projects_archive()`
+  - Method `.test_move_refuses_existing_destination()`
+  - Method `.test_offline_archive_moves_and_records_config()`
+  - Method `.test_dirty_tree_refused_without_allow()`
+  - Method `.test_online_archive_pushes_banner_edits_description_and_archives()`
+  - Method `.test_online_archive_refuses_when_banner_commit_fails()`
+  - Method `.test_archive_needs_reason_and_description()`
+  - Method `.test_registry_finds_projects_inside_archive()`
 - `class TestLicenseSync` - *The pinned license copies must not drift from the canonical texts or the catalog.*
   - Method `._source(source)`
   - Method `.test_sync_records_text_and_catalog_digests_and_check_detects_drift()`

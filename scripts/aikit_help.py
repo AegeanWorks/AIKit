@@ -7,13 +7,13 @@ changes; the test fails before the fast path can drift.
 
 TOP_LEVEL_HELP = """\
 usage: python aikit.py [-h] [--workspace DIR]
-                       {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,topics,ui-id,media,ui,reforge,idea-catcher,delegate} ...
+                       {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate} ...
 
 Create and manage the projects AIKit builds. Each project is its own folder
 and git repository with its memory in .aikit/.
 
 positional arguments:
-  {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,topics,ui-id,media,ui,reforge,idea-catcher,delegate}
+  {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate}
     new                 create projects/<name>/ as a new git repository
     attach              register an existing project folder and add the AIKit
                         Integrated badge to its README
@@ -33,6 +33,8 @@ positional arguments:
                         in catalog title case (private by default)
     license             show or choose the project's license (ADR-214,
                         ADR-218)
+    archive             move a project to projects/archive/ and archive its
+                        GitHub repository
     topics              show or set the GitHub topics a project records
     ui-id               detect or set whether a project has a screenshotable
                         UI (ADR-233)

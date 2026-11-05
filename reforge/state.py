@@ -257,6 +257,23 @@ def save_state(root: Path, data: Dict[str, object]) -> None:
         atomic_write_json(path, data)
 
 
+def new_delivery(empty: bool = False) -> Dict[str, object]:
+    """Per-window ship record; `pushed` is True only after `push()` returns 0.
+
+    `commit` holds the full SHA for remote matching, `short` the display form from
+    delivery. A post-push update dirties `.aikit/reforge.json` until the next window's
+    commit carries it; resume reads the disk state so it still knows the window landed.
+    """
+    return {
+        "commit": "",
+        "short": "",
+        "pushed": False,
+        "push_error": None,
+        "empty": bool(empty),
+        "timestamp": _now(),
+    }
+
+
 def entry_from_stage(plan: StagePlan, findings: List[Finding], repairs: List[Repair],
                      tests: Optional[Dict[str, object]] = None,
                      gates: Optional[Dict[str, object]] = None,
@@ -267,6 +284,7 @@ def entry_from_stage(plan: StagePlan, findings: List[Finding], repairs: List[Rep
     counts: Dict[str, int] = {}
     for finding in findings:
         counts[finding.category] = counts.get(finding.category, 0) + 1
+    applied = sum(1 for repair in repairs if repair.applied)
     return {
         "run": plan.run_id,
         "stage": plan.stage,
@@ -282,8 +300,112 @@ def entry_from_stage(plan: StagePlan, findings: List[Finding], repairs: List[Rep
         "skipped": list(skipped or []),
         "tests": tests or {},
         "gates": gates or {},
+        "delivery": new_delivery(empty=(applied == 0)),
         "timestamp": _now(),
     }
+
+
+def _entry_applied(entry: Dict[str, object]) -> int:
+    repairs = entry.get("repairs") or []
+    return sum(1 for item in repairs
+               if isinstance(item, dict) and item.get("applied"))
+
+
+def _entry_verified(entry: Dict[str, object]) -> bool:
+    """A stage that reached `record_stage` with passing gates; rollback already excluded failures."""
+    if not isinstance(entry, dict):
+        return False
+    if _entry_applied(entry) == 0:
+        return False
+    tests = entry.get("tests") or {}
+    if isinstance(tests, dict) and tests and not tests.get("passed"):
+        return False
+    gates = entry.get("gates") or {}
+    if isinstance(gates, dict) and gates and not gates.get("passed"):
+        return False
+    return True
+
+
+def _delivery_of(entry: Dict[str, object]) -> Dict[str, object]:
+    delivery = entry.get("delivery")
+    return delivery if isinstance(delivery, dict) else {}
+
+
+def _stage_candidates(run: Dict[str, object]) -> List[Dict[str, object]]:
+    """History plus last_audit deduplicated by stage; last_audit wins on collision."""
+    by_stage: Dict[object, Dict[str, object]] = {}
+    for entry in (run.get("history") or []):
+        if isinstance(entry, dict) and entry.get("stage") is not None:
+            by_stage[entry.get("stage")] = entry
+    last = run.get("last_audit")
+    if isinstance(last, dict) and last.get("stage") is not None:
+        by_stage[last.get("stage")] = last
+    return [by_stage[key] for key in sorted(by_stage, key=lambda s: int(s or 0))]
+
+
+def find_unpushed_verified(run: Dict[str, object]) -> List[Dict[str, object]]:
+    """Verified stages with applied repairs that were committed but never pushed.
+
+    Empty windows never commit and verified-but-uncommitted windows have no SHA
+    to push, so both are skipped: only a stage with a local commit SHA is pending.
+    """
+    pending: List[Dict[str, object]] = []
+    for entry in _stage_candidates(run):
+        if not _entry_verified(entry):
+            continue
+        delivery = _delivery_of(entry)
+        if delivery.get("empty"):
+            continue
+        if delivery.get("pushed"):
+            continue
+        if not delivery.get("commit"):
+            continue
+        pending.append(entry)
+    return pending
+
+
+def find_uncommitted_verified(run: Dict[str, object]) -> List[Dict[str, object]]:
+    """Verified stages with applied repairs that were never committed.
+
+    Empty windows never commit by design, so they are skipped. A stage with a
+    commit SHA (even unpushed) is committed, so only stages with no SHA and no
+    empty mark are pending. Callers use this to refuse a new `--commit`/`--push`
+    audit while an older window would otherwise orphan in the tree.
+    """
+    pending: List[Dict[str, object]] = []
+    for entry in _stage_candidates(run):
+        if not _entry_verified(entry):
+            continue
+        delivery = _delivery_of(entry)
+        if delivery.get("empty"):
+            continue
+        if delivery.get("commit"):
+            continue
+        pending.append(entry)
+    return pending
+
+
+def mark_delivered(root: Path, state: Dict[str, object], run: Dict[str, object],
+                   stage: int, delivery: Dict[str, object]) -> Dict[str, object]:
+    """Record one stage's push hash in history and last_audit, then persist.
+
+    Both copies are updated because a reloaded state holds two distinct objects;
+    `sync_last_audit` covers the in-memory alias but not a prior `load_state`.
+    """
+    updated = dict(delivery)
+    updated.setdefault("timestamp", _now())
+    matches = [entry for entry in (run.get("history") or [])
+               if isinstance(entry, dict) and entry.get("stage") == stage]
+    last = run.get("last_audit")
+    if isinstance(last, dict) and last.get("stage") == stage \
+            and all(candidate is not last for candidate in matches):
+        matches.append(last)
+    for entry in matches:
+        entry["delivery"] = dict(updated)
+    run["updated"] = _now()
+    _mirror(state, run)
+    save_state(root, state)
+    return run
 
 
 def run_complete(run: Dict[str, object], window: int,
@@ -517,6 +639,7 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
 
 def run_summary(run: Dict[str, object]) -> Dict[str, object]:
     last = run.get("last_audit") if isinstance(run.get("last_audit"), dict) else None
+    last_delivery = _delivery_of(last) if isinstance(last, dict) else {}
     return {
         "id": run.get("id"),
         "status": run.get("status"),
@@ -528,6 +651,10 @@ def run_summary(run: Dict[str, object]) -> Dict[str, object]:
         "audited_commits": len(run.get("audited_commits") or []),
         "pending_fixable": len(pending_fixable(run)),
         "unreviewed_stages": [int(entry.get("stage") or 0) for entry in pending_reviews(run)],
+        "unpushed_stages": [int(entry.get("stage") or 0)
+                            for entry in find_unpushed_verified(run)],
+        "uncommitted_stages": [int(entry.get("stage") or 0)
+                               for entry in find_uncommitted_verified(run)],
         "last_audit": ({
             "stage": last.get("stage"),
             "window": last.get("window"),
@@ -535,6 +662,12 @@ def run_summary(run: Dict[str, object]) -> Dict[str, object]:
             "review": (last.get("review") or last.get("ai") or {}).get("status") or "",
             "new_commits": len(last.get("new_commits") or []),
             "skipped": len(last.get("skipped") or []),
+            "delivery": {
+                "commit": last_delivery.get("commit") or "",
+                "short": last_delivery.get("short") or "",
+                "pushed": bool(last_delivery.get("pushed")),
+                "empty": bool(last_delivery.get("empty")),
+            },
             "timestamp": last.get("timestamp"),
         } if last else None),
         "created": run.get("created"),

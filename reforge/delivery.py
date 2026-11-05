@@ -92,6 +92,23 @@ def commit_repairs(root: Path, message: str, paths: Optional[Sequence[str]] = No
             "message": message, "paths": selected}
 
 
+def push_committed(root: Path) -> Dict[str, object]:
+    """Push already-committed window(s) without staging anything new.
+
+    The resume-push-first path uses this so a verified-but-unpushed stage publishes
+    its own SHA instead of being re-committed; the error triad matches `deliver()`'s
+    push phase so callers treat both identically. Never forces.
+    """
+    code, output = push(root)
+    if code != 0:
+        raise ReforgeError(
+            "The commit is local, but the push failed.",
+            output[-500:] or "git push returned a nonzero exit code.",
+            "check the remote and credentials, then run `git push` yourself; never force.",
+        )
+    return {"pushed": True}
+
+
 def deliver(root: Path, message: str, do_push: bool,
             paths: Optional[Sequence[str]] = None) -> Tuple[Dict[str, object], List[str]]:
     """Commit only the reviewed repair paths plus the audit state, then optionally push."""

@@ -144,6 +144,15 @@ from scripts.project_publish import (
     get_project_repo_url,
     publish_project,
 )
+from scripts.project_archive import (
+    archive_github_description,
+    archive_project,
+    archived_destination,
+    archive_notice,
+    is_archived,
+    update_readme_for_archive,
+    validate_archive_move,
+)
 from reforge.audit import window_for_stage
 from reforge.cli import build_parser as build_reforge_parser
 from reforge.delivery import validate_message as validate_reforge_message
@@ -8418,6 +8427,15 @@ class TestProofCorpus(unittest.TestCase):
         with self.assertRaises(ValueError):
             proof_corpus.entry_path(Path("/tmp"), "")
 
+    def test_witness_key_omits_empty_pass_to_pass_for_compat(self) -> None:
+        from scripts import proof_corpus
+
+        base = self._receipt()
+        empty = self._receipt(pass_to_pass=[])
+        self.assertEqual(proof_corpus.witness_key(base), proof_corpus.witness_key(empty))
+        framed = self._receipt(pass_to_pass=["tests/test_keep.py"])
+        self.assertNotEqual(proof_corpus.witness_key(base), proof_corpus.witness_key(framed))
+
     def test_store_lists_and_prunes_oldest_first(self) -> None:
         from scripts import proof_corpus
 
@@ -9265,6 +9283,163 @@ class TestProjectPublish(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("Why:", msg)
 
+
+
+class TestProjectArchive(unittest.TestCase):
+    """`aikit archive`: retire a project locally and on GitHub with an archived README."""
+
+    def make_project(self, tmp, name="demo", description="A tool that turns X into Y for Z users here."):
+        ws = Path(tmp) / "kit"
+        proj = ws / "projects" / name
+        proj.mkdir(parents=True)
+        (proj / ".aikit").mkdir()
+        (proj / ".aikit" / "project.json").write_text(json.dumps(
+            {"schema": 1, "name": name, "test_command": None, "topics": ["aikit"],
+             "gates": {}, "ui_required": False, "mechanics_required": False,
+             "created": "2026-01-01"}), encoding="utf-8")
+        (proj / "README.md").write_text(f"# {name}\n\n{description}\n", encoding="utf-8")
+        return ws, proj
+
+    def runner(self, **replies):
+        self.calls = []
+        defaults = {"status": (0, ""), "get-url": (1, ""), "auth": (0, "ok"),
+                    "add": (0, ""), "commit": (0, "ok"), "push": (0, "ok"),
+                    "rev-parse": (0, "abc"), "check_secrets.py": (0, "[OK]"),
+                    "edit": (0, ""), "archive": (0, "")}
+        defaults.update(replies)
+        order = ("check_secrets.py", "auth", "archive", "edit", "get-url",
+                 "rev-parse", "status", "add", "commit", "push")
+
+        def run(argv, cwd):
+            self.calls.append(argv)
+            for key in order:
+                if key in argv or any(key in str(a) for a in argv):
+                    return defaults[key]
+            return 0, ""
+        return run
+
+    def test_banner_goes_after_description_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            readme = root / "README.md"
+            readme.write_text("# demo\n\nA tool that does X for Y users here.\n\n## Quick\n", encoding="utf-8")
+            self.assertTrue(update_readme_for_archive(readme, "superseded by X", "2026-11-05"))
+            text = readme.read_text(encoding="utf-8")
+            self.assertIn("**Archived**: superseded by X", text)
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+            self.assertFalse(update_readme_for_archive(readme, "other", "2026-11-06"))
+
+    def test_github_description_prefixes_archived_once(self):
+        self.assertEqual(archive_github_description("A tool that does X."),
+                         "[ARCHIVED] A tool that does X.")
+        self.assertEqual(archive_github_description("[ARCHIVED] old"),
+                         "[ARCHIVED] old")
+        long_desc = "[ARCHIVED] " + "x" * 400
+        self.assertLessEqual(len(archive_github_description("x" * 400)), 350)
+
+    def test_destination_defaults_to_projects_archive(self):
+        ws = Path("/kit")
+        self.assertEqual(archived_destination(ws, "demo"), ws / "projects" / "archive" / "demo")
+        self.assertEqual(archived_destination(ws, "demo", to=Path("/tmp/out")),
+                         Path("/tmp/out/demo"))
+        self.assertEqual(archived_destination(ws, "demo", to=Path("/tmp/out/demo")),
+                         Path("/tmp/out/demo"))
+
+    def test_move_refuses_existing_destination(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            dst = Path(tmp) / "dest"
+            dst.mkdir()
+            self.assertIsNotNone(validate_archive_move(src, dst))
+            self.assertIsNone(validate_archive_move(src, Path(tmp) / "fresh"))
+
+    def test_offline_archive_moves_and_records_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp)
+            code, report = archive_project(proj, "demo", "superseded by X",
+                                           workspace=ws, offline=True, runner=self.runner())
+            self.assertEqual(code, 0, report)
+            dst = ws / "projects" / "archive" / "demo"
+            self.assertTrue(dst.is_dir())
+            self.assertFalse(proj.exists())
+            config = json.loads((dst / ".aikit" / "project.json").read_text(encoding="utf-8"))
+            self.assertTrue(config.get("archived"))
+            self.assertEqual(config.get("archive_reason"), "superseded by X")
+            self.assertTrue(is_archived(dst))
+            readme = (dst / "README.md").read_text(encoding="utf-8")
+            self.assertIn("**Archived**", readme)
+
+    def test_dirty_tree_refused_without_allow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp)
+            code, report = archive_project(proj, "demo", "old", workspace=ws, offline=True,
+                                           runner=self.runner(**{"status": (0, " M x.py")}))
+            self.assertEqual(code, 1)
+            self.assertIn("--allow-dirty", report)
+            self.assertTrue(proj.exists())
+            code, _ = archive_project(proj, "demo", "old", workspace=ws, offline=True,
+                                      allow_dirty=True, runner=self.runner(**{"status": (0, " M x.py")}))
+            self.assertEqual(code, 0)
+
+    def test_online_archive_pushes_banner_edits_description_and_archives(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp)
+            run = self.runner(**{"get-url": (0, "https://github.com/AegeanWorks/Demo.git")})
+            code, report = archive_project(proj, "demo", "superseded by X",
+                                           workspace=ws, runner=run)
+            self.assertEqual(code, 0, report)
+            kinds = [" ".join(str(a) for a in call) for call in self.calls]
+            self.assertTrue(any("push" in kind for kind in kinds), kinds)
+            self.assertTrue(any("repo edit" in kind and "description" in kind for kind in kinds), kinds)
+            self.assertTrue(any("repo archive" in kind for kind in kinds), kinds)
+            self.assertIn("[ARCHIVED]", report)
+            dst = ws / "projects" / "archive" / "demo"
+            self.assertTrue(dst.is_dir())
+
+    def test_online_archive_refuses_when_banner_commit_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp)
+            base = self.runner(**{"get-url": (0, "https://github.com/AegeanWorks/Demo.git")})
+            calls: list = []
+            def run(argv, cwd):
+                calls.append(argv)
+                # Fail only the banner commit; the commit message itself contains
+                # "archived", so the fuzzy helper would match "archive" first.
+                if len(argv) >= 2 and argv[0] == "git" and argv[1] == "commit":
+                    return 1, "identity unknown"
+                return base(argv, cwd)
+            code, report = archive_project(proj, "demo", "superseded by X",
+                                           workspace=ws, runner=run)
+            self.assertEqual(code, 1)
+            self.assertIn("could not be committed", report)
+            self.assertTrue(proj.exists())
+            kinds = [" ".join(str(a) for a in call) for call in calls]
+            self.assertFalse(any("repo archive" in kind for kind in kinds), kinds)
+
+    def test_archive_needs_reason_and_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp)
+            code, report = archive_project(proj, "demo", "", workspace=ws,
+                                           offline=True, runner=self.runner())
+            self.assertEqual(code, 1)
+            self.assertIn("--reason", report)
+            (proj / "README.md").write_text("# demo\n\nshort\n", encoding="utf-8")
+            code, report = archive_project(proj, "demo", "old", workspace=ws,
+                                           offline=True, runner=self.runner())
+            self.assertEqual(code, 1)
+            self.assertIn("README", report)
+
+    def test_registry_finds_projects_inside_archive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ws, proj = self.make_project(tmp, name="oldie")
+            dst = ws / "projects" / "archive" / "oldie"
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(proj), str(dst))
+            found = find_project("oldie", ws)
+            self.assertTrue(found.present)
+            self.assertEqual(found.path, dst)
 
 
 class TestLicenseSync(unittest.TestCase):

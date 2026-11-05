@@ -90,6 +90,10 @@ PUBLIC_API_ALLOWLIST: Set[str] = {
     # the point — replay must not spawn anything.
     "verify_transcript",
     "replay_transcript",
+    # Legacy screenshot placeholder kept for backwards compat (black vs white
+    # pairs now use minimal_png_rgb); tests pin its bytes, no production path
+    # calls it after the visual-indistinguishability fix.
+    "minimal_png",
 }
 
 # Keys of third-party formats AIKit reads and never writes, so no AIKit writer can exist: the

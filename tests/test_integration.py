@@ -1770,6 +1770,132 @@ class TestReforgeHistory(unittest.TestCase):
         self.assertEqual(codes, {"review-wrong-operator", "review-narrow-the-except"})
         self.assertIn("app.py", report["commit_paths"])
 
+    def test_per_window_push_records_hash_and_resume_knows(self):
+        from reforge.git_history import head_sha
+        from reforge.pipeline import run_pipeline
+        from reforge.state import find_unpushed_verified, load_state, run_summary
+
+        bare_parent = Path(tempfile.mkdtemp(prefix="reforge_bare_"))
+        self.addCleanup(remove_tree, bare_parent)
+        bare = bare_parent / "origin.git"
+        done = subprocess.run(["git", "init", "-q", "--bare", str(bare)],
+                              capture_output=True, text=True, timeout=PROC_TIMEOUT)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        root = self.one_commit_repository(
+            "def load(value):\n"
+            "    try:\n"
+            "        return value\n"
+            "    except:\n"
+            "        pass\n")
+        self.git(root, "remote", "add", "origin", str(bare))
+        before = int(self.git(root, "rev-list", "--count", "HEAD").stdout.strip())
+        report = run_pipeline(root, "run", run_tests=False, rules=True,
+                              deliver=True, do_push=True)
+        self.assertTrue(report["repaired"] >= 1)
+        self.assertTrue((report.get("delivery") or {}).get("pushed"),
+                        report.get("delivery"))
+        full = (report.get("delivery") or {}).get("commit")
+        self.assertTrue(full)
+        self.assertEqual(full, head_sha(root))
+        state = load_state(root)
+        last = state["last_run"] and next(
+            run for run in state["runs"] if run["id"] == state["last_run"])
+        entry_delivery = (last.get("last_audit") or {}).get("delivery") or {}
+        self.assertTrue(entry_delivery.get("pushed"))
+        self.assertEqual(entry_delivery.get("commit"), head_sha(root))
+        self.assertEqual(find_unpushed_verified(last), [])
+        self.assertEqual(run_summary(last).get("unpushed_stages"), [])
+        after = int(self.git(root, "rev-list", "--count", "HEAD").stdout.strip())
+        self.assertEqual(after, before + 1, "one window ships as one commit")
+        check = subprocess.run(["git", "--git-dir", str(bare), "cat-file", "-t", full],
+                               capture_output=True, text=True, timeout=PROC_TIMEOUT)
+        self.assertEqual(check.stdout.strip(), "commit")
+
+    def test_network_failure_leaves_verified_but_unpushed_and_resume_pushes(self):
+        from unittest import mock
+
+        from reforge.git_history import head_sha
+        from reforge.pipeline import run_pipeline
+        from reforge.state import find_unpushed_verified, load_state
+
+        bare_parent = Path(tempfile.mkdtemp(prefix="reforge_flaky_"))
+        self.addCleanup(remove_tree, bare_parent)
+        bare = bare_parent / "origin.git"
+        done = subprocess.run(["git", "init", "-q", "--bare", str(bare)],
+                              capture_output=True, text=True, timeout=PROC_TIMEOUT)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        root = self.one_commit_repository(
+            "def load(value):\n"
+            "    try:\n"
+            "        return value\n"
+            "    except:\n"
+            "        pass\n")
+        self.git(root, "remote", "add", "origin", str(bare))
+        from reforge.errors import ReforgeError
+        with mock.patch("reforge.delivery.push", return_value=(1, "fatal: network down")):
+            with self.assertRaises(ReforgeError) as raised:
+                run_pipeline(root, "run", run_tests=False, rules=True,
+                             deliver=True, do_push=True)
+        self.assertIn("push failed", str(raised.exception.message).lower()
+                      + str(raised.exception.why).lower())
+        state = load_state(root)
+        run = next(r for r in state["runs"] if r["id"] == state["last_run"])
+        pending = find_unpushed_verified(run)
+        self.assertEqual(len(pending), 1)
+        delivery = pending[0].get("delivery") or {}
+        self.assertFalse(delivery.get("pushed"), "a failed push is never marked pushed")
+        self.assertTrue(delivery.get("commit"), "the local commit SHA is kept")
+        self.assertEqual(delivery.get("commit"), head_sha(root))
+        local_head = head_sha(root)
+        # Review stage 1 so the next window may advance; the backlog stays unpushed.
+        import json as jsonlib
+
+        from reforge.pipeline import review_stage
+
+        packet = ((pending[0].get("review") or {}).get("packet") or "")
+        self.assertTrue(packet, "a verified window keeps its review packet")
+        answer = root / "review.json"
+        answer.write_text(jsonlib.dumps({
+            "findings": [], "reviewed_hunks": review_attestations(
+                Path(packet).read_text(encoding="utf-8")),
+        }), encoding="utf-8")
+        reviewed = review_stage(root, stage=1, findings_file=str(answer))
+        self.assertEqual(reviewed["review"]["status"], "reviewed")
+        # Resume with the network back pushes the same SHA instead of skipping it.
+        report = run_pipeline(root, "run", run_tests=False, rules=True,
+                              deliver=True, do_push=True)
+        state = load_state(root)
+        run = next(r for r in state["runs"] if r["id"] == state["last_run"])
+        self.assertEqual(find_unpushed_verified(run), [])
+        first = next(entry for entry in (run.get("history") or [])
+                     if int(entry.get("stage") or 0) == 1)
+        self.assertTrue((first.get("delivery") or {}).get("pushed"))
+        self.assertEqual((first.get("delivery") or {}).get("commit"), local_head)
+        check = subprocess.run(["git", "--git-dir", str(bare), "cat-file", "-t", local_head],
+                               capture_output=True, text=True, timeout=PROC_TIMEOUT)
+        self.assertEqual(check.stdout.strip(), "commit")
+        self.assertTrue(report.get("delivery") is not None)
+
+    def test_empty_window_commits_nothing(self):
+        from reforge.pipeline import run_pipeline
+        from reforge.state import load_state
+
+        root = self.simple_repository(2)
+        self.assertEqual((root / "value0.py").read_text(encoding="utf-8"), "VALUE = 0\n")
+        before = self.git(root, "rev-parse", "HEAD").stdout.strip()
+        count_before = int(self.git(root, "rev-list", "--count", "HEAD").stdout.strip())
+        report = run_pipeline(root, "run", run_tests=False, rules=True,
+                              deliver=True, do_push=False)
+        self.assertEqual(report["repaired"], 0)
+        self.assertTrue((report.get("delivery") or {}).get("empty"),
+                        report.get("delivery"))
+        self.assertEqual(self.git(root, "rev-parse", "HEAD").stdout.strip(), before)
+        self.assertEqual(int(self.git(root, "rev-list", "--count", "HEAD").stdout.strip()),
+                         count_before, "an empty window never creates an empty commit")
+        state = load_state(root)
+        run = next(r for r in state["runs"] if r["id"] == state["last_run"])
+        self.assertTrue(((run.get("last_audit") or {}).get("delivery") or {}).get("empty"))
+
     def test_aikit_reforge_status_reaches_the_registry_and_state(self):
         from scripts.project_registry import write_memory
 

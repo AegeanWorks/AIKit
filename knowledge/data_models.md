@@ -30,6 +30,11 @@ Written once by `write_memory` in `scripts/project_registry.py` when a project i
 | `mechanics_required` | bool | When true, `check` requires the `mechanics` contract below (ADR-271). |
 | `mechanics` | object or absent | A game/project's headless core: `core` is a list of existing relative paths, `test` is the command that exercises it; optional `bench` is the benchmark-before-land command (structural gate, never a score threshold); `check` adds `test` and `bench` as gates when declared. |
 | `created` | string | Creation date, `YYYY-MM-DD`. |
+| `archived` | bool or absent | When true, `aikit archive` retired the project to `projects/archive/` and archived its GitHub repository (ADR-332). |
+| `archived_at` | string or absent | Archive date, `YYYY-MM-DD`. |
+| `archive_reason` | string or absent | Why the project was retired; the README banner text. |
+| `archive_repo` | string or absent | The archived GitHub `owner/Repo` slug (or origin URL when offline). |
+| `archive_description` | string or absent | The `[ARCHIVED] ...` GitHub description set at archive time. |
 
 The project's decision register is `<project>/.aikit/decisions.md`, created from `DECISIONS_TEMPLATE` with the same entry format as `knowledge/decisions.md`; `latest_decision` ignores the template's commented example.
 

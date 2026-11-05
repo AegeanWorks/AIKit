@@ -180,6 +180,25 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         kind = UI_WEB if kind == UI_LIBRARY else kind
         if not evidence:
             evidence.append(config_path(root))
+    if kind == UI_LIBRARY:
+        # Compat UI samples (ADR-315) are Python with screenshots, not web
+        # markers: a compat.json kind=ui contract proves a screenshotable
+        # surface exists, so classify it as web rather than library.
+        try:
+            import json as _json
+            compat_path = root / ".aikit" / "compat.json"
+            if compat_path.is_file():
+                compat = _json.loads(compat_path.read_text(encoding="utf-8"))
+                if isinstance(compat, dict) and compat.get("kind") == "ui" and compat.get("has_ui"):
+                    kind = UI_WEB
+                    evidence.append(compat_path)
+                    shots = compat.get("screenshots") if isinstance(compat.get("screenshots"), dict) else {}
+                    for key in ("before", "after"):
+                        rel = shots.get(key) if isinstance(shots, dict) else ""
+                        if isinstance(rel, str) and rel and (root / rel).is_file():
+                            evidence.append(root / rel)
+        except (OSError, ValueError):
+            pass
     return {
         "has_ui": kind in UI_KINDS_WITH_SCREENSHOTS,
         "kind": kind,

@@ -65,14 +65,19 @@ def canonical_bytes(payload: Mapping[str, Any]) -> bytes:
 def witness_key(receipt: Mapping[str, Any]) -> str:
     """Content hash binding a receipt to its evidence (IDEA-1156 witness).
 
-    Same base, tests, manifest and gate digest always file under the same
-    key; any drift files a new entry instead of rewriting the past.
+    Same base, tests, pass-to-pass, manifest and gate digest always file under
+    the same key; any drift files a new entry instead of rewriting the past.
+    An empty pass-to-pass frame is omitted so receipts written before the
+    pass-to-pass frame (S-F) keep their original key instead of orphaning.
     """
-    manifest = receipt.get("tree_manifest", [])
-    gates = receipt.get("gate_digest", {})
-    tests = sorted(str(value) for value in list(receipt.get("tests", [])))
-    witness = {"base": str(receipt.get("base", "")), "tests": tests,
-               "tree_manifest": manifest, "gate_digest": gates}
+    manifest = receipt.get("tree_manifest") or []
+    gates = receipt.get("gate_digest") or {}
+    tests = sorted(str(value) for value in list(receipt.get("tests") or []))
+    p2p = sorted(str(value) for value in list(receipt.get("pass_to_pass") or []))
+    witness: Dict[str, Any] = {"base": str(receipt.get("base", "")), "tests": tests,
+                               "tree_manifest": manifest, "gate_digest": gates}
+    if p2p:
+        witness["pass_to_pass"] = p2p
     return hashlib.sha256(canonical_bytes(witness)).hexdigest()
 
 
@@ -184,9 +189,21 @@ def replay(entry: Mapping[str, Any], *,
                 return {"outcome": OUTCOME_INCONCLUSIVE,
                         "reason": "no prover available in this context"}
     try:
-        tests = [str(value) for value in list(receipt.get("tests", []))]
-        fresh = prove_fn(repo=Path(repo), base=str(receipt.get("base", "")),
-                         tests=[Path(value) for value in tests])
+        tests = [str(value) for value in list(receipt.get("tests") or [])]
+        p2p = [str(value) for value in list(receipt.get("pass_to_pass") or [])]
+        prove_kwargs: dict = {"repo": Path(repo), "base": str(receipt.get("base", "")),
+                              "tests": [Path(value) for value in tests]}
+        if p2p:
+            prove_kwargs["pass_to_pass"] = [Path(value) for value in p2p]
+        try:
+            fresh = prove_fn(**prove_kwargs)
+        except TypeError as exc:
+            # Old doubles that only accept (repo, base, tests) still replay the
+            # fail-to-pass verdict; pass-to-pass is then unchecked but recorded.
+            if "pass_to_pass" not in str(exc) or not p2p:
+                raise
+            prove_kwargs.pop("pass_to_pass", None)
+            fresh = prove_fn(**prove_kwargs)
     except Exception as exc:
         detail = f"replay could not run: {exc}"
         return {"outcome": OUTCOME_INCONCLUSIVE, "reason": detail}

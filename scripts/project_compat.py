@@ -55,10 +55,11 @@ def _error(message: str, why: str, fix: str) -> ValueError:
     return ValueError(f"{message}\nWhy: {why}\nFix: {fix}")
 
 
-def minimal_png(variant: int = 0) -> bytes:
+def minimal_png_rgb(red: int = 0, green: int = 0, blue: int = 0) -> bytes:
     """A valid 1x1 RGB PNG, stdlib-only, for scaffolded screenshot placeholders."""
-    raw = bytes((0, variant & 0xFF, 0, 0))
+    raw = bytes((0, red & 0xFF, green & 0xFF, blue & 0xFF))
     compressed = zlib.compress(raw)
+
     def chunk(tag: bytes, data: bytes) -> bytes:
         out = struct.pack(">I", len(data)) + tag + data
         out += struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
@@ -66,6 +67,16 @@ def minimal_png(variant: int = 0) -> bytes:
     ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
     return (PNG_SIGNATURE + chunk(b"IHDR", ihdr)
             + chunk(b"IDAT", compressed) + chunk(b"IEND", b""))
+
+
+def minimal_png(variant: int = 0) -> bytes:
+    """Legacy single-channel placeholder; prefer ``minimal_png_rgb`` for pairs.
+
+    Only the red channel varies, so before/after pairs built from this alone
+    are byte-different but visually indistinguishable. New scaffolds use
+    black vs white via ``minimal_png_rgb`` to read as a state change.
+    """
+    return minimal_png_rgb(variant, 0, 0)
 
 
 def _inventory_template(kind: str) -> str:
@@ -176,8 +187,10 @@ def scaffold_compat(root: Path, kind: str) -> Dict[str, object]:
     (root / CLICKMAP_REL).write_text(
         "click save-btn -> on-save\n" if has_ui else "", encoding="utf-8")
     if has_ui:
-        (root / SCREENSHOT_DIR / BEFORE_NAME).write_bytes(minimal_png(0))
-        (root / SCREENSHOT_DIR / AFTER_NAME).write_bytes(minimal_png(1))
+        # Black vs white reads as a state change; the old red-channel-only
+        # pair (0 vs 1) was byte-different but visually identical.
+        (root / SCREENSHOT_DIR / BEFORE_NAME).write_bytes(minimal_png_rgb(0, 0, 0))
+        (root / SCREENSHOT_DIR / AFTER_NAME).write_bytes(minimal_png_rgb(255, 255, 255))
     return compat
 
 

@@ -160,6 +160,20 @@ def build_parser() -> argparse.ArgumentParser:
     license_cmd.add_argument("--json", action="store_true",
                              help="with --suggest, print one machine-readable suggestion object")
 
+    archive_cmd = project_command("archive", "move a project to projects/archive/ and archive its GitHub repository")
+    archive_cmd.add_argument("--reason", required=True, metavar="TEXT",
+                             help="why the project is retired; recorded in the README banner and project.json")
+    archive_cmd.add_argument("--to", dest="to", type=Path, metavar="DIR",
+                             help="destination folder (default: projects/archive/<name>)")
+    archive_cmd.add_argument("--description", metavar="TEXT",
+                             help="override GitHub description (one line, 10-350 chars); default prefixes README text with [ARCHIVED]")
+    archive_cmd.add_argument("--offline", action="store_true",
+                             help="move locally only; skip the GitHub description and archive steps")
+    archive_cmd.add_argument("--allow-dirty", action="store_true",
+                             help="move with uncommitted changes (they stay uncommitted)")
+    archive_cmd.add_argument("--json", action="store_true",
+                             help="print one machine-readable object instead of text")
+
     topics_cmd = project_command("topics", "show or set the GitHub topics a project records")
     topics_cmd.add_argument("--suggest", action="store_true",
                             help="show an AI brief and the current/recorded tags (read-only)")

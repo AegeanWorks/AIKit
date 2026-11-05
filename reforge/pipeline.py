@@ -33,9 +33,12 @@ from reforge.state import (
     entry_from_stage,
     finalize_review,
     find_run,
+    find_unpushed_verified,
     is_reforge_artifact,
     load_state,
+    mark_delivered,
     mark_repairs,
+    new_delivery,
     pending_fixable,
     pending_reviews,
     record_stage,
@@ -241,7 +244,9 @@ def _payload(root: Path, mode: str, plan: StagePlan, run: Dict[str, object],
              findings: Sequence[Finding], repairs: Sequence[Repair], tests: Dict[str, object],
              gates: Dict[str, object], skipped: Sequence[str] = (),
              ledger: Optional[Dict[str, object]] = None,
-             reviewed: int = 0, review: Optional[Dict[str, object]] = None) -> Dict[str, object]:
+             reviewed: int = 0, review: Optional[Dict[str, object]] = None,
+             delivery: Optional[Dict[str, object]] = None,
+             delivery_lines: Optional[Sequence[str]] = None) -> Dict[str, object]:
     applied = sum(1 for repair in repairs if repair.applied)
     return {
         "mode": mode,
@@ -260,6 +265,8 @@ def _payload(root: Path, mode: str, plan: StagePlan, run: Dict[str, object],
         "review": review or {},
         "skipped": list(skipped),
         "ledger": ledger or {},
+        "delivery": delivery or {},
+        "delivery_lines": list(delivery_lines or []),
         "tests": tests,
         "gates": gates,
         "summary": (f"{plan.run_id} stage {plan.stage}: {reviewed} file(s) reviewed, "
@@ -362,16 +369,130 @@ def _note_stage(root: Path, run: Dict[str, object], plan: StagePlan, entry: Dict
     applied = sum(1 for repair in entry.get("repairs") or [] if repair.get("applied"))
     counts = ", ".join(f"{name}={value}" for name, value in sorted((entry.get("counts") or {}).items()))
     review = entry.get("review") or {}
+    delivery = entry.get("delivery") if isinstance(entry.get("delivery"), dict) else {}
+    if delivery.get("empty"):
+        ship = "empty — nothing to commit"
+    elif delivery.get("pushed") and delivery.get("short"):
+        ship = f"commit {delivery.get('short')} pushed"
+    elif (delivery.get("commit") or delivery.get("short")) and not delivery.get("pushed"):
+        ship = f"commit {delivery.get('short') or delivery.get('commit')} verified-but-unpushed"
+    elif applied:
+        ship = "verified-but-uncommitted"
+    else:
+        ship = "no repairs"
     description = (
         f"window {plan.window}, {len(entry.get('new_commits') or [])} commit(s), "
         f"{int(entry.get('reviewed') or 0)} file(s) reviewed ({review.get('status') or 'unreviewed'}), "
-        f"{len(findings)} finding(s), {applied} repaired"
+        f"{len(findings)} finding(s), {applied} repaired, {ship}"
         + (f", {len(skipped)} binary not analysed" if skipped else "")
         + (f" ({counts})" if counts else "")
     )
     return record_event(root, plan.run_id, plan.stage, description,
                         stage_files(findings, skipped),
                         status="completed" if run.get("status") == "completed" else "in_progress")
+
+
+def _delivery_message(run_id: str, stage: int, repaired: int) -> str:
+    """Conventional message shared by the stage-close hook (no caller variants)."""
+    if repaired:
+        return f"fix(reforge): repair {run_id} stage {stage} findings"
+    return f"chore(reforge): record {run_id} stage {stage} audit"
+
+
+def _publish_backlog(root: Path, state: Dict[str, object],
+                     run: Dict[str, object]) -> Tuple[Dict[str, object], List[str]]:
+    """Push previously verified-but-unpushed windows before auditing the next one.
+
+    A single `git push` publishes every local window commit, so all pending stages
+    flip to pushed together keeping their own SHAs. Only runs when the operator
+    passed `--push`; otherwise the backlog accumulates and the next stage proceeds.
+    """
+    from reforge.delivery import push_committed
+
+    pending = find_unpushed_verified(run)
+    if not pending:
+        return {"pushed": False, "stages": []}, []
+    push_committed(root)
+    head = head_sha(root)
+    pushed_stages: List[int] = []
+    for entry in pending:
+        stage = int(entry.get("stage") or 0)
+        delivery = dict(entry.get("delivery") or {})
+        if not delivery.get("commit"):
+            delivery["commit"] = head
+            delivery["short"] = (head[:7] if head else "")
+        delivery["pushed"] = True
+        delivery["push_error"] = None
+        mark_delivered(root, state, run, stage, delivery)
+        pushed_stages.append(stage)
+    line = f"[OK] Pushed {len(pushed_stages)} pending window(s) without force: " + ",".join(
+        f"stage {stage}" for stage in pushed_stages)
+    record_event(root, str(run.get("id")), int(pushed_stages[-1]),
+                 f"backlog push of stage(s) {','.join(str(s) for s in pushed_stages)}; HEAD {head[:12] if head else 'unknown'}",
+                 status="completed" if run.get("status") == "completed" else "in_progress")
+    return {"pushed": True, "stages": pushed_stages, "commit": head}, [line]
+
+
+def _close_window(root: Path, state: Dict[str, object], run: Dict[str, object],
+                  entry: Dict[str, object], commit_paths: Sequence[str],
+                  do_commit: bool, do_push: bool) -> Tuple[Dict[str, object], List[str]]:
+    """Commit and push one verified window; empty windows never commit.
+
+    Must run inside `run_lock()` after `record_stage()`. Repair rollback never runs
+    here: verified repairs stay in the tree and only the delivery mark changes on
+    commit/push failure (verified-but-uncommitted / verified-but-unpushed).
+    The post-push hash update is a second `save_state()` that rides dirty until the
+    next window's commit; resume reads disk state so it still lands correctly.
+    """
+    from reforge.delivery import deliver
+
+    applied = sum(1 for item in (entry.get("repairs") or [])
+                  if isinstance(item, dict) and item.get("applied"))
+    stage = int(entry.get("stage") or 0)
+    run_id = str(entry.get("run") or run.get("id") or "")
+    if applied == 0:
+        delivery = new_delivery(empty=True)
+        entry["delivery"] = delivery
+        mark_delivered(root, state, run, stage, delivery)
+        return {"commit": "", "short": "", "pushed": False, "empty": True}, [
+            "[OK] Nothing to commit: the window held no applied repairs."]
+    if not do_commit and not do_push:
+        delivery = new_delivery(empty=False)
+        entry["delivery"] = delivery
+        mark_delivered(root, state, run, stage, delivery)
+        return {"commit": "", "short": "", "pushed": False, "empty": False}, [
+            "Not committed: pass --commit to publish this window, --push to publish and push."]
+    message = _delivery_message(run_id, stage, applied)
+    try:
+        report, lines = deliver(root, message, do_push, paths=list(commit_paths))
+    except ReforgeError as exc:
+        text = f"{exc.message or ''} {exc.why or ''}".lower()
+        is_push_failure = ("push failed" in text or "commit is local" in text)
+        if is_push_failure:
+            full = head_sha(root)
+            delivery = {"commit": full, "short": (full[:7] if full else ""),
+                        "pushed": False, "push_error": exc.message,
+                        "empty": False}
+        else:
+            delivery = {"commit": "", "short": "", "pushed": False,
+                        "push_error": exc.message, "empty": False}
+        entry["delivery"] = delivery
+        mark_delivered(root, state, run, stage, delivery)
+        raise
+    if report.get("nothing_to_commit"):
+        delivery = new_delivery(empty=True)
+        entry["delivery"] = delivery
+        mark_delivered(root, state, run, stage, delivery)
+        return {"commit": "", "short": "", "pushed": False, "empty": True}, list(lines)
+    full = head_sha(root)
+    short = str(report.get("commit") or "")
+    delivery = {"commit": full or short, "short": short,
+                "pushed": bool(do_push and report.get("pushed")),
+                "push_error": None, "empty": False}
+    entry["delivery"] = delivery
+    mark_delivered(root, state, run, stage, delivery)
+    return {"commit": delivery["commit"], "short": short,
+            "pushed": delivery["pushed"], "empty": False}, list(lines)
 
 
 def _note_review(root: Path, run: Dict[str, object], stage: int,
@@ -396,10 +517,18 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                  start: Optional[int] = None, step: Optional[int] = None,
                  stop: Optional[int] = None, rules: bool = True,
                  findings_file: Optional[str] = None,
-                 packet: bool = True, deliver: bool = False) -> Dict[str, object]:
-    """Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`)."""
+                 packet: bool = True, deliver: bool = False,
+                 do_push: bool = False) -> Dict[str, object]:
+    """Audit the next stage (`audit`), repair the last one (`fix`), or do both (`run`).
+
+    `deliver` commits one verified window, `do_push` pushes it (implies commit).
+    Both run inside `run_lock()` via `_close_window()`; empty windows never commit.
+    A `--push` invocation first publishes any verified-but-unpushed backlog, then
+    closes the current window, so resume knows exactly which windows landed.
+    """
     root = Path(root)
     findings_rel = _relative_inside(root, findings_file)
+    do_commit = bool(deliver or do_push)
     with run_lock(root):
         state = load_state(root)
         if mode == "fix":
@@ -439,7 +568,10 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
             guard |= {str(item.get("path")) for item in (last.get("repairs") or [])
                       if item.get("applied") and item.get("path")}
             _check_commit_targets(
-                root, sorted(guard), allow_dirty, deliver, (findings_rel,), _owned_repairs(last))
+                root, sorted(guard), allow_dirty, do_commit, (findings_rel,), _owned_repairs(last))
+            backlog_lines: List[str] = []
+            if do_push:
+                _, backlog_lines = _publish_backlog(root, state, run)
             if not fixable:
                 if findings_file:
                     finalize_review(root, state, run, total_commits=total_commits)
@@ -447,7 +579,9 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                     return _payload(root, mode, plan, run, all_findings,
                                     [repair_from_dict(item) for item in (last.get("repairs") or [])],
                                     last.get("tests") or {}, last.get("gates") or {},
-                                    skipped, ledger, reviewed=reviewed, review=review_meta)
+                                    skipped, ledger, reviewed=reviewed, review=review_meta,
+                                    delivery=dict(last.get("delivery") or {}),
+                                    delivery_lines=list(backlog_lines))
                 # `audit` then `fix` in two invocations leaves a reviewed patch uncommitted;
                 # a second `fix --commit` publishes it instead of refusing (the CLI's own advice).
                 applied = [repair_from_dict(item) for item in (last.get("repairs") or [])
@@ -461,9 +595,22 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                         f"review the evidence, then start the next audit or `reforge stop <project> "
                         f"--run {run.get('id')}`.",
                     )
+                if do_commit or do_push:
+                    commit_paths = sorted(set(repair_paths(applied, root))
+                                          | {STATE_REL.as_posix()})
+                    delivery_report, delivery_lines = _close_window(
+                        root, state, run, last, commit_paths, do_commit, do_push)
+                    ledger = _note_stage(root, run, plan, last, all_findings, skipped)
+                    return _payload(root, mode, plan, run, all_findings, applied,
+                                    last.get("tests") or {}, last.get("gates") or {},
+                                    skipped, ledger, reviewed=reviewed, review=review_meta,
+                                    delivery=delivery_report,
+                                    delivery_lines=list(backlog_lines) + list(delivery_lines))
                 return _payload(root, mode, plan, run, all_findings, applied,
                                 last.get("tests") or {}, last.get("gates") or {},
-                                skipped, reviewed=reviewed, review=review_meta)
+                                skipped, reviewed=reviewed, review=review_meta,
+                                delivery=dict(last.get("delivery") or {}),
+                                delivery_lines=list(backlog_lines))
             preexisting = _preexisting_dirty(root, (findings_rel,))
             targets = [item.path for item in fixable if not item.repaired]
             if targets:
@@ -478,10 +625,29 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
             last["review"] = review_meta
             mark_repairs(root, state, run, repairs)
             finalize_review(root, state, run, total_commits=total_commits)
+            if do_commit or do_push:
+                # Re-read the persisted entry so the commit stages the saved state file.
+                refreshed = run.get("last_audit") if isinstance(run.get("last_audit"), dict) else last
+                commit_paths = sorted(set(repair_paths(repairs, root)) | {STATE_REL.as_posix()})
+                delivery_report, delivery_lines = _close_window(
+                    root, state, run, refreshed, commit_paths, do_commit, do_push)
+                if findings_file:
+                    _note_review(root, run, int(last.get("stage") or 0), review_meta)
+                ledger = _note_stage(root, run, plan, refreshed, all_findings, skipped)
+                return _payload(root, mode, plan, run, all_findings, repairs, tests, gates,
+                                skipped, ledger, reviewed=reviewed, review=review_meta,
+                                delivery=delivery_report,
+                                delivery_lines=list(backlog_lines) + list(delivery_lines))
             ledger = _note_review(root, run, int(last.get("stage") or 0), review_meta) \
                 if findings_file else None
+            # Record the verified-but-uncommitted mark without a ledger checkpoint.
+            _close_window(root, state, run, last,
+                          sorted(set(repair_paths(repairs, root)) | {STATE_REL.as_posix()}),
+                          False, False)
             return _payload(root, mode, plan, run, all_findings, repairs, tests, gates,
-                            skipped, ledger, reviewed=reviewed, review=review_meta)
+                            skipped, ledger, reviewed=reviewed, review=review_meta,
+                            delivery=dict(last.get("delivery") or {}),
+                            delivery_lines=list(backlog_lines))
 
         if mode not in {"audit", "run"}:
             raise ReforgeError(
@@ -507,6 +673,21 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
         pending = pending_fixable(run)
         if pending:
             raise _review_error(run, pending)
+        if do_commit or do_push:
+            from reforge.state import find_uncommitted_verified
+            uncommitted = find_uncommitted_verified(run)
+            if uncommitted:
+                stages = ", ".join(str(int(e.get("stage") or 0)) for e in uncommitted)
+                raise ReforgeError(
+                    f"Stage(s) {stages} are verified-but-uncommitted.",
+                    "a new --commit/--push audit would orphan those repairs in the tree.",
+                    "publish the previous window first (e.g. `reforge fix <project> "
+                    f"--findings <file> --commit` for stage {stages}), or run without "
+                    "--commit/--push; nothing was changed.",
+                )
+        backlog_lines: List[str] = []
+        if do_push:
+            _, backlog_lines = _publish_backlog(root, state, run)
         plan = plan_next_stage(root, run)
         skipped: List[str] = []
         reviewed: List[str] = []
@@ -522,9 +703,11 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                                         else (commit_count(root) or None)))
             return _payload(root, mode, plan, run, findings, [], {}, {}, skipped,
                             _note_stage(root, run, plan, entry, findings, skipped),
-                            reviewed=len(reviewed), review=review_meta)
+                            reviewed=len(reviewed), review=review_meta,
+                            delivery=dict(entry.get("delivery") or {}),
+                            delivery_lines=list(backlog_lines))
         _check_commit_targets(root, [item.path for item in findings if item.fixable],
-                              allow_dirty, deliver, (findings_rel,))
+                              allow_dirty, do_commit, (findings_rel,))
         preexisting = _preexisting_dirty(root, (findings_rel,))
         repairs, tests, gates = _execute_repairs(root, findings, add_tests, run_tests,
                                                  test_command, gate_runner,
@@ -538,9 +721,14 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
                      total_commits=(None if isinstance(run.get("stop"), int)
                                     else (commit_count(root) or None)))
         mark_repairs(root, state, run, repairs)
+        commit_paths = sorted(set(repair_paths(repairs, root)) | {STATE_REL.as_posix()})
+        delivery_report, delivery_lines = _close_window(
+            root, state, run, entry, commit_paths, do_commit, do_push)
         return _payload(root, mode, plan, run, findings, repairs, tests, gates, skipped,
                         _note_stage(root, run, plan, entry, findings, skipped),
-                        reviewed=len(reviewed), review=review_meta)
+                        reviewed=len(reviewed), review=review_meta,
+                        delivery=delivery_report,
+                        delivery_lines=list(backlog_lines) + list(delivery_lines))
 
 
 def review_stage(root: Path, run_id: Optional[str] = None, stage: Optional[int] = None,

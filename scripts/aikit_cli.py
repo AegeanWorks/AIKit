@@ -43,6 +43,7 @@ from scripts.project_publish import (
     get_project_repo_url,
     publish_project,
 )
+from scripts.project_archive import archive_project, is_archived
 
 from scripts.project_registry import (
     DEFAULT_LICENSE_KIND,
@@ -360,7 +361,13 @@ def cmd_list(args: argparse.Namespace) -> int:
         kind = "attached" if project.attached else "local"
         repo_url = get_project_repo_url(project.path)
         repo_note = f"  repo: {repo_url}" if repo_url else ""
-        print(f"{project.name}  [{stacks}]  test: {test}  ({kind}: {project.path}){repo_note}")
+        archived = ""
+        try:
+            if is_archived(project.path):
+                archived = "  [ARCHIVED]"
+        except (OSError, ValueError, KeyError):
+            archived = ""
+        print(f"{project.name}  [{stacks}]  test: {test}  ({kind}: {project.path}){repo_note}{archived}")
     return 0
 
 
@@ -875,6 +882,53 @@ def cmd_publish(args: argparse.Namespace) -> int:
     if code == 0:
         _report_registered_ideas(project.path, project.name)
         _sync_dossier(project.path, project.name)
+    return code
+
+
+def cmd_archive(args: argparse.Namespace) -> int:
+    """Move a project to `projects/archive/` and archive its GitHub repository."""
+    try:
+        project = present_project(args.name, args.workspace)
+    except ProjectError as exc:
+        if getattr(args, "json", False):
+            print(error_envelope(exc))
+            return exc.exit_code
+        raise
+    try:
+        if is_archived(project.path):
+            message = f"project '{project.name}' is already archived at {project.path}."
+            if getattr(args, "json", False):
+                print(json.dumps({"ok": True, "archived": True, "project": project.name,
+                                  "path": str(project.path), "note": message}, indent=2))
+                return 0
+            print(message)
+            return 0
+    except (OSError, ValueError, KeyError):
+        pass
+    code, report = archive_project(
+        project.path, project.name, reason=getattr(args, "reason", ""),
+        workspace=args.workspace, to=getattr(args, "to", None),
+        description=getattr(args, "description", None),
+        offline=bool(getattr(args, "offline", False)),
+        allow_dirty=bool(getattr(args, "allow_dirty", False)),
+    )
+    if getattr(args, "json", False):
+        payload = {"ok": code == 0, "project": project.name,
+                   "reason": getattr(args, "reason", ""),
+                   "offline": bool(getattr(args, "offline", False))}
+        if code == 0:
+            try:
+                moved = present_project(args.name, args.workspace)
+                payload.update({"archived": True, "path": str(moved.path)})
+            except ProjectError:
+                payload.update({"archived": True})
+            payload["report"] = report
+            print(json.dumps(payload, indent=2, default=str))
+        else:
+            print(json.dumps({"ok": False, "error": {"code": "project.error",
+                                                     "message": report}}, indent=2))
+        return code
+    print(report, file=sys.stdout if code == 0 else sys.stderr)
     return code
 
 
@@ -1461,6 +1515,7 @@ HANDLERS = {
     "check": cmd_check,
     "fix": cmd_fix,
     "publish": cmd_publish,
+    "archive": cmd_archive,
     "license": cmd_license,
     "topics": cmd_topics,
     "ui-id": cmd_ui_id,
