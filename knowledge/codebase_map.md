@@ -9,8 +9,8 @@
 - **Total Python Modules**: `69`
 - **Total Classes**: `156`
 - **Total Top-Level Functions**: `976`
-- **Total Class Methods**: `1169`
-- **Total Source Lines**: `44540`
+- **Total Class Methods**: `1173`
+- **Total Source Lines**: `44652`
 
 ---
 
@@ -444,7 +444,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `1034` lines (`51736` bytes)
+**Size**: `1045` lines (`52147` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -487,7 +487,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `492` lines (`21481` bytes)
+**Size**: `488` lines (`21311` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -555,7 +555,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `791` lines (`32447` bytes)
+**Size**: `798` lines (`32800` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -1055,7 +1055,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `542` lines (`28225` bytes)
+**Size**: `553` lines (`28753` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1853,7 +1853,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14118` lines (`770693` bytes)
+**Size**: `14205` lines (`775277` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2949,6 +2949,10 @@
   - Method `.test_update_settings_rejects_bool_and_corrupt_stage()`
   - Method `.test_baseline_detector_uses_top_level_re()`
   - Method `.test_reforge_under_root_rejects_symlink_escape()`
+  - Method `.test_archive_title_handles_atx_levels()`
+  - Method `.test_archive_already_archived_rejects_unrelated_error()`
+  - Method `.test_update_settings_rejects_float_windows()`
+  - Method `.test_repair_findings_reports_unsafe_path()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

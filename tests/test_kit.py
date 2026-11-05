@@ -14066,6 +14066,14 @@ class TestVerify3PushSafeFixes(unittest.TestCase):
         self.assertEqual(pl._stop_value("15"), 15)
         with self.assertRaises(ReforgeError):
             pl._stop_value(True)
+        # False == 0 in Python but is a bool, not a valid window.
+        with self.assertRaises(ReforgeError):
+            pl._stop_value(False)
+        # Floats must not silently truncate or masquerade as unlimited.
+        with self.assertRaises(ReforgeError):
+            pl._stop_value(0.0)
+        with self.assertRaises(ReforgeError):
+            pl._stop_value(1.5)
 
     def test_update_settings_rejects_bool_and_corrupt_stage(self) -> None:
         from reforge import state as st
@@ -14113,6 +14121,85 @@ class TestVerify3PushSafeFixes(unittest.TestCase):
                 self.assertFalse(pl._is_safe_under_root(root, "../evil.py"))
                 self.assertTrue(rp._is_safe_under_root(root, "ok.py"))
                 self.assertFalse(rp._is_safe_under_root(root, "link.py"))
+
+    def test_archive_title_handles_atx_levels(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            readme = Path(tmp) / "README.md"
+            readme.write_text("## My Title\n\nA usable description here.\n",
+                              encoding="utf-8")
+            changed = project_archive.update_readme_for_archive(readme, "retired", "2026-11-05")
+            self.assertTrue(changed)
+            text = readme.read_text(encoding="utf-8")
+            self.assertIn("> **Archived**", text)
+            # '##' is a real ATX heading, so it stays the title and the banner
+            # follows the description, not the title line.
+            self.assertLess(text.index("## My Title"), text.index("A usable description here."))
+            self.assertLess(text.index("A usable description here."), text.index("> **Archived**"))
+
+    def test_archive_already_archived_rejects_unrelated_error(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            if argv[:3] == ["git", "remote", "get-url"]:
+                return (0, "https://github.com/example/demo.git")
+            if argv[:2] == ["git", "status"]:
+                return (0, "")
+            if argv[:2] == ["gh", "repo"]:
+                return (1, "archived flag must be true to proceed")
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text('{"schema": 1, "name": "demo"}',
+                                                        encoding="utf-8")
+            code, report = project_archive.archive_project(
+                src, "demo", "retired", workspace=Path(tmp),
+                offline=False, runner=_fake_run)
+            self.assertEqual(code, 1)
+            self.assertNotIn("already archived", report.lower())
+
+    def test_update_settings_rejects_float_windows(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, stop=0.0)
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, start=3.0)
+
+    def test_repair_findings_reports_unsafe_path(self) -> None:
+        from reforge import repair as rp
+        from reforge.model import Finding
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "ok.py").write_text("x = 1\n", encoding="utf-8")
+            evil = Finding(code="bare-except", category="c", severity="low",
+                           path="../evil.py", line=1, message="m",
+                           evidence="e", commit="c", fixable=True)
+            repairs = rp.repair_findings(root, [evil], add_tests=False)
+            self.assertTrue(any("escapes repository" in (r.summary or "") for r in repairs),
+                            "unsafe paths must produce an explicit not-repaired entry")
+            patched = Finding(code="c", category="k", severity="low",
+                              path="../evil.py", line=1, message="m",
+                              evidence="e", commit="c", fixable=False,
+                              patch_old="a", patch_new="b")
+            applied = rp.apply_text_patches(root, [patched])
+            self.assertTrue(any("escapes repository" in (r.summary or "") for r in applied))
 
 if __name__ == "__main__":
     unittest.main()

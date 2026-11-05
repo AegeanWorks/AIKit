@@ -9,6 +9,7 @@ clean secret scan (PRINCIPLE-019), pushes are never forced (PRINCIPLE-018 R4), a
 no credential in a remote URL is ever printed (ADR-191).
 """
 
+import re
 import shutil
 import time
 from pathlib import Path
@@ -117,7 +118,9 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
 
     def _is_title(line: str) -> bool:
         stripped = line.lstrip()
-        return stripped == "#" or stripped.startswith("# ")
+        # ATX headings '#', '##', ... '######' followed by space or EOL.
+        # '#hashtag' without a space is paragraph text, not a heading.
+        return bool(re.match(r"#{1,6}(?:\s|$)", stripped))
 
     title = next((i for i, line in enumerate(lines) if _is_title(line)), None)
     start = (title + 1) if title is not None else 0
@@ -138,12 +141,13 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
             return False
         return True
     # Extend over the whole paragraph (consecutive non-empty lines).
-    # A '#' line ends the block only when it is a real ATX heading ('#' alone
-    # or '# ' prefix); '#hashtag' text is paragraph content, not a heading.
+    # A '#' line ends the block only when it is a real ATX heading
+    # ('#'-'######' followed by space or EOL); '#hashtag' text is
+    # paragraph content, not a heading.
     end = idx
     while end < len(lines) and lines[end].strip() != "":
         stripped = lines[end].strip()
-        if stripped == "#" or stripped.startswith("# "):
+        if re.match(r"#{1,6}(?:\s|$)", stripped):
             break
         end += 1
     banner = archive_notice(reason, date_str)
@@ -467,7 +471,14 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         code, out = run(["gh", "repo", "archive", slug, "--yes"], src)
         if code != 0:
             lowered = out.lower()
-            if "already archived" in lowered or ("archived" in lowered and "true" in lowered):
+            # "already archived" is the CLI sentence; JSON `{"archived": true}`
+            # also means already archived. A bare `archived ... true` without a
+            # colon/equals (e.g. "archived flag must be true") is a different
+            # error and must not be swallowed.
+            already = "already archived" in lowered or bool(
+                re.search(r'["\']?archived["\']?\s*[:=]\s*true', lowered)
+            )
+            if already:
                 notes.append("The GitHub repository was already archived.")
             else:
                 return 1, _triad(f"archiving the GitHub repository '{slug}' failed.\n{out[-800:]}",

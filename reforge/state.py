@@ -686,7 +686,7 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
     step would strand that path and contradict the CLI contract.
     """
     for label, value in (("start", start), ("step", step)):
-        if value is not None and isinstance(value, bool):
+        if value is not None and isinstance(value, (bool, float)):
             raise ReforgeError(
                 "The run's window settings are not integers.",
                 f"could not parse {label}: {value!r}.",
@@ -712,8 +712,15 @@ def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object]
         ) from exc
     if stop is _UNSET:
         new_stop = run.get("stop")
-    elif stop in (None, 0, "0"):
+    elif stop is None or (type(stop) is int and stop == 0) or (type(stop) is str and stop == "0"):
         new_stop = None
+    elif isinstance(stop, (bool, float)):
+        raise ReforgeError(
+            "The run's window settings are not integers.",
+            f"could not parse stop: {stop!r}.",
+            "pass --stop 0 for unlimited or a positive integer.",
+            exit_code=2,
+        )
     else:
         try:
             new_stop = int(stop)  # type: ignore[arg-type]

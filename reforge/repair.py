@@ -351,8 +351,6 @@ def repair_findings(root: Path, findings: Sequence[Finding],
     by_path: Dict[str, List[Finding]] = {}
     for finding in findings:
         if finding.fixable:
-            if not _is_safe_under_root(root, finding.path):
-                continue
             by_path.setdefault(finding.path, []).append(finding)
     repairs: List[Repair] = []
     for relative, items in sorted(by_path.items()):
@@ -421,8 +419,6 @@ def apply_text_patches(root: Path, findings: Sequence[Finding]) -> List[Repair]:
     by_path: Dict[str, List[Finding]] = {}
     for finding in findings:
         if finding.patch_old:
-            if not _is_safe_under_root(root, finding.path):
-                continue
             by_path.setdefault(finding.path, []).append(finding)
     applied: List[Repair] = []
     for relative, items in sorted(by_path.items()):

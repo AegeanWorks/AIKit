@@ -81,9 +81,20 @@ def _scanner(label: str, text: str):
 
 
 def _stop_value(stop: Optional[int]) -> Optional[int]:
-    if stop in (None, 0, "0"):
-        return None
     if isinstance(stop, bool):
+        from reforge.errors import ReforgeError as _ReforgeError
+        raise _ReforgeError(
+            f"Invalid stop window {stop!r}.",
+            "the stop window must be an integer.",
+            "pass --stop 0 for unlimited or a positive integer.",
+        )
+    if stop is None:
+        return None
+    if type(stop) is int and stop == 0:
+        return None
+    if type(stop) is str and stop == "0":
+        return None
+    if isinstance(stop, float):
         from reforge.errors import ReforgeError as _ReforgeError
         raise _ReforgeError(
             f"Invalid stop window {stop!r}.",
