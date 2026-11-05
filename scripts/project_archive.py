@@ -312,6 +312,14 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
 
     # README banner first: the push below uploads it before the repo goes read-only.
     readme_changed = update_readme_for_archive(readme_path, reason, day)
+    if not readme_changed and "**Archived**" not in (readme_text or ""):
+        try:
+            current = readme_path.read_text(encoding="utf-8-sig", errors="replace")
+        except OSError:
+            current = ""
+        if "**Archived**" not in current:
+            notes.append("Note: the archive banner could not be written to README.md; "
+                         "it moves along without the banner.")
     committed = False
     if readme_changed:
         add_code, add_out = run(["git", "add", "--", "README.md"], src)

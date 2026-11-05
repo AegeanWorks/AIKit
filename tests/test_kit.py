@@ -3820,6 +3820,25 @@ class TestSecretHygieneScanner(unittest.TestCase):
         self.assertEqual(code, 0, out.getvalue())
         self.assertIn("acknowledged under --baseline", out.getvalue())
 
+    def test_baseline_rejects_never_emitted_encoded_entropy(self):
+        # scan_encoded_passes only emits encoded pattern detectors, never
+        # entropy: accepting an encoded-entropy label validates but never
+        # matches, surfacing only later as stale. Fail fast instead.
+        from scripts import check_secrets as secrets_module
+
+        self.assertFalse(
+            secrets_module._is_valid_baseline_detector(
+                "encoded-high-entropy value for token"))
+        self.assertFalse(
+            secrets_module._is_valid_baseline_detector(
+                "encoded-high-entropy string literal"))
+        self.assertTrue(
+            secrets_module._is_valid_baseline_detector(
+                "high-entropy value for token"))
+        self.assertTrue(
+            secrets_module._is_valid_baseline_detector(
+                "high-entropy string literal"))
+
     def test_explicit_pragma_suppresses_everything(self):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
         self.assertEqual(scan_text("fixture.py", line), [],

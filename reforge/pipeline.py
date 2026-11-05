@@ -418,9 +418,8 @@ def _publish_backlog(root: Path, state: Dict[str, object],
     for entry in pending:
         stage = int(entry.get("stage") or 0)
         delivery = dict(entry.get("delivery") or {})
-        if not delivery.get("commit"):
-            delivery["commit"] = head
-            delivery["short"] = (head[:7] if head else "")
+        # find_unpushed_verified only returns stages that already hold a local
+        # commit SHA, so the commit is kept verbatim; the push flips pushed only.
         delivery["pushed"] = True
         delivery["push_error"] = None
         mark_delivered(root, state, run, stage, delivery)

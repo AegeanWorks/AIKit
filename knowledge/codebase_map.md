@@ -9,8 +9,8 @@
 - **Total Python Modules**: `69`
 - **Total Classes**: `152`
 - **Total Top-Level Functions**: `968`
-- **Total Class Methods**: `1121`
-- **Total Source Lines**: `43228`
+- **Total Class Methods**: `1122`
+- **Total Source Lines**: `43260`
 
 ---
 
@@ -443,7 +443,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `954` lines (`48347` bytes)
+**Size**: `953` lines (`48372` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -784,7 +784,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `864` lines (`40517` bytes)
+**Size**: `870` lines (`40887` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -1050,7 +1050,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `419` lines (`21046` bytes)
+**Size**: `427` lines (`21458` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1845,7 +1845,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13343` lines (`732998` bytes)
+**Size**: `13362` lines (`733880` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2151,6 +2151,7 @@
   - Method `.test_encoded_pass_detects_base64_and_hex_payloads_bounded()`
   - Method `.test_expiring_owner_bound_baseline_acknowledges_and_lapses()`
   - Method `.test_baseline_file_mode_suppresses_owned_findings()`
+  - Method `.test_baseline_rejects_never_emitted_encoded_entropy()`
   - Method `.test_explicit_pragma_suppresses_everything()`
   - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
   - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`

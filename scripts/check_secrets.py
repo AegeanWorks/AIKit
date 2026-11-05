@@ -530,9 +530,18 @@ def fingerprint_finding(label: str, detector: str, excerpt: str) -> str:
 def _baseline_detector_names() -> Set[str]:
     """Detectors a baseline entry may name: raw plus encoded twins."""
     names = set(DETECTOR_NAMES)
-    names.update(f"encoded-{name}" for name in DETECTOR_NAMES)
-    # Actual entropy finding labels use spaces, not dashes (scan_text emits
-    # "high-entropy value for <name>" and "high-entropy string literal").
+    # Dash-form entropy names are pragma canonical names, never emitted
+    # findings (scan_text emits "high-entropy value for X" and
+    # "high-entropy string literal"). Accepting them here would validate but
+    # never match, surfacing only later as a stale entry.
+    names.discard("high-entropy-value")
+    names.discard("high-entropy-literal")
+    names.update(f"encoded-{name}" for name in list(names))
+    names.discard("encoded-high-entropy-value")
+    names.discard("encoded-high-entropy-literal")
+    # scan_encoded_passes only emits encoded pattern detectors, never entropy:
+    # accepting an encoded-entropy label would validate but never match,
+    # surfacing only later as a stale entry.
     names.update({"high-entropy string literal"})
     return names
 
@@ -542,14 +551,11 @@ def _is_valid_baseline_detector(detector: str) -> bool:
     valid = _baseline_detector_names()
     if detector in valid:
         return True
-    lowered = detector.lower()
-    # Dynamic entropy label carries the variable name; canonical pragma name
-    # is "high-entropy-value" but findings report "high-entropy value for X".
-    if lowered.startswith("high-entropy value for ") and len(detector.strip()) > 24:
-        return True
-    if lowered.startswith("encoded-high-entropy value for ") and len(detector.strip()) > 32:
-        return True
-    if lowered == "encoded-high-entropy string literal":
+    # Dynamic entropy labels carry the variable name; findings always emit
+    # the lowercase prefix, so the baseline must match it exactly. A
+    # case-insensitive accept would validate but never match, surfacing only
+    # later as a stale entry.
+    if detector.startswith("high-entropy value for ") and len(detector.strip()) > 24:
         return True
     return False
 

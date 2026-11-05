@@ -1,82 +1,23 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "crucible-verify-v2",
+    "task_id": "verify-push-v1",
     "last_phase": "in_progress",
-    "active_phase": 2,
-    "status": "in_progress",
-    "updated_at": 1793904832.6240203,
-    "owner": "kilo:goal",
-    "started_by": "kilo:goal",
-    "continuations": [],
-    "impact_assessment": {
-      "why": "c49a198 pushed archive+reforge+gates but crucible found entropy baseline unsuppressible, expired hides active, archive description and git-add gaps",
-      "benefits": "baseline suppresses real entropy findings, active leaks visible with baseline hygiene, archive refuses bad input safely",
-      "risks": "contract: baseline validation widens to actual entropy labels plus encoded twins; dependency: stdlib only; concurrency: none; state: no ledger change beyond checkpoints",
-      "mitigation": "failing-first pins for entropy baseline and expired-active reporting, targeted unit plus secret scan, map regen clean, no reforge architectural change this wave"
-    }
+    "active_phase": 5,
+    "status": "completed",
+    "updated_at": 1793907063.2578835,
+    "owner": "unidentified",
+    "started_by": "unidentified",
+    "continuations": [
+      {
+        "agent": "kilo:goal",
+        "from": "unidentified",
+        "at": 1793907065.4458566
+      }
+    ],
+    "completed_at": 1793907065.4458575
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-gates-1169",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-gates-1169' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793816829.535454,
-      "timestamp_str": "2026-11-04 21:27:09",
-      "agent": "kilo:goal-aikit"
-    },
-    {
-      "task_id": "aikit-gates-1156",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Planning IDEA-1156 witness-keyed proof corpus with replay and pruning",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793816915.1997554,
-      "timestamp_str": "2026-11-04 21:28:35",
-      "agent": "kilo:goal-aikit",
-      "impact_assessment": {
-        "why": "prove() uses an ephemeral temp worktree that is deleted, so no proof artifact survives for audit or replay",
-        "benefits": "durable witness-keyed receipts enable audit replay and bounded retention",
-        "risks": "contract: new corpus schema plus CLI; dependency: stdlib only; concurrency: none; state: corpus dir under .aikit, no ledger change",
-        "mitigation": "file-JSON entries keyed by content hash, atomic writes, capped prune, failing-first pins"
-      },
-      "plan_digest": "4a1efb618cae6365db946b7133196115b2f16795130bf5aaaa6c57fb1259c05d"
-    },
-    {
-      "task_id": "aikit-gates-1156",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] IDEA-1156 witness-keyed corpus with replay/prune plus CLI, map regenerated clean",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793817102.6522758,
-      "timestamp_str": "2026-11-04 21:31:42",
-      "agent": "kilo:goal-aikit"
-    },
-    {
-      "task_id": "aikit-gates-1156",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] IDEA-1156 module plus ADR-328 and README staged; tests already in history via peer commit, map regenerated clean",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793817246.4340818,
-      "timestamp_str": "2026-11-04 21:34:06",
-      "agent": "kilo:goal-aikit"
-    },
-    {
-      "task_id": "aikit-gates-1156",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-gates-1156' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793817525.651257,
-      "timestamp_str": "2026-11-04 21:38:45",
-      "agent": "kilo:goal-aikit"
-    },
     {
       "task_id": "aikit-gates-1116",
       "phase": "in_progress",
@@ -279,6 +220,64 @@
         "mitigation": "failing-first pins for entropy baseline and expired-active reporting, targeted unit plus secret scan, map regen clean, no reforge architectural change this wave"
       },
       "plan_digest": "0920044636ad26315dd171e2f84fd766c358683609987158c8659e127eb42596"
+    },
+    {
+      "task_id": "crucible-verify-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Phase 4 passed: 872 unit OK, dogfood 5/5, secrets/reachability/principles/map clean, entropy baseline plus archive hardening verified",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793905264.2236667,
+      "timestamp_str": "2026-11-05 22:01:04",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "crucible-verify-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'crucible-verify-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793905266.5365965,
+      "timestamp_str": "2026-11-05 22:01:06",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v1",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "\\[1/2] Verify last 3 pushes (2a57efc, c49a198, merge) plus uncommitted reforge/secrets/archive fixes; tighten encoded-entropy baseline validation\" --why \\goal:",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793907061.1230245,
+      "timestamp_str": "2026-11-05 22:31:01",
+      "agent": "unidentified",
+      "impact_assessment": {
+        "benefits": "\\fail-fast baseline validation, dead-code removal, banner-failure surfacing, pinned regression test\" --risks \\contract:",
+        "mitigation": "\\failing-first pin for encoded-entropy rejection, full unit plus secrets/reachability/map/dogfood gates, map regen\" --agent kilo:goal"
+      }
+    },
+    {
+      "task_id": "verify-push-v1",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "\\[2/2] Phase 4 passed: 873 unit OK, integration 86 OK, dogfood 5/5, secrets/reachability/principles/map clean; checklists passed\" --agent kilo:goal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793907063.2578835,
+      "timestamp_str": "2026-11-05 22:31:03",
+      "agent": "unidentified"
+    },
+    {
+      "task_id": "verify-push-v1",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-push-v1' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793907065.4458585,
+      "timestamp_str": "2026-11-05 22:31:05",
+      "agent": "kilo:goal",
+      "continued_from": "unidentified"
     }
   ]
 }
