@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-push-v3",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793911347.755775,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793911381.8548074
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "checklists: passed; Post-Flight clean: no GUIDELINES change, no rule conflict, Track C lifecycle kept, ledger names agent, foreign reforge work left unstaged",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793904347.5048003,
-      "timestamp_str": "2026-11-05 21:45:47",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "aikit-archive-v1",
       "phase": "completed",
@@ -261,6 +251,16 @@
       "status": "in_progress",
       "timestamp": 1793911347.755775,
       "timestamp_str": "2026-11-05 23:42:27",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-push-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793911381.8548093,
+      "timestamp_str": "2026-11-05 23:43:01",
       "agent": "kilo:goal"
     }
   ]
