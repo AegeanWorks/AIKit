@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-9push-v3",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793914622.263397,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793914843.968744
   },
   "checkpoints": [
-    {
-      "task_id": "verify-6push",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/4] Phase 4 green: 879 unit OK, secrets/reachability/sync/map/licenses clean, evidence hardening pinned, delivery scrub + CLI + proof flag fixes adopted",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793912873.4322891,
-      "timestamp_str": "2026-11-06 00:07:53",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "verify-push-v4",
       "phase": "superseded",
@@ -250,6 +240,16 @@
       "status": "in_progress",
       "timestamp": 1793914622.263397,
       "timestamp_str": "2026-11-06 00:37:02",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-9push-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-9push-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793914843.968746,
+      "timestamp_str": "2026-11-06 00:40:43",
       "agent": "kilo:goal"
     }
   ]
