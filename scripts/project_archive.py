@@ -103,7 +103,7 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
         text = readme_path.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return False
-    if "**Archived**" in text:
+    if "> **Archived**" in text:
         return False
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)
@@ -312,22 +312,21 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
 
     # README banner first: the push below uploads it before the repo goes read-only.
     readme_changed = update_readme_for_archive(readme_path, reason, day)
-    if not readme_changed and "**Archived**" not in (readme_text or ""):
+    if not readme_changed and "> **Archived**" not in (readme_text or ""):
         try:
             current = readme_path.read_text(encoding="utf-8-sig", errors="replace")
         except OSError:
             current = ""
-        if "**Archived**" not in current:
+        if "> **Archived**" not in current:
             notes.append("Note: the archive banner could not be written to README.md; "
                          "it moves along without the banner.")
-    committed = False
+    add_ok = False
     if readme_changed:
         add_code, add_out = run(["git", "add", "--", "README.md"], src)
         if add_code != 0:
             if offline or not needs_github:
                 notes.append(f"Note: the archive banner could not be staged ({add_out.strip()[-200:]}); "
                              "it moves along uncommitted.")
-                committed = False
             else:
                 return 1, _triad(f"the archive banner for '{name}' could not be staged.\n{add_out.strip()[-800:]}",
                                  "the remote must hold the archived README before the repository goes "
@@ -341,7 +340,6 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
             msg = f"docs({name}): mark as archived"
             code, out = run(["git", "commit", "-m", msg, "-m", reason], src)
             if code == 0:
-                committed = True
                 notes.append(f"Committed the archive banner ({msg}).")
             elif offline or not needs_github:
                 notes.append(f"Note: the archive banner could not be committed ({out.strip()[-200:]}); "

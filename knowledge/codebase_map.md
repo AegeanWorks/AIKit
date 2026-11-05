@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `152`
-- **Total Top-Level Functions**: `969`
-- **Total Class Methods**: `1122`
-- **Total Source Lines**: `43279`
+- **Total Top-Level Functions**: `970`
+- **Total Class Methods**: `1127`
+- **Total Source Lines**: `43351`
 
 ---
 
@@ -784,7 +784,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `865` lines (`40680` bytes)
+**Size**: `866` lines (`40750` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -812,7 +812,7 @@
 - `def scan_all(gaps, repo)`
 - `def scan_agent_memory(gaps, repo)` - *PRINCIPLE-019 Rule 3: agent working memory is tracked output. The ledger's free-text impact*
 - `def fingerprint_finding(label, detector, excerpt)` - *Stable identity of one finding (IDEA-1132).*
-- `def _baseline_detector_names()` - *Detectors a baseline entry may name: raw plus encoded twins.*
+- `def _baseline_detector_names()` - *Detectors a baseline entry may name: pattern plus encoded-pattern twins plus emitted entropy labels.*
 - `def _is_valid_baseline_detector(detector)` - *Whether a baseline entry detector names a real finding label.*
 - `def load_baseline(path)` - *Read and validate a baseline file; closed schema (IDEA-1132).*
 - `def apply_baseline(findings, baseline, *, today)` - *Split findings against the baseline (IDEA-1132); pure, no I/O.*
@@ -1050,7 +1050,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `427` lines (`21458` bytes)
+**Size**: `425` lines (`21394` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1355,11 +1355,12 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `334` lines (`13990` bytes)
+**Size**: `342` lines (`14204` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
 - `def _read_small(path, limit)`
+- `def _is_small(path, limit)` - *Size guard that survives a file vanishing between scan and check.*
 - `def _package_dependencies(root)`
 - `def _python_dependency_text(root)`
 - `def _evidence(paths, root, limit)`
@@ -1378,7 +1379,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `297` lines (`12738` bytes)
+**Size**: `300` lines (`13049` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1635,7 +1636,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `536` lines (`26294` bytes)
+**Size**: `536` lines (`26298` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1846,7 +1847,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13368` lines (`734214` bytes)
+**Size**: `13430` lines (`737332` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2153,6 +2154,7 @@
   - Method `.test_expiring_owner_bound_baseline_acknowledges_and_lapses()`
   - Method `.test_baseline_file_mode_suppresses_owned_findings()`
   - Method `.test_baseline_rejects_never_emitted_encoded_entropy()`
+  - Method `.test_baseline_entropy_value_needs_a_variable_name()`
   - Method `.test_explicit_pragma_suppresses_everything()`
   - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
   - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`
@@ -2522,6 +2524,7 @@
   - Method `.test_witness_key_omits_empty_pass_to_pass_for_compat()`
   - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
+  - Method `.test_replay_does_not_mask_unrelated_type_errors()`
 - `class TestStagedTree` - *IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree.*
   - Method `._runner(staged, commit_tree_ok)`
   - Method `.test_staged_index_verifies_as_its_own_detached_commit()`
@@ -2594,6 +2597,7 @@
   - Method `.make_project(tmp, name, description)`
   - Method `.runner(**replies)`
   - Method `.test_banner_goes_after_description_and_is_idempotent()`
+  - Method `.test_banner_ignores_casual_archived_mention()`
   - Method `.test_github_description_prefixes_archived_once()`
   - Method `.test_destination_defaults_to_projects_archive()`
   - Method `.test_move_refuses_existing_destination()`
@@ -2635,6 +2639,7 @@
   - Method `.runner(failing, worktree_fails, pushed, remote_contains)` - *A scripted git/gate stand-in; records every call so order and cwd can be asserted.*
   - Method `.ran(fragment)`
   - Method `.test_a_file_cut_below_half_its_size_is_flagged_and_small_or_growing_ones_are_not()`
+  - Method `.test_shrink_exempt_matches_basename_only()`
   - Method `.test_a_shrinking_commit_warns_without_failing_unless_the_message_says_shrink_ok()`
   - Method `.test_a_gate_that_times_out_is_reported_instead_of_raised()`
   - Method `.test_the_tiers_gate_gets_room_for_all_three_tiers()`
@@ -2680,6 +2685,7 @@
   - Method `.test_a_timed_out_test_command_tears_down_the_process_tree()`
   - Method `.project(name, readme)`
   - Method `.test_ui_identity_detects_web_game_and_cli_projects()`
+  - Method `.test_ui_size_guard_survives_vanishing_files()`
   - Method `.test_compat_ui_contract_upgrades_cli_service_to_web()`
   - Method `.test_ui_work_refreshes_the_identifier()`
   - Method `.test_refresh_keeps_the_checked_date_when_the_identifier_is_unchanged()`

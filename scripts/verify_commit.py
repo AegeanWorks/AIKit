@@ -231,7 +231,7 @@ def shrunk_files(sizes: Dict[str, Tuple[int, int]], ratio: float = SHRINK_RATIO,
                  min_bytes: int = SHRINK_MIN_BYTES) -> List[str]:
     """Each path, from (old, new) sizes, that fell below `ratio` of an old size of at least `min_bytes`."""
     return [f"{path}: {old:,} -> {new:,} bytes" for path, (old, new) in sorted(sizes.items())
-            if old >= min_bytes and new < old * ratio and not path.endswith(SHRINK_EXEMPT)]
+            if old >= min_bytes and new < old * ratio and Path(path).name not in SHRINK_EXEMPT]
 
 
 def tree_sizes(ref: str, repo: Path, run: Runner) -> Dict[str, int]:

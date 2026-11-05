@@ -197,11 +197,11 @@ def replay(entry: Mapping[str, Any], *,
     if not isinstance(receipt, Mapping):
         return {"outcome": OUTCOME_INCONCLUSIVE, "reason": "entry has no receipt"}
     if prove_fn is None:
-        try:
-            from proof_gate import prove as prove_fn  # type: ignore[import-not-found]
+        try:  # hygiene: prefer the in-repo prover so a same-named installed package cannot shadow it
+            from scripts.proof_gate import prove as prove_fn  # type: ignore[import-not-found]
         except ImportError:
             try:
-                from scripts.proof_gate import prove as prove_fn  # type: ignore[import-not-found]
+                from proof_gate import prove as prove_fn  # type: ignore[import-not-found]
             except ImportError:
                 return {"outcome": OUTCOME_INCONCLUSIVE,
                         "reason": "no prover available in this context"}
@@ -218,7 +218,10 @@ def replay(entry: Mapping[str, Any], *,
             # Introspection said yes but the call refused (e.g. a wrapped
             # double): retry without pass-to-pass so the fail-to-pass verdict
             # still replays; pass-to-pass is then unchecked but recorded.
-            if "pass_to_pass" not in prove_kwargs or not p2p:
+            # Both guards matter: the kwarg must have been sent and the error
+            # must name it, otherwise an unrelated TypeError would be masked
+            # by a silent retry.
+            if "pass_to_pass" not in prove_kwargs or not p2p or "pass_to_pass" not in str(exc):
                 raise
             prove_kwargs.pop("pass_to_pass", None)
             fresh = prove_fn(**prove_kwargs)

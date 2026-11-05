@@ -1,85 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-push-v2",
+    "task_id": "verify-push-v3",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793910430.741717,
-    "owner": "kilo:verify-push-v2",
-    "started_by": "kilo:verify-push-v2",
-    "continuations": [],
-    "completed_at": 1793910432.8264182
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793911347.755775,
+    "owner": "kilo:goal",
+    "started_by": "kilo:goal",
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "harness-board-v1",
-      "phase": "suspended",
-      "phase_num": 2,
-      "description": "Task 'harness-board-v1' suspended: switch to aikit-archive-v1: preserve harness-board-v1 work while building archive function",
-      "status": "suspended",
-      "timestamp": 1793903827.5345087,
-      "timestamp_str": "2026-11-05 21:37:07",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Archive function: project_archive module with move+GitHub archive+README/description handling; [2/4] CLI wiring parser/cli/help; [3/4] Docs ADR+README+knowledge sync; [4/4] Verification gates and commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793903834.6007242,
-      "timestamp_str": "2026-11-05 21:37:14",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "aikit has no archive path: retired projects stay live in projects/ and on GitHub, implying maintenance",
-        "benefits": "one command retires a project locally and on GitHub with proper archived README and description",
-        "risks": "contract: new archive CLI contract and project.json archived fields; dependency: stdlib plus gh CLI only, no new deps; concurrency: single filesystem move plus sequential gh calls, no threads; state: moves project folder and mutates README/project.json, atomic writes plus pre-move checks",
-        "mitigation": "pure testable module with fake runner, dry-run/offline flags, clean-tree and confirm gates before move, secret scan parity, update map plus help plus ADR before commit"
-      },
-      "plan_digest": "a09ea5c1b4f93b30a9ecf738788652dec8938498a798738bf8577fe7c09d551c"
-    },
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "Engine plus CLI wired with 9 passing unit tests; revising to single-milestone delivery for atomic docs",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793904120.6060312,
-      "timestamp_str": "2026-11-05 21:42:00",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/1] Archive feature complete: project_archive module, registry discovery, CLI wiring, tests, README plus knowledge plus ADR",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793904138.4068615,
-      "timestamp_str": "2026-11-05 21:42:18",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "aikit has no archive path: retired projects stay live in projects/ and on GitHub, implying maintenance",
-        "benefits": "one command retires a project locally and on GitHub with proper archived README and description",
-        "risks": "contract: new archive CLI contract and archived project.json fields; dependency: stdlib plus gh CLI only, no new deps; concurrency: single filesystem move plus sequential gh calls, no threads; state: moves project folder and mutates README/project.json, atomic writes plus pre-move checks",
-        "mitigation": "pure testable module with fake runner, dry-run/offline flags, clean-tree and confirm gates before move, secret scan parity, update map plus help plus ADR before commit"
-      },
-      "plan_digest": "54ad46eded861d02db30507d4399a882f38143aa2bac7aa3c68edf94e93d32a8"
-    },
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "Phase 4 passed: 869 unit plus 86 integration tests green, sync checklists passed, dogfood 5/5; 12 files ready, foreign harness work untouched",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793904341.78989,
-      "timestamp_str": "2026-11-05 21:45:41",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "aikit-archive-v1",
       "phase": "in_progress",
@@ -257,6 +188,80 @@
       "timestamp": 1793910432.8264194,
       "timestamp_str": "2026-11-05 23:27:12",
       "agent": "kilo:verify-push-v2"
+    },
+    {
+      "task_id": "verify-9push",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Verify last 9 pushes (8090a05..44c68e4) for bugs/gaps/improvements",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793910701.7994316,
+      "timestamp_str": "2026-11-05 23:31:41",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal asks to verify and analyze changes since last 9 pushes and implement fixes before push",
+        "benefits": "Catch regressions in archive/reforge/secrets/proof gates before next push",
+        "risks": "contract: verify-only plus safe fixes, no API break; dependency: stdlib only; concurrency: none; state: ledger append plus working tree edits",
+        "mitigation": "Failing-first pins for found bugs, full Phase 4 gates, explicit staging and staged verification before push"
+      },
+      "plan_digest": "5be37e4bd5d12cd9e218b8234663e0114b1e4c00dddef88c2efabf789d1ca64c"
+    },
+    {
+      "task_id": "verify-push-v3",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Verify last-3-push window 956a57c..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793910707.020172,
+      "timestamp_str": "2026-11-05 23:31:47",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires re-verify of last 3 pushes and fix gaps before push",
+        "benefits": "Catch regressions in archive, reforge delivery, proof corpus, compat UI",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      },
+      "plan_digest": "f857829fa240b47f6340a898aec37011e45a4c5bd3c6b47f529d6e9d0d7c2e76"
+    },
+    {
+      "task_id": "verify-9push",
+      "phase": "superseded",
+      "phase_num": 2,
+      "description": "Superseded by 'verify-push-v3' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793910707.020172,
+      "timestamp_str": "2026-11-05 23:31:47",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v3",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/3] Adopt in-tree fixes for last-push window (secrets baseline empty-name guard, proof replay narrow TypeError, UI stat guard, archive banner exact match, shrink exempt basename) plus tests",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793911003.2684114,
+      "timestamp_str": "2026-11-05 23:36:43",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires re-verify of last 3 pushes and fix gaps before push",
+        "benefits": "Catch regressions in archive/reforge/secrets/proof gates before push",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append plus working tree edits",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      }
+    },
+    {
+      "task_id": "verify-push-v3",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/3] Phase 4 green: 878 unit OK, 86 integration OK, budgets unit pass/integration host-load over, secrets/reachability/sync/map/dogfood clean; shrink basename, UI stat guard, archive banner exact plus concurrent secrets/proof hardening with 3 regression pins",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793911347.755775,
+      "timestamp_str": "2026-11-05 23:42:27",
+      "agent": "kilo:goal"
     }
   ]
 }

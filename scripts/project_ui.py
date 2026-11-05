@@ -65,6 +65,14 @@ def _read_small(path: Path, limit: int = MARKUP_LIMIT_BYTES) -> str:
         return ""
 
 
+def _is_small(path: Path, limit: int) -> bool:
+    """Size guard that survives a file vanishing between scan and check."""
+    try:
+        return path.stat().st_size < limit
+    except OSError:
+        return False
+
+
 def _package_dependencies(root: Path) -> Dict[str, str]:
     package = root / "package.json"
     try:
@@ -166,7 +174,7 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
             break
     if kind == UI_LIBRARY:
         cli_text = python_deps + "\n" + "\n".join(_read_small(path)[:20_000] for path in files
-                                                 if path.suffix == ".py" and path.stat().st_size < 100_000)
+                                                  if path.suffix == ".py" and _is_small(path, 100_000))
         if any(token in cli_text for token in CLI_TOKENS):
             kind = UI_CLI
             evidence.extend(path for path in files

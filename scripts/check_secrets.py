@@ -528,7 +528,7 @@ def fingerprint_finding(label: str, detector: str, excerpt: str) -> str:
 
 
 def _baseline_detector_names() -> Set[str]:
-    """Detectors a baseline entry may name: raw plus encoded twins."""
+    """Detectors a baseline entry may name: pattern plus encoded-pattern twins plus emitted entropy labels."""
     # Dash-form entropy names are pragma canonical names, never emitted
     # findings (scan_text emits "high-entropy value for X" and
     # "high-entropy string literal"). Accepting them here would validate but
@@ -550,7 +550,8 @@ def _is_valid_baseline_detector(detector: str) -> bool:
     # the lowercase prefix, so the baseline must match it exactly. A
     # case-insensitive accept would validate but never match, surfacing only
     # later as a stale entry.
-    if detector.startswith("high-entropy value for ") and len(detector.strip()) > 24:
+    prefix = "high-entropy value for "
+    if detector.startswith(prefix) and bool(detector[len(prefix):].strip()):
         return True
     return False
 

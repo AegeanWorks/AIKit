@@ -3845,6 +3845,21 @@ class TestSecretHygieneScanner(unittest.TestCase):
             secrets_module._is_valid_baseline_detector(
                 "high-entropy string literal"))
 
+    def test_baseline_entropy_value_needs_a_variable_name(self):
+        # The prefix alone (or blanks) never matches a finding: findings always
+        # carry the variable name, so an empty suffix must fail fast instead of
+        # surfacing later as stale.
+        from scripts import check_secrets as secrets_module
+
+        self.assertFalse(
+            secrets_module._is_valid_baseline_detector("high-entropy value for "))
+        self.assertFalse(
+            secrets_module._is_valid_baseline_detector("high-entropy value for   "))
+        self.assertTrue(
+            secrets_module._is_valid_baseline_detector("high-entropy value for K"))
+        self.assertTrue(
+            secrets_module._is_valid_baseline_detector("high-entropy value for API_KEY"))
+
     def test_explicit_pragma_suppresses_everything(self):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
         self.assertEqual(scan_text("fixture.py", line), [],
@@ -8500,6 +8515,32 @@ class TestProofCorpus(unittest.TestCase):
         self.assertEqual(proof_corpus.replay(entry, prove_fn=broken)["outcome"],
                         "inconclusive")
 
+    def test_replay_does_not_mask_unrelated_type_errors(self) -> None:
+        # The pass-to-pass retry must only fire when the TypeError names the
+        # kwarg; otherwise a prover bug would be hidden by a silent retry.
+        from scripts import proof_corpus
+
+        receipt = self._receipt(proof=True, pass_to_pass=["tests/test_keep.py"])
+        entry = {"receipt": receipt}
+
+        calls = []
+
+        def wrong_arity(repo, base, tests, pass_to_pass):
+            calls.append(dict(pass_to_pass=pass_to_pass))
+            raise TypeError("wrong_arity() missing 1 required positional argument: 'extra'")
+
+        result = proof_corpus.replay(entry, prove_fn=wrong_arity)
+        self.assertEqual(result["outcome"], "inconclusive")
+        self.assertIn("missing 1 required positional argument", result["reason"])
+        # No silent retry: the unrelated TypeError surfaces after one call.
+        self.assertEqual(len(calls), 1)
+
+        def accepts_p2p(repo, base, tests, pass_to_pass=None):
+            return {"proof": True}
+
+        self.assertEqual(
+            proof_corpus.replay(entry, prove_fn=accepts_p2p)["outcome"], "pass")
+
 
 class TestStagedTree(unittest.TestCase):
     """IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree."""
@@ -9355,6 +9396,13 @@ class TestProjectArchive(unittest.TestCase):
                              "A tool that does X for Y users here.")
             self.assertFalse(update_readme_for_archive(readme, "other", "2026-11-06"))
 
+    def test_banner_ignores_casual_archived_mention(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            readme = Path(tmp) / "README.md"
+            readme.write_text("# demo\n\nMentions **Archived** casually.\n\n## Quick\n", encoding="utf-8")
+            self.assertTrue(update_readme_for_archive(readme, "retired", "2026-11-05"))
+            self.assertIn("> **Archived**: retired", readme.read_text(encoding="utf-8"))
+
     def test_github_description_prefixes_archived_once(self):
         self.assertEqual(archive_github_description("A tool that does X."),
                          "[ARCHIVED] A tool that does X.")
@@ -9756,6 +9804,12 @@ class TestPostCommitVerification(unittest.TestCase):
                                        "grown.py": (1_000, 4_000), "trimmed.py": (1_000, 600),
                                        ".agents/task_ledger.json": (9_578, 62)}),
                          ["README.md: 10,000 -> 3,000 bytes"])
+
+    def test_shrink_exempt_matches_basename_only(self):
+        flagged = shrunk_files({"my_task_ledger.json": (10_000, 3_000),
+                                ".agents/task_ledger.json": (10_000, 3_000)})
+        self.assertIn("my_task_ledger.json: 10,000 -> 3,000 bytes", flagged)
+        self.assertFalse(any(name.startswith(".agents/task_ledger.json") for name in flagged))
 
     def test_a_shrinking_commit_warns_without_failing_unless_the_message_says_shrink_ok(self):
         def tree(*entries):
@@ -10279,6 +10333,14 @@ class TestReforgeCore(unittest.TestCase):
         (cli / "main.py").write_text("import argparse\nargparse.ArgumentParser()\n", encoding="utf-8")
         self.assertFalse(project_ui.detect_ui(cli)["has_ui"])
         self.assertEqual(project_ui.detect_ui(cli)["kind"], "cli")
+
+    def test_ui_size_guard_survives_vanishing_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "gone.py"
+            self.assertFalse(project_ui._is_small(missing, 100_000))
+            small = Path(tmp) / "ok.py"
+            small.write_text("x=1\n", encoding="utf-8")
+            self.assertTrue(project_ui._is_small(small, 100_000))
 
     def test_compat_ui_contract_upgrades_cli_service_to_web(self):
         import json as _json
