@@ -72,9 +72,19 @@ def witness_key(receipt: Mapping[str, Any]) -> str:
     pass-to-pass frame (S-F) keep their original key instead of orphaning.
     """
     manifest = receipt.get("tree_manifest") or []
+    if not isinstance(manifest, list):
+        manifest = []
     gates = receipt.get("gate_digest") or {}
-    tests = sorted(str(value) for value in list(receipt.get("tests") or []))
-    p2p = sorted(str(value) for value in list(receipt.get("pass_to_pass") or []))
+    if not isinstance(gates, dict):
+        gates = {}
+    raw_tests = receipt.get("tests") or []
+    if not isinstance(raw_tests, list):
+        raw_tests = []
+    raw_p2p = receipt.get("pass_to_pass") or []
+    if not isinstance(raw_p2p, list):
+        raw_p2p = []
+    tests = sorted(str(value) for value in list(raw_tests))
+    p2p = sorted(str(value) for value in list(raw_p2p))
     witness: Dict[str, Any] = {"base": str(receipt.get("base", "")), "tests": tests,
                                "tree_manifest": manifest, "gate_digest": gates}
     if p2p:
@@ -84,7 +94,7 @@ def witness_key(receipt: Mapping[str, Any]) -> str:
 
 def entry_path(corpus: Path, key: str) -> Path:
     """Filesystem path of one corpus entry (hex key, no traversal)."""
-    safe = "".join(char for char in key if char in "0123456789abcdef")[:64]
+    safe = "".join(char for char in str(key or "").lower() if char in "0123456789abcdef")[:64]
     if not safe:
         raise ValueError(f"refusing unkeyed corpus entry {key!r}")
     return Path(corpus) / f"witness_{safe}.json"
@@ -112,15 +122,24 @@ def store(receipt: Mapping[str, Any], corpus: Path, *,
           envelope: Mapping[str, Any] | None = None,
           now: float | None = None) -> Tuple[str, Path]:
     """File a receipt under its witness key (IDEA-1156); returns key, path."""
+    if not isinstance(receipt, Mapping):
+        raise ValueError(f"refusing to store non-mapping receipt {type(receipt).__name__}")
+    try:
+        receipt_json = json.loads(json.dumps(dict(receipt), sort_keys=True))
+    except TypeError as exc:
+        raise ValueError(f"receipt is not JSON-serializable: {exc}") from exc
     key = witness_key(receipt)
     entry: Dict[str, Any] = {
         "schema": CORPUS_SCHEMA,
         "key": key,
         "stored_at": int(now if now is not None else time.time()),
-        "receipt": json.loads(json.dumps(dict(receipt), sort_keys=True)),
+        "receipt": receipt_json,
     }
     if envelope is not None:
-        entry["envelope"] = json.loads(json.dumps(dict(envelope), sort_keys=True))
+        try:
+            entry["envelope"] = json.loads(json.dumps(dict(envelope), sort_keys=True))
+        except TypeError as exc:
+            raise ValueError(f"envelope is not JSON-serializable: {exc}") from exc
     dest = entry_path(corpus, key)
     _atomic_write_json(dest, entry)
     return key, dest
@@ -146,14 +165,31 @@ def list_entries(corpus: Path) -> List[Dict[str, Any]]:
         except (OSError, ValueError):
             continue
         if isinstance(entry, dict) and entry.get("schema") == CORPUS_SCHEMA:
-            found.append({"key": entry.get("key"), "stored_at": entry.get("stored_at", 0),
+            try:
+                stored = int(entry.get("stored_at", 0))
+            except (TypeError, ValueError):
+                stored = 0
+            key = entry.get("key")
+            key = str(key) if isinstance(key, str) and key else ""
+            if key and any(c not in "0123456789abcdef" for c in key.lower()):
+                continue
+            found.append({"key": key, "stored_at": stored,
                           "path": str(path), "entry": entry})
-    found.sort(key=lambda row: (row["stored_at"], row["key"]))
+    def _sort_key(row: Dict[str, Any]) -> Tuple[int, str]:
+        try:
+            stored = int(row.get("stored_at", 0))
+        except (TypeError, ValueError):
+            stored = 0
+        key = row.get("key")
+        return (stored, str(key or ""))
+    found.sort(key=_sort_key)
     return found
 
 
 def prune(corpus: Path, keep: int = DEFAULT_KEEP) -> List[str]:
     """Delete oldest entries past the cap (IDEA-1156); returns deleted keys."""
+    if isinstance(keep, bool) or not isinstance(keep, int):
+        raise ValueError(f"refusing non-integer prune cap {keep!r}")
     if keep < 0:
         raise ValueError(f"refusing negative prune cap {keep}")
     entries = list_entries(corpus)
@@ -199,12 +235,12 @@ def replay(entry: Mapping[str, Any], *,
     if prove_fn is None:
         try:  # hygiene: prefer the in-repo prover so a same-named installed package cannot shadow it
             from scripts.proof_gate import prove as prove_fn  # type: ignore[import-not-found]
-        except ImportError:
+        except (ImportError, SyntaxError, AttributeError, ValueError) as exc:
             try:
                 from proof_gate import prove as prove_fn  # type: ignore[import-not-found]
-            except ImportError:
+            except (ImportError, SyntaxError, AttributeError, ValueError) as exc2:
                 return {"outcome": OUTCOME_INCONCLUSIVE,
-                        "reason": "no prover available in this context"}
+                        "reason": f"no prover available in this context: {exc2}"}
     try:
         tests = [str(value) for value in list(receipt.get("tests") or [])]
         p2p = [str(value) for value in list(receipt.get("pass_to_pass") or [])]
@@ -268,7 +304,7 @@ def main(argv: list[str] | None = None) -> int:
             receipt = _read_json(args.receipt)
             envelope = _read_json(args.envelope) if args.envelope else None
             key, dest = store(receipt, Path(args.corpus), envelope=envelope)
-        except (OSError, ValueError) as error:
+        except (OSError, ValueError, TypeError) as error:
             print(f"Error: cannot store {args.receipt}: {error}", file=sys.stderr)
             print("Why: the corpus files receipts, not raw trees.", file=sys.stderr)
             print("Fix: point at an IDEA-1202 receipt file and rerun.", file=sys.stderr)

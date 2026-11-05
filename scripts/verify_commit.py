@@ -127,7 +127,11 @@ def _string_list(value: Any, field: str, *, required: bool = False) -> List[str]
         isinstance(item, str) and item.strip() for item in value
     ):
         raise ValueError(f"{PROOF_FILE} {field!r} must be a list of non-empty strings")
-    return [item.strip() for item in value]
+    cleaned = [item.strip() for item in value]
+    for item in cleaned:
+        if item.startswith("-"):
+            raise ValueError(f"{PROOF_FILE} {field!r} must not hold flags like {item!r}")
+    return cleaned
 
 
 def proof_command_from_declaration(

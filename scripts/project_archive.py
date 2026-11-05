@@ -26,6 +26,7 @@ from scripts.project_publish import (
 from scripts.project_registry import (
     DESCRIPTION_MAX,
     DESCRIPTION_MIN,
+    ProjectError,
     load_attached,
     projects_dir,
 )
@@ -61,8 +62,13 @@ def archived_destination(workspace: Path, name: str, to: Optional[Path] = None) 
 
 def validate_archive_move(src: Path, dst: Path) -> Optional[str]:
     """The refusal triad when ``src`` cannot move to ``dst``, else None."""
+    import os as _os
     try:
-        same = src.resolve() == dst.resolve()
+        src_resolved = src.resolve()
+        dst_resolved = dst.resolve()
+        same = src_resolved == dst_resolved
+        if not same and _os.path.normcase(str(src_resolved)) == _os.path.normcase(str(dst_resolved)):
+            same = True
     except OSError:
         return _triad(f"cannot resolve the archive destination {dst}.",
                       "the operating system denied the path lookup.",
@@ -182,11 +188,12 @@ def _attached_path(workspace: Path) -> Path:
 
 def _forget_or_move_attached(workspace: Path, name: str, src: Path, dst: Path) -> None:
     """Keep ``attached.json`` true after the move: forget inside-``projects/`` targets, else repoint."""
+    from scripts.project_registry import ProjectError as _ProjectError
     path = _attached_path(workspace)
     with file_lock(path):
         try:
             attached = load_attached(workspace)
-        except (OSError, ValueError, KeyError):
+        except (OSError, ValueError, KeyError, _ProjectError):
             return
         if name not in attached:
             return
@@ -207,11 +214,17 @@ def _forget_or_move_attached(workspace: Path, name: str, src: Path, dst: Path) -
 def _record_archived_config(project_path: Path, reason: str, date_str: str,
                             repo: str, description: str) -> None:
     """Record the archive in ``.aikit/project.json`` without touching other keys."""
+    from scripts.project_registry import ProjectError as _ProjectError
     from scripts.project_registry import config_path, load_config
 
     path = config_path(project_path)
     with file_lock(path):
-        config = load_config(project_path)
+        try:
+            config = load_config(project_path)
+        except (OSError, ValueError, KeyError, _ProjectError) as exc:
+            raise _ProjectError(f"cannot record archive in {path}: {exc}",
+                                "the project record could not be read.",
+                                "restore .aikit/project.json from git, then archive again.") from exc
         config["archived"] = True
         config["archived_at"] = date_str
         config["archive_reason"] = reason
@@ -243,12 +256,24 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     refusal = validate_archive_move(src, dst)
     if refusal:
         return 1, refusal
+    if is_archived(src):
+        return 1, _triad(f"'{name}' is already archived.",
+                         "the project record already marks it archived.",
+                         "unarchive it first, or archive another project; nothing was moved.")
     reason = (reason or "").strip()
     if not reason:
         return 1, _triad(f"archiving '{name}' needs a reason.",
                           "the README banner and the project record name why it was retired.",
                           f"pass `--reason \"<why this project is retired>\"`, e.g. "
                           f"`python aikit.py archive {name} --reason \"superseded by X\"`.")
+    if "\n" in reason or "\r" in reason:
+        return 1, _triad(f"invalid --reason (must be one line).",
+                          "the archive banner and record hold one line of why it was retired.",
+                          "write one line without line breaks.")
+    if len(reason) > 500:
+        return 1, _triad(f"invalid --reason ({len(reason)} characters).",
+                          "the archive banner holds at most 500 characters.",
+                          "write one line of at most 500 characters.")
     day = date_str or time.strftime("%Y-%m-%d")
     readme_path = src / "README.md"
     try:
@@ -297,6 +322,19 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         notes.append("Note: uncommitted changes move along uncommitted.")
     repo_url = get_project_repo_url(src, runner=run)
     slug = repo_slug(src, name)
+    if repo_url and "/" in repo_url:
+        # Derive the slug from the push URL so forks/renames use one name for
+        # both `git push` and `gh repo edit/archive`; fall back to the local
+        # origin slug when the URL has no owner/repo shape.
+        try:
+            cleaned = repo_url.strip().rstrip("/").removesuffix(".git")
+            if ":" in cleaned and "/" not in cleaned.rsplit(":", 1)[-1]:
+                cleaned = cleaned.rsplit(":", 1)[-1]
+            tail = cleaned.rsplit("/", 2)
+            if len(tail) >= 2 and tail[-1] and tail[-2]:
+                slug = f"{tail[-2]}/{tail[-1]}"
+        except (AttributeError, ValueError):
+            pass
     needs_github = bool(repo_url) and not offline
     if dirty and allow_dirty and needs_github:
         return 1, _triad(f"'{name}' has uncommitted changes; nothing was archived online.",
@@ -380,7 +418,7 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         code, out = run(["gh", "repo", "archive", slug, "--yes"], src)
         if code != 0:
             lowered = out.lower()
-            if "already archived" in lowered or "archived" in lowered and "true" in lowered:
+            if "already archived" in lowered or "already/archived" in lowered:
                 notes.append("The GitHub repository was already archived.")
             else:
                 return 1, _triad(f"archiving the GitHub repository '{slug}' failed.\n{out[-800:]}",
@@ -402,7 +440,8 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                          "check the path permissions and free space, then archive again.")
     try:
         _record_archived_config(dst, reason, day, slug if needs_github else (repo_url or slug), new_desc)
-    except (OSError, ValueError, KeyError) as exc:
+    except (OSError, ValueError, KeyError, AttributeError, TypeError, shutil.Error,
+            ProjectError) as exc:
         return 1, _triad(f"archived '{name}' to {dst} but could not record it in .aikit/project.json: {exc}",
                          "the project record is AIKit's memory of the archive.",
                          "restore the file from git inside the archived folder, then re-record the "
@@ -418,8 +457,9 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
 def is_archived(project_path: Path) -> bool:
     """Whether ``.aikit/project.json`` records this project as archived."""
     try:
+        from scripts.project_registry import ProjectError as _ProjectError
         from scripts.project_registry import load_config
 
         return bool(load_config(Path(project_path)).get("archived") is True)
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, _ProjectError):
         return False

@@ -47,6 +47,23 @@ def _paths_to_commit(root: Path) -> List[str]:
                   if not is_reforge_artifact(path))
 
 
+def _scrub_push_output(output: str) -> str:
+    """Redact credentials from push output before it reaches reports/logs."""
+    text = str(output or "")
+    try:
+        from scripts.project_publish import hide_url_credentials as _hide
+        text = _hide(text)
+    except Exception:
+        import re as _re
+        text = _re.sub(r"://[^@\s]*@", "://***@", text)
+    try:
+        from scripts.check_secrets import scrub_text as _scrub
+        scrubbed, _ = _scrub(text)
+        return scrubbed
+    except Exception:
+        return text
+
+
 def _not_ignored(root: Path, paths: Sequence[str]) -> List[str]:
     """Drop paths git ignores; an ignored state file is local, not a commit failure."""
     selected: List[str] = []
@@ -77,7 +94,7 @@ def commit_repairs(root: Path, message: str, paths: Optional[Sequence[str]] = No
     if code != 0:
         raise ReforgeError(
             "The repair commit failed.",
-            output[-500:] or "git commit returned a nonzero exit code.",
+            _scrub_push_output(output)[-500:] or "git commit returned a nonzero exit code.",
             "fix the git error above, then run the command again.",
         )
     committed = set(commit_paths(root, "HEAD"))
@@ -88,7 +105,9 @@ def commit_repairs(root: Path, message: str, paths: Optional[Sequence[str]] = No
             f"missing from HEAD: {', '.join(missing)}",
             "stage and commit the missing paths deliberately; do not push this commit yet.",
         )
-    return {"commit": run_git(root, "rev-parse", "--short", "HEAD")[1].strip(),
+    short_code, short_out = run_git(root, "rev-parse", "--short", "HEAD")
+    short = short_out.strip() if short_code == 0 and short_out.strip() else "HEAD"
+    return {"commit": short,
             "message": message, "paths": selected}
 
 
@@ -103,7 +122,7 @@ def push_committed(root: Path) -> Dict[str, object]:
     if code != 0:
         raise ReforgeError(
             "The commit is local, but the push failed.",
-            output[-500:] or "git push returned a nonzero exit code.",
+            _scrub_push_output(output)[-500:] or "git push returned a nonzero exit code.",
             "check the remote and credentials, then run `git push` yourself; never force.",
         )
     return {"pushed": True}
@@ -126,7 +145,7 @@ def deliver(root: Path, message: str, do_push: bool,
     if code != 0:
         raise ReforgeError(
             "The commit is local, but the push failed.",
-            output[-500:] or "git push returned a nonzero exit code.",
+            _scrub_push_output(output)[-500:] or "git push returned a nonzero exit code.",
             "check the remote and credentials, then run `git push` yourself; never force.",
         )
     report["pushed"] = True

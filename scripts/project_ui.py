@@ -68,9 +68,28 @@ def _read_small(path: Path, limit: int = MARKUP_LIMIT_BYTES) -> str:
 def _is_small(path: Path, limit: int) -> bool:
     """Size guard that survives a file vanishing between scan and check."""
     try:
-        return path.stat().st_size < limit
+        return path.stat().st_size <= limit
     except OSError:
         return False
+
+
+def _safe_rel(root: Path, rel: str) -> Optional[Path]:
+    """A compat screenshot path confined to the project tree, else None."""
+    if not isinstance(rel, str) or not rel:
+        return None
+    candidate = Path(rel)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    try:
+        resolved_root = root.resolve()
+        resolved = (root / candidate).resolve()
+    except OSError:
+        return None
+    try:
+        resolved.relative_to(resolved_root)
+    except ValueError:
+        return None
+    return root / candidate
 
 
 def _package_dependencies(root: Path) -> Dict[str, str]:
@@ -188,26 +207,35 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         kind = UI_WEB if kind == UI_LIBRARY else kind
         if not evidence:
             evidence.append(config_path(root))
-    if kind in (UI_LIBRARY, UI_CLI, UI_SERVICE):
-        # Compat UI samples (ADR-315) are Python with screenshots, not web
-        # markers: a compat.json kind=ui contract proves a screenshotable
-        # surface exists, so classify it as web. CLI/SERVICE are included
-        # because a sample with main.py/app.py would otherwise settle as a
-        # service before the explicit compat proof is consulted.
-        try:
-            compat_path = root / ".aikit" / "compat.json"
-            if compat_path.is_file():
-                compat = json.loads(compat_path.read_text(encoding="utf-8"))
-                if isinstance(compat, dict) and compat.get("kind") == "ui" and compat.get("has_ui"):
+    try:
+        compat_path = root / ".aikit" / "compat.json"
+        if compat_path.is_file() and _is_small(compat_path, 1_000_000):
+            compat = json.loads(compat_path.read_text(encoding="utf-8"))
+            if isinstance(compat, dict) and compat.get("kind") == "ui" and compat.get("has_ui") is True:
+                shots: Dict[str, object] = {}
+                raw_shots = compat.get("screenshots")
+                if isinstance(raw_shots, dict):
+                    shots = raw_shots
+                shot_paths: List[Path] = []
+                for key in ("before", "after"):
+                    rel = shots.get(key) if isinstance(shots, dict) else ""
+                    safe = _safe_rel(root, rel) if isinstance(rel, str) else None
+                    if safe is not None and safe.is_file():
+                        shot_paths.append(safe)
+                if shot_paths or kind in (UI_LIBRARY, UI_CLI, UI_SERVICE):
+                    # Compat UI samples (ADR-315) are Python with screenshots,
+                    # not web markers: a compat.json kind=ui contract proves a
+                    # screenshotable surface exists, so classify it as web.
+                    # CLI/SERVICE are included because a sample with
+                    # main.py/app.py would otherwise settle as a service
+                    # before the explicit compat proof is consulted. Explicit
+                    # compat screenshots merge even when the kind already
+                    # proves screenshots, so they are never dropped.
                     kind = UI_WEB
                     evidence.append(compat_path)
-                    shots = compat.get("screenshots") if isinstance(compat.get("screenshots"), dict) else {}
-                    for key in ("before", "after"):
-                        rel = shots.get(key) if isinstance(shots, dict) else ""
-                        if isinstance(rel, str) and rel and (root / rel).is_file():
-                            evidence.append(root / rel)
-        except (OSError, ValueError):
-            pass
+                    evidence.extend(shot_paths)
+    except (OSError, ValueError):
+        pass
     return {
         "has_ui": kind in UI_KINDS_WITH_SCREENSHOTS,
         "kind": kind,

@@ -1,103 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-push-v3",
+    "task_id": "verify-6push",
     "last_phase": "in_progress",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1793911347.755775,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1793912873.4322891,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": [],
-    "completed_at": 1793911381.8548074
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-archive-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-archive-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793904350.271654,
-      "timestamp_str": "2026-11-05 21:45:50",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "crucible-verify-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Crucible verify since last 3 pushes with safe fixes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793904832.6240203,
-      "timestamp_str": "2026-11-05 21:53:52",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "c49a198 pushed archive+reforge+gates but crucible found entropy baseline unsuppressible, expired hides active, archive description and git-add gaps",
-        "benefits": "baseline suppresses real entropy findings, active leaks visible with baseline hygiene, archive refuses bad input safely",
-        "risks": "contract: baseline validation widens to actual entropy labels plus encoded twins; dependency: stdlib only; concurrency: none; state: no ledger change beyond checkpoints",
-        "mitigation": "failing-first pins for entropy baseline and expired-active reporting, targeted unit plus secret scan, map regen clean, no reforge architectural change this wave"
-      },
-      "plan_digest": "0920044636ad26315dd171e2f84fd766c358683609987158c8659e127eb42596"
-    },
-    {
-      "task_id": "crucible-verify-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Phase 4 passed: 872 unit OK, dogfood 5/5, secrets/reachability/principles/map clean, entropy baseline plus archive hardening verified",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793905264.2236667,
-      "timestamp_str": "2026-11-05 22:01:04",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "crucible-verify-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'crucible-verify-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793905266.5365965,
-      "timestamp_str": "2026-11-05 22:01:06",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "verify-push-v1",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "\\[1/2] Verify last 3 pushes (2a57efc, c49a198, merge) plus uncommitted reforge/secrets/archive fixes; tighten encoded-entropy baseline validation\" --why \\goal:",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793907061.1230245,
-      "timestamp_str": "2026-11-05 22:31:01",
-      "agent": "unidentified",
-      "impact_assessment": {
-        "benefits": "\\fail-fast baseline validation, dead-code removal, banner-failure surfacing, pinned regression test\" --risks \\contract:",
-        "mitigation": "\\failing-first pin for encoded-entropy rejection, full unit plus secrets/reachability/map/dogfood gates, map regen\" --agent kilo:goal"
-      }
-    },
-    {
-      "task_id": "verify-push-v1",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "\\[2/2] Phase 4 passed: 873 unit OK, integration 86 OK, dogfood 5/5, secrets/reachability/principles/map clean; checklists passed\" --agent kilo:goal",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793907063.2578835,
-      "timestamp_str": "2026-11-05 22:31:03",
-      "agent": "unidentified"
-    },
-    {
-      "task_id": "verify-push-v1",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-push-v1' completed successfully.",
-      "status": "completed",
-      "timestamp": 1793907065.4458585,
-      "timestamp_str": "2026-11-05 22:31:05",
-      "agent": "kilo:goal",
-      "continued_from": "unidentified"
-    },
     {
       "task_id": "verify-push-v2",
       "phase": "in_progress",
@@ -261,6 +174,94 @@
       "status": "completed",
       "timestamp": 1793911381.8548093,
       "timestamp_str": "2026-11-05 23:43:01",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v4",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Verify last-3-push window 956a57c..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793912625.077082,
+      "timestamp_str": "2026-11-06 00:03:45",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires re-verify of last 3 pushes and fix gaps before push",
+        "benefits": "Catch regressions in archive, reforge delivery, proof corpus, compat UI",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      },
+      "plan_digest": "4fc27b4e444c9ac4f3894fe0da611e41b266fb15b057d85250a575efc666948f"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/4] Verify last-6-push window 103a9f8..HEAD with safe fixes",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793912649.6439476,
+      "timestamp_str": "2026-11-06 00:04:09",
+      "agent": "kilo:goal",
+      "impact_assessment": {
+        "why": "Goal requires verify last 6 pushes and fix gaps before push",
+        "benefits": "Catch regressions across archive, reforge delivery, proof corpus, compat UI, secrets baseline",
+        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
+        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
+      },
+      "plan_digest": "1a707f9efa6abe11b1e9fe175dc191adf9064031c5cf40ec4226c074f675b768"
+    },
+    {
+      "task_id": "verify-push-v4",
+      "phase": "superseded",
+      "phase_num": 2,
+      "description": "Superseded by 'verify-6push' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793912649.6439476,
+      "timestamp_str": "2026-11-06 00:04:09",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "superseded",
+      "phase_num": 2,
+      "description": "Superseded by 'verify-push-v4' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793912652.356076,
+      "timestamp_str": "2026-11-06 00:04:12",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v4",
+      "phase": "in_progress",
+      "phase_num": 3,
+      "description": "[2/4] Adopt in-tree safe fixes for verify window (evidence fail-closed, proof hardening, UI traversal guard, reforge registry, archive ProjectError)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793912652.356076,
+      "timestamp_str": "2026-11-06 00:04:12",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[3/4] Phase 4 green: 879 unit OK, secrets/reachability/sync/map/licenses clean, evidence hardening pinned, delivery scrub + CLI + proof flag fixes adopted",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1793912873.4322891,
+      "timestamp_str": "2026-11-06 00:07:53",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-push-v4",
+      "phase": "superseded",
+      "phase_num": 3,
+      "description": "Superseded by 'verify-6push' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1793912873.4322891,
+      "timestamp_str": "2026-11-06 00:07:53",
       "agent": "kilo:goal"
     }
   ]

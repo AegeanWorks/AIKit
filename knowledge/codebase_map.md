@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `152`
-- **Total Top-Level Functions**: `970`
-- **Total Class Methods**: `1127`
-- **Total Source Lines**: `43351`
+- **Total Top-Level Functions**: `972`
+- **Total Class Methods**: `1128`
+- **Total Source Lines**: `43555`
 
 ---
 
@@ -296,11 +296,12 @@
 ### [`reforge/delivery.py`](reforge/delivery.py)
 > *Explicit staging, conventional commit and never-forced push for accepted repairs.*
 
-**Size**: `134` lines (`5491` bytes)
+**Size**: `153` lines (`6196` bytes)
 
 **Functions:**
 - `def validate_message(message)`
 - `def _paths_to_commit(root)`
+- `def _scrub_push_output(output)` - *Redact credentials from push output before it reaches reports/logs.*
 - `def _not_ignored(root, paths)` - *Drop paths git ignores; an ignored state file is local, not a commit failure.*
 - `def commit_repairs(root, message, paths)` - *Stage exactly the repair paths, commit, and verify the commit holds them.*
 - `def push_committed(root)` - *Push already-committed window(s) without staging anything new.*
@@ -646,7 +647,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1545` lines (`77958` bytes)
+**Size**: `1546` lines (`78024` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -784,7 +785,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `866` lines (`40750` bytes)
+**Size**: `879` lines (`41554` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -1021,7 +1022,7 @@
 ### [`scripts/evidence_policy.py`](scripts/evidence_policy.py)
 > *Evidence policy over step attestations (IDEA-1169).*
 
-**Size**: `141` lines (`6210` bytes)
+**Size**: `162` lines (`7221` bytes)
 
 **Classes:**
 - `class PolicyError` - *The policy text names no known policy.*
@@ -1050,7 +1051,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `425` lines (`21394` bytes)
+**Size**: `465` lines (`23710` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1355,12 +1356,13 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `342` lines (`14204` bytes)
+**Size**: `370` lines (`15256` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
 - `def _read_small(path, limit)`
 - `def _is_small(path, limit)` - *Size guard that survives a file vanishing between scan and check.*
+- `def _safe_rel(root, rel)` - *A compat screenshot path confined to the project tree, else None.*
 - `def _package_dependencies(root)`
 - `def _python_dependency_text(root)`
 - `def _evidence(paths, root, limit)`
@@ -1379,7 +1381,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `300` lines (`13049` bytes)
+**Size**: `336` lines (`14560` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1636,7 +1638,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `536` lines (`26298` bytes)
+**Size**: `540` lines (`26468` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1847,7 +1849,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13430` lines (`737332` bytes)
+**Size**: `13472` lines (`739568` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2514,6 +2516,7 @@
   - Method `.test_short_prompt_without_kill_file_still_runs()`
 - `class TestEvidencePolicy` - *IDEA-1169: a named policy decides step attestations; fail always wins.*
   - Method `.test_closed_vocabulary_rejects_unknown_policy()`
+  - Method `.test_hardening_never_raises_on_malformed_inputs()`
   - Method `.test_require_all_needs_every_pass_and_refuses_empty()`
   - Method `.test_quorum_counts_passes_but_never_outvotes_a_fail()`
   - Method `.test_sealed_attestation_is_decided_by_envelope_verification()`

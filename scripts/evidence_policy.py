@@ -52,6 +52,8 @@ class PolicyError(Exception):
 
 def parse_policy(text: str) -> Tuple[str, int]:
     """Parse a policy word into (kind, n); closed vocabulary (IDEA-1169)."""
+    if not isinstance(text, str):
+        raise PolicyError(f"unknown policy {text!r}; want 'require-all' or 'quorum:N'")
     cleaned = (text or "").strip()
     if cleaned == POLICY_REQUIRE_ALL:
         return POLICY_REQUIRE_ALL, 0
@@ -70,7 +72,7 @@ def parse_policy(text: str) -> Tuple[str, int]:
 
 def evidence_hash(text: str) -> str:
     """Short stable digest of a step's evidence tail (IDEA-1169)."""
-    return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()[:16]
+    return hashlib.sha256(str(text or "").encode("utf-8", errors="replace")).hexdigest()[:16]
 
 
 def attest(step: str, outcome: str, evidence: str = "",
@@ -79,10 +81,13 @@ def attest(step: str, outcome: str, evidence: str = "",
     record: Dict[str, Any] = {
         "step": step,
         "outcome": outcome,
-        "evidence": evidence_hash(evidence),
+        "evidence": evidence_hash(str(evidence or "")),
     }
     if envelope is not None:
-        record["envelope"] = dict(envelope)
+        if not isinstance(envelope, Mapping):
+            record["envelope"] = {"unverifiable": str(envelope)[:200]}
+        else:
+            record["envelope"] = dict(envelope)
     return record
 
 
@@ -116,9 +121,25 @@ def evaluate(policy_text: str, attestations: Sequence[Mapping[str, Any]], *,
         outcome = str(record.get("outcome", OUTCOME_INCONCLUSIVE))
         sealed = record.get("envelope")
         keys = envelope_keys or {}
-        if sealed is not None and keys and verify_sealed is not None:
-            verdict = verify_sealed(sealed, keys=keys)
-            outcome = str(verdict.get("outcome", OUTCOME_INCONCLUSIVE))
+        if sealed is not None:
+            if not keys or verify_sealed is None:
+                # Fail-closed: a sealed step without keys/verifier is never
+                # trusted on its claim; it stays inconclusive.
+                outcome = OUTCOME_INCONCLUSIVE
+            elif not isinstance(sealed, Mapping):
+                outcome = OUTCOME_INCONCLUSIVE
+            else:
+                try:
+                    verdict = verify_sealed(sealed, keys=keys)
+                except Exception:
+                    # Tamper evidence wins: a verifier crash fails the step
+                    # rather than breaking the never-raises contract.
+                    outcome = OUTCOME_FAIL
+                else:
+                    if isinstance(verdict, Mapping):
+                        outcome = str(verdict.get("outcome", OUTCOME_INCONCLUSIVE))
+                    else:
+                        outcome = OUTCOME_INCONCLUSIVE
         decided.append({"step": str(record.get("step", "?")), "outcome": outcome})
     failed = [row["step"] for row in decided if row["outcome"] == OUTCOME_FAIL]
     passed = [row["step"] for row in decided if row["outcome"] == OUTCOME_PASS]

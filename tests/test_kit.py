@@ -3848,17 +3848,23 @@ class TestSecretHygieneScanner(unittest.TestCase):
     def test_baseline_entropy_value_needs_a_variable_name(self):
         # The prefix alone (or blanks) never matches a finding: findings always
         # carry the variable name, so an empty suffix must fail fast instead of
-        # surfacing later as stale.
+        # surfacing later as stale. The suffix must look like a credential
+        # variable (alphanumeric plus underscore and a KEY/TOKEN/etc marker)
+        # so generic single letters never validate but never match.
         from scripts import check_secrets as secrets_module
 
         self.assertFalse(
             secrets_module._is_valid_baseline_detector("high-entropy value for "))
         self.assertFalse(
             secrets_module._is_valid_baseline_detector("high-entropy value for   "))
-        self.assertTrue(
+        self.assertFalse(
             secrets_module._is_valid_baseline_detector("high-entropy value for K"))
+        self.assertFalse(
+            secrets_module._is_valid_baseline_detector("high-entropy value for my-secret"))
         self.assertTrue(
             secrets_module._is_valid_baseline_detector("high-entropy value for API_KEY"))
+        self.assertTrue(
+            secrets_module._is_valid_baseline_detector("high-entropy value for token"))
 
     def test_explicit_pragma_suppresses_everything(self):
         line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
@@ -8366,6 +8372,42 @@ class TestEvidencePolicy(unittest.TestCase):
                 evidence_policy.parse_policy(bad)
         self.assertEqual(evidence_policy.parse_policy("require-all"), ("require-all", 0))
         self.assertEqual(evidence_policy.parse_policy("quorum:2"), ("quorum", 2))
+
+    def test_hardening_never_raises_on_malformed_inputs(self) -> None:
+        # Fail-closed pins for the hardening: non-string policy raises
+        # PolicyError (not AttributeError); None evidence/envelope never
+        # crashes; sealed without keys stays inconclusive; verifier crash
+        # fails the step; non-mapping verdict stays inconclusive.
+        from scripts import evidence_policy
+
+        for bad in (None, 123, b"require-all", ["require-all"]):
+            with self.assertRaises(evidence_policy.PolicyError):
+                evidence_policy.parse_policy(bad)  # type: ignore[arg-type]
+        self.assertEqual(evidence_policy.evidence_hash(None),  # type: ignore[arg-type]
+                         evidence_policy.evidence_hash(""))
+        rec = evidence_policy.attest("s", "pass", evidence=None,  # type: ignore[arg-type]
+                                     envelope="not-a-mapping")  # type: ignore[arg-type]
+        self.assertIn("unverifiable", str(rec.get("envelope")))
+        sealed = evidence_policy.attest("proof", "pass",
+                                        envelope={"sig": "x"})
+        no_keys = evidence_policy.evaluate("require-all", [sealed])
+        self.assertEqual(no_keys["outcome"], "inconclusive")
+
+        def crashing(env, keys):
+            raise RuntimeError("verifier blew up")
+
+        crashed = evidence_policy.evaluate(
+            "require-all", [sealed], envelope_keys={"k": "v"},
+            verify_sealed=crashing)
+        self.assertEqual(crashed["outcome"], "fail")
+
+        def weird(env, keys):
+            return "not-a-mapping"  # type: ignore[return-value]
+
+        odd = evidence_policy.evaluate(
+            "require-all", [sealed], envelope_keys={"k": "v"},
+            verify_sealed=weird)
+        self.assertEqual(odd["outcome"], "inconclusive")
 
     def test_require_all_needs_every_pass_and_refuses_empty(self) -> None:
         from scripts import evidence_policy

@@ -903,7 +903,7 @@ def cmd_archive(args: argparse.Namespace) -> int:
                 return 0
             print(message)
             return 0
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, ProjectError):
         pass
     code, report = archive_project(
         project.path, project.name, reason=getattr(args, "reason", ""),
@@ -1331,7 +1331,8 @@ def cmd_reforge(args: argparse.Namespace) -> int:
 
     target = getattr(args, "target", None)
     project = None
-    if args.reforge_action in ("audit", "fix", "run", "status", "report", "start", "stop",
+    if args.reforge_action in ("audit", "fix", "run", "review", "analyze", "status",
+                               "report", "start", "stop",
                                "resume", "settings", "runs") and target:
         try:
             project = find_project(target, args.workspace)

@@ -543,6 +543,7 @@ def _baseline_detector_names() -> Set[str]:
 
 def _is_valid_baseline_detector(detector: str) -> bool:
     """Whether a baseline entry detector names a real finding label."""
+    import re as _re
     valid = _baseline_detector_names()
     if detector in valid:
         return True
@@ -551,8 +552,11 @@ def _is_valid_baseline_detector(detector: str) -> bool:
     # case-insensitive accept would validate but never match, surfacing only
     # later as a stale entry.
     prefix = "high-entropy value for "
-    if detector.startswith(prefix) and bool(detector[len(prefix):].strip()):
-        return True
+    if detector.startswith(prefix):
+        suffix = detector[len(prefix):].strip()
+        if _re.fullmatch(r"[A-Za-z0-9_]+", suffix or "") and _re.search(
+            r"KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH", suffix, _re.IGNORECASE):
+            return True
     return False
 
 
@@ -580,7 +584,11 @@ def load_baseline(path: Path) -> Dict[str, Any]:
             if not isinstance(value, str) or not value.strip():
                 raise BaselineError(f"{where} needs a non-empty {field!r}")
         if not _is_valid_baseline_detector(item["detector"]):
-            raise BaselineError(f"{where} names unknown detector {item['detector']!r}")
+            hint = ""
+            if item["detector"] in ("high-entropy-value", "high-entropy-literal",
+                                    "high-entropy_value", "high-entropy_literal"):
+                hint = " (use 'high-entropy string literal' or 'high-entropy value for <NAME>')"
+            raise BaselineError(f"{where} names unknown detector {item['detector']!r}{hint}")
         try:
             datetime.datetime.strptime(item["expires"], BASELINE_DATE_FORMAT)
         except ValueError:
@@ -608,25 +616,30 @@ def apply_baseline(findings: List[Tuple[str, int, str, str]],
     """
     keyed: Dict[str, Dict[str, Any]] = {}
     for entry in baseline.get("entries", []):
-        keyed.setdefault(entry["fingerprint"], entry)
+        fingerprint = str(entry["fingerprint"]).lower()
+        keyed.setdefault(fingerprint, entry)
+    expired_keys = {str(entry["fingerprint"]).lower()
+                    for entry in keyed.values()
+                    if str(entry["expires"]) < today.isoformat()}
     expired = [entry for entry in keyed.values()
-               if entry["expires"] < today.isoformat()]
-    matched = set()
+               if str(entry["fingerprint"]).lower() in expired_keys]
+    matched: Set[str] = set()
     active: List[Tuple[str, int, str, str]] = []
     suppressed: List[Tuple[Tuple[str, int, str, str], Dict[str, Any]]] = []
     for finding in findings:
         label, _lineno, detector, excerpt = finding
-        key = fingerprint_finding(label, detector, excerpt)
+        key = fingerprint_finding(label, detector, excerpt).lower()
         entry = keyed.get(key)
-        if entry is not None and entry not in expired:
-            matched.add(entry["fingerprint"])
+        entry_key = str(entry["fingerprint"]).lower() if entry is not None else ""
+        if entry is not None and entry_key not in expired_keys:
+            matched.add(entry_key)
             suppressed.append((finding, entry))
         else:
             if entry is not None:
-                matched.add(entry["fingerprint"])
+                matched.add(entry_key)
             active.append(finding)
     stale = [entry for key, entry in keyed.items()
-             if key not in matched and entry not in expired]
+             if key not in matched and key not in expired_keys]
     return {"active": active, "suppressed": suppressed,
             "expired": expired, "stale": stale}
 
