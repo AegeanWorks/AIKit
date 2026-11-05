@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-6push",
     "last_phase": "in_progress",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1793913910.620697,
     "owner": "kilo:goal",
     "started_by": "kilo:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1793913978.0163138
   },
   "checkpoints": [
-    {
-      "task_id": "verify-push-v4",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/4] Verify last-3-push window 956a57c..HEAD with safe fixes",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1793912625.077082,
-      "timestamp_str": "2026-11-06 00:03:45",
-      "agent": "kilo:goal",
-      "impact_assessment": {
-        "why": "Goal requires re-verify of last 3 pushes and fix gaps before push",
-        "benefits": "Catch regressions in archive, reforge delivery, proof corpus, compat UI",
-        "risks": "contract: test plus gate changes only; dependency: stdlib only; concurrency: none; state: ledger append only",
-        "mitigation": "Failing-first pins, full Phase 4 gates, staged verification before push"
-      },
-      "plan_digest": "4fc27b4e444c9ac4f3894fe0da611e41b266fb15b057d85250a575efc666948f"
-    },
     {
       "task_id": "verify-6push",
       "phase": "in_progress",
@@ -256,6 +239,16 @@
       "status": "in_progress",
       "timestamp": 1793913910.620697,
       "timestamp_str": "2026-11-06 00:25:10",
+      "agent": "kilo:goal"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-6push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1793913978.016315,
+      "timestamp_str": "2026-11-06 00:26:18",
       "agent": "kilo:goal"
     }
   ]
