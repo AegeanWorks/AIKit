@@ -560,7 +560,7 @@ def _is_valid_baseline_detector(detector: str) -> bool:
     return False
 
 
-def load_baseline(path: Path) -> Dict[str, Any]:
+def load_baseline(path: Path, *, today: Optional[datetime.date] = None) -> Dict[str, Any]:
     """Read and validate a baseline file; closed schema (IDEA-1132)."""
     try:
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -590,10 +590,14 @@ def load_baseline(path: Path) -> Dict[str, Any]:
                 hint = " (use 'high-entropy string literal' or 'high-entropy value for <NAME>')"
             raise BaselineError(f"{where} names unknown detector {item['detector']!r}{hint}")
         try:
-            datetime.datetime.strptime(item["expires"], BASELINE_DATE_FORMAT)
+            expires_date = datetime.datetime.strptime(item["expires"], BASELINE_DATE_FORMAT).date()
         except ValueError:
             raise BaselineError(f"{where} needs expires as YYYY-MM-DD, "
                                 f"got {item['expires']!r}")
+        _today = today or datetime.date.today()
+        if (expires_date - _today).days > 90:
+            raise BaselineError(f"{where} expires {item['expires']!r} is more than 90 days out; "
+                                f"re-file with a shorter acceptance so the spot is re-reviewed.")
         fingerprint = item["fingerprint"].strip()
         if len(fingerprint) != 64 or any(c not in "0123456789abcdefABCDEF"
                                          for c in fingerprint):
@@ -784,6 +788,7 @@ Options:
   --baseline <file>  Acknowledge findings listed in a version-1 baseline file: every
                    entry names path, detector, fingerprint, owner, YYYY-MM-DD
                    expiry and reason (IDEA-1132). Expired or stale entries fail.
+                   Expiry is at most 90 days out so the spot is re-reviewed.
   --verbose, -v    Print detector and allowlist counts
   -h, --help       Show this help message and exit
 

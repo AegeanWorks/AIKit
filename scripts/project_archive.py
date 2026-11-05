@@ -365,6 +365,21 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         notes.append("No 'origin' remote: only the local folder moves; no GitHub repository to archive.")
 
     # README banner first: the push below uploads it before the repo goes read-only.
+    # A secret in the reason/description would ship in the banner, commit and
+    # project record, so refuse before writing anything.
+    # The pragma is neutralized first: it suppresses the scanner by design, so
+    # honoring it here would let `--reason "ghp_xxx # aikit:allow-secret"`
+    # smuggle a credential into the public banner and commit message.
+    try:
+        from scripts.check_secrets import scan_text as _scan_text
+        _banner_text = f"{reason}\n{new_desc}".replace("aikit:allow-secret", "x")
+        _banner_findings = _scan_text(f"{name}/archive-reason", _banner_text)
+    except Exception:
+        _banner_findings = []
+    if _banner_findings:
+        return 1, _triad(f"refusing to archive '{name}': the reason/description looks like a credential.",
+                          "the archive banner, commit message and project record would publish it.",
+                          "remove the credential-shaped text from --reason/--description, then archive again.")
     readme_changed = update_readme_for_archive(readme_path, reason, day)
     if not readme_changed and "> **Archived**" not in (readme_text or ""):
         try:
@@ -372,6 +387,12 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         except OSError:
             current = ""
         if "> **Archived**" not in current:
+            if needs_github:
+                return 1, _triad(f"the archive banner for '{name}' could not be written.",
+                                 "the remote must hold the archived README before the repository goes "
+                                 "read-only, so an unwritten banner cannot be archived online.",
+                                 "fix the README permissions, or retry with `--offline` to move locally "
+                                 "only; nothing was moved.")
             notes.append("Note: the archive banner could not be written to README.md; "
                          "it moves along without the banner.")
     add_ok = False
@@ -451,6 +472,19 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(src), str(dst))
     except (OSError, shutil.Error) as exc:
+        # Only clean a partial dst when src still exists (safe retry). When src
+        # is gone the copy likely completed and deleting dst would destroy the
+        # only copy, so leave both for operator inspection.
+        try:
+            if src.exists() and dst.exists():
+                # dst did not exist before the move (validated above), so an
+                # existing dst here is partial from this failed move.
+                if dst.is_dir() and not dst.is_symlink():
+                    shutil.rmtree(dst, ignore_errors=True)
+                else:
+                    dst.unlink(missing_ok=True)
+        except (OSError, shutil.Error):
+            pass
         return 1, _triad(f"moving '{name}' to {dst} failed: {exc}",
                          "the filesystem denied the move.",
                          "check the path permissions and free space, then archive again.")
@@ -463,6 +497,21 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                          "restore the file from git inside the archived folder, then re-record the "
                          "archive fields (archived, archived_at, archive_reason).")
     _forget_or_move_attached(workspace, name, src, dst)
+    # Dossier catalogue is a networked publish side-effect (gh api): an offline
+    # archive must not touch the network. Online it is best-effort only.
+    if not offline:
+        try:
+            from scripts import dossier_sync as _dossier_sync
+            from scripts.project_registry import ProjectError as _DossierProjectError
+            try:
+                _dossier_result = _dossier_sync.sync_published(dst, name)
+            except (_DossierProjectError, OSError, ValueError, KeyError) as _dossier_exc:
+                notes.append(f"Note: dossier catalogue sync skipped ({_dossier_exc}).")
+            else:
+                if isinstance(_dossier_result, dict) and not _dossier_result.get("skipped"):
+                    notes.append(f"Dossier catalogue updated for archived '{name}'.")
+        except (ImportError, AttributeError, ValueError) as _import_exc:
+            notes.append(f"Note: dossier catalogue sync unavailable ({_import_exc}).")
     lines = [f"[OK] Archived '{name}' to {dst} with reason '{reason}'."]
     lines.extend(notes)
     lines.append("Review and push the project's own repository if it still has local commits; "

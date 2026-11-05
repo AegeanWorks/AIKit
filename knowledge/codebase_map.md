@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
-- **Total Classes**: `154`
+- **Total Classes**: `155`
 - **Total Top-Level Functions**: `972`
-- **Total Class Methods**: `1150`
-- **Total Source Lines**: `43888`
+- **Total Class Methods**: `1155`
+- **Total Source Lines**: `44110`
 
 ---
 
@@ -551,7 +551,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `697` lines (`27977` bytes)
+**Size**: `735` lines (`29837` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -785,7 +785,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `879` lines (`41554` bytes)
+**Size**: `884` lines (`41985` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -815,7 +815,7 @@
 - `def fingerprint_finding(label, detector, excerpt)` - *Stable identity of one finding (IDEA-1132).*
 - `def _baseline_detector_names()` - *Detectors a baseline entry may name: pattern plus encoded-pattern twins plus emitted entropy labels.*
 - `def _is_valid_baseline_detector(detector)` - *Whether a baseline entry detector names a real finding label.*
-- `def load_baseline(path)` - *Read and validate a baseline file; closed schema (IDEA-1132).*
+- `def load_baseline(path, *, today)` - *Read and validate a baseline file; closed schema (IDEA-1132).*
 - `def apply_baseline(findings, baseline, *, today)` - *Split findings against the baseline (IDEA-1132); pure, no I/O.*
 - `def run_scan(mode, target, verbose, repo, commits, baseline)` - *Scan the requested surface plus agent memory, reporting tersely (PRINCIPLE-012 R4).*
 
@@ -1051,7 +1051,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `481` lines (`24523` bytes)
+**Size**: `530` lines (`27631` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1849,7 +1849,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13716` lines (`750892` bytes)
+**Size**: `13846` lines (`757396` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2924,6 +2924,12 @@
   - Method `.test_archive_readme_crlf_and_title()`
   - Method `.test_ui_surface_paths_rejects_traversal()`
   - Method `.test_proof_replay_reports_p2p_unchecked()`
+- `class TestVerify9PushSafeFixes` - *Regression pins for the verify-9push window (last-9-push review).*
+  - Method `.test_baseline_rejects_long_expiry()`
+  - Method `.test_archive_online_refuses_missing_banner()`
+  - Method `.test_archive_reason_secret_refused()`
+  - Method `.test_reforge_settings_start_guard()`
+  - Method `.test_reforge_load_state_validates_run_types()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

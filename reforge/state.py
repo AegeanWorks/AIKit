@@ -234,6 +234,28 @@ def load_state(root: Path) -> Dict[str, object]:
             "every entry in 'runs' must be an object with a string 'id'.",
             "restore the file from its .bak shadow or a committed copy.",
         )
+    for run in data["runs"]:
+        stage = run.get("stage", 0)
+        window = run.get("window", 0)
+        if type(stage) is not int or type(window) is not int:
+            raise ReforgeError(
+                f"{path} is structurally invalid.",
+                f"run {run.get('id')} has a non-integer stage/window.",
+                "restore the file from its .bak shadow or a committed copy.",
+            )
+        if not isinstance(run.get("history", []), list) or not isinstance(run.get("audited_commits", []), list):
+            raise ReforgeError(
+                f"{path} is structurally invalid.",
+                f"run {run.get('id')} has a non-list history/audited_commits.",
+                "restore the file from its .bak shadow or a committed copy.",
+            )
+        last = run.get("last_audit")
+        if last is not None and not isinstance(last, dict):
+            raise ReforgeError(
+                f"{path} is structurally invalid.",
+                f"run {run.get('id')} has a non-object last_audit.",
+                "restore the file from its .bak shadow or a committed copy.",
+            )
     return data
 
 
@@ -632,12 +654,28 @@ def resume_run(root: Path, state: Dict[str, object], run: Dict[str, object]) -> 
 def update_settings(root: Path, state: Dict[str, object], run: Dict[str, object],
                     start: Optional[int] = None, step: Optional[int] = None,
                     stop: object = _UNSET) -> Dict[str, object]:
-    """Change a run's step/stop; start may change only before its first stage."""
-    new_start = int(run.get("start") or DEFAULT_START) if start is None else int(start)
-    new_step = int(run.get("step") or DEFAULT_STEP) if step is None else int(step)
+    """Change a run's step/stop; start may change only before its first stage.
+
+    Step stays mutable: plan_next_stage derives the next window from the current
+    stage plus start/step and de-duplicates via audited_commits, so raising step
+    is the documented recovery for a "no new commits" window (audit.py). Guarding
+    step would strand that path and contradict the CLI contract.
+    """
+    try:
+        new_start = int(run.get("start") or DEFAULT_START) if start is None else int(start)
+        new_step = int(run.get("step") or DEFAULT_STEP) if step is None else int(step)
+    except (TypeError, ValueError) as exc:
+        raise ReforgeError(
+            "The run's window settings are not integers.",
+            f"could not parse start/step: {exc}.",
+            "restore .aikit/reforge.json from its .bak shadow or start a new run.",
+            exit_code=2,
+        ) from exc
     new_stop = run.get("stop") if stop is _UNSET else stop
     validate_settings(new_start, new_step, new_stop)  # type: ignore[arg-type]
-    if new_start != run.get("start") and int(run.get("stage") or 0) > 0:
+    _stage = run.get("stage") or 0
+    _stage_num = _stage if type(_stage) is int else 0
+    if start is not None and new_start != run.get("start") and _stage_num > 0:
         raise ReforgeError(
             "The start window cannot change after a run has audited a stage.",
             "earlier stages keep the window they actually used, so the progression would be ambiguous.",

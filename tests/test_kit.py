@@ -3762,8 +3762,9 @@ class TestSecretHygieneScanner(unittest.TestCase):
                             encoding="utf-8")
             return path
 
+        _near = (datetime.date.today() + datetime.timedelta(days=30)).isoformat()
         entry = {"path": label, "detector": detector, "fingerprint": fingerprint,
-                 "owner": "sec-team", "expires": "2099-01-01", "reason": "rotated quarterly"}
+                 "owner": "sec-team", "expires": _near, "reason": "rotated quarterly"}
         table = secrets_module.load_baseline(baseline_file([entry]))
         verdict = secrets_module.apply_baseline(found, table,
                                                 today=datetime.date(2026, 11, 4))
@@ -3800,6 +3801,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
             secrets_module.load_baseline(Path(tempfile.mkdtemp()) / "missing.json")
 
     def test_baseline_file_mode_suppresses_owned_findings(self):
+        import datetime
         import io
         import json
         from contextlib import redirect_stdout
@@ -3817,7 +3819,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
         table.write_text(json.dumps({"version": 1, "entries": [
             {"path": label, "detector": detector,
              "fingerprint": secrets_module.fingerprint_finding(label, detector, excerpt),
-             "owner": "sec-team", "expires": "2099-06-30", "reason": "tracked"}]}),
+             "owner": "sec-team", "expires": (datetime.date.today() + datetime.timedelta(days=30)).isoformat(), "reason": "tracked"}]}),
             encoding="utf-8")
         out = io.StringIO()
         with redirect_stdout(out):
@@ -13711,6 +13713,134 @@ class TestVerify6PushSafeFixes(unittest.TestCase):
         self.assertEqual(result["outcome"], "pass")
         self.assertIn("unchecked", result["reason"])
         self.assertFalse(result.get("pass_to_pass_checked", True))
+
+
+class TestVerify9PushSafeFixes(unittest.TestCase):
+    """Regression pins for the verify-9push window (last-9-push review)."""
+
+    def test_baseline_rejects_long_expiry(self) -> None:
+        import datetime
+        import json
+        import tempfile
+        from pathlib import Path
+        from scripts import check_secrets as secrets_module
+        far = (datetime.date.today() + datetime.timedelta(days=400)).isoformat()
+        entry = {"path": "a.py", "detector": "GitHub token",
+                 "fingerprint": "a" * 64, "owner": "sec",
+                 "expires": far, "reason": "long"}
+        root = Path(tempfile.mkdtemp(prefix="baseline_long_"))
+        self.addCleanup(__import__("shutil").rmtree, str(root), True)
+        path = root / "baseline.json"
+        path.write_text(json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+        with self.assertRaises(secrets_module.BaselineError):
+            secrets_module.load_baseline(path)
+
+    def test_archive_online_refuses_missing_banner(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+
+        def _fake_run(argv, cwd):
+            if argv[:3] == ["git", "remote", "get-url"]:
+                return (0, "https://github.com/example/demo.git")
+            if argv[:2] == ["git", "status"]:
+                return (0, "")
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+            orig = project_archive.update_readme_for_archive
+            try:
+                project_archive.update_readme_for_archive = lambda *a, **k: False
+                code, report = project_archive.archive_project(
+                    src, "demo", "retired", workspace=Path(tmp),
+                    offline=False, runner=_fake_run)
+            finally:
+                project_archive.update_readme_for_archive = orig
+            self.assertEqual(code, 1)
+            self.assertIn("banner", report.lower())
+            self.assertTrue(src.is_dir(), "online refusal must not move anything")
+
+    def test_archive_reason_secret_refused(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text("# Demo\n\nA usable description sentence here.\n",
+                                           encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+            bad = "ghp_" + "C" * 36
+            code, report = project_archive.archive_project(
+                src, "demo", f"retired {bad}", workspace=Path(tmp),
+                offline=True, runner=_fake_run)
+            self.assertEqual(code, 1)
+            self.assertIn("credential", report.lower())
+            # The allow-secret pragma is neutralized for the banner scan: it must
+            # not smuggle a credential into the public banner/commit/record.
+            sneaky = f"retired {bad} aikit:allow-secret"
+            code, report = project_archive.archive_project(
+                src, "demo", sneaky, workspace=Path(tmp),
+                offline=True, runner=_fake_run)
+            self.assertEqual(code, 1)
+            self.assertIn("credential", report.lower())
+            self.assertTrue(src.is_dir(), "secret refusal must not move anything")
+
+    def test_reforge_settings_start_guard(self) -> None:
+        from reforge import state as st
+        from reforge.errors import ReforgeError
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+            run = st.create_run(s, start=3, step=3)
+            run["stage"] = 1
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, start=5)
+            self.assertEqual(run.get("start"), 3, "refused change must not mutate the run")
+            # Step stays mutable by design (audit.plan_next_stage recovery).
+            updated = st.update_settings(root, s, run, step=5)
+            self.assertEqual(updated.get("step"), 5)
+            with self.assertRaises(ReforgeError):
+                st.update_settings(root, s, run, start="bogus")
+
+    def test_reforge_load_state_validates_run_types(self) -> None:
+        from reforge import state as st
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir(exist_ok=True)
+            p = root / ".aikit" / "reforge.json"
+            bad = {"schema": st.SCHEMA_VERSION, "next_run_id": 2,
+                   "active_run": None, "last_run": None, "runs": [
+                       {"id": "run-1", "stage": "one", "window": 0,
+                        "history": [], "audited_commits": []}],
+                   "stage": 0, "window": 0, "audited_commits": [],
+                   "last_audit": None, "history": []}
+            p.write_text(json.dumps(bad), encoding="utf-8")
+            with self.assertRaises(Exception):
+                st.load_state(root)
+            bad_bool = {"schema": st.SCHEMA_VERSION, "next_run_id": 2,
+                        "active_run": None, "last_run": None, "runs": [
+                            {"id": "run-1", "stage": True, "window": 0,
+                             "history": [], "audited_commits": []}],
+                        "stage": 0, "window": 0, "audited_commits": [],
+                        "last_audit": None, "history": []}
+            p.write_text(json.dumps(bad_bool), encoding="utf-8")
+            with self.assertRaises(Exception):
+                st.load_state(root)
 
 if __name__ == "__main__":
     unittest.main()
