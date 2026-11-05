@@ -81,13 +81,32 @@ def _scanner(label: str, text: str):
 
 
 def _stop_value(stop: Optional[int]) -> Optional[int]:
-    return None if stop in (None, 0) else int(stop)
+    if stop in (None, 0):
+        return None
+    try:
+        value = int(stop)  # type: ignore[arg-type]
+    except (TypeError, ValueError) as exc:
+        from reforge.errors import ReforgeError as _ReforgeError
+        raise _ReforgeError(
+            f"Invalid stop window {stop!r}.",
+            "the stop window must be an integer.",
+            "pass --stop 0 for unlimited or a positive integer.",
+        ) from exc
+    return value
 
 
 def _snapshot(root: Path, findings: Sequence[Finding],
               extra_paths: Sequence[str] = ()) -> Dict[str, Optional[bytes]]:
+    from reforge.errors import ReforgeError as _ReforgeError
     paths = {finding.path for finding in findings if finding.fixable}
-    paths.add(str(regression_test_path(root).relative_to(root)).replace("\\", "/"))
+    try:
+        paths.add(str(regression_test_path(root).relative_to(root)).replace("\\", "/"))
+    except ValueError as exc:
+        raise _ReforgeError(
+            "The regression test path escapes the repository.",
+            str(exc),
+            "run inside the repository so the regression path stays within it.",
+        ) from exc
     paths.update(path for path in extra_paths if path)
     snapshots: Dict[str, Optional[bytes]] = {}
     for relative in paths:
@@ -95,7 +114,9 @@ def _snapshot(root: Path, findings: Sequence[Finding],
     return snapshots
 
 
-def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> None:
+def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> List[str]:
+    """Restore snapshotted bytes; returns paths that could not be restored."""
+    failures: List[str] = []
     for relative, original in snapshots.items():
         path = root / relative
         try:
@@ -106,7 +127,9 @@ def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> None:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(original)
         except OSError:
+            failures.append(relative)
             continue
+    return failures
 
 
 def _relative_inside(root: Path, path: Optional[str]) -> str:
@@ -115,7 +138,7 @@ def _relative_inside(root: Path, path: Optional[str]) -> str:
         return ""
     try:
         return Path(path).resolve().relative_to(Path(root).resolve()).as_posix()
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError):
         return ""
 
 
@@ -172,8 +195,9 @@ def _execute_repairs(root: Path, findings: Sequence[Finding], add_tests: bool,
         return [], {}, {}
     target_paths = {finding.path for finding in targets}
     unrelated = [path for path in preexisting if path not in target_paths]
-    snapshots = _snapshot(root, targets, unrelated)
+    snapshots: Dict[str, Optional[bytes]] = {}
     try:
+        snapshots = _snapshot(root, targets, unrelated)
         # Deterministic rules keep their proven edit; reviewed findings carry an exact text patch
         # that was validated against the file when the answer was parsed, and is re-checked here.
         rule_findings = [item for item in targets if not item.patch_old]
@@ -227,16 +251,26 @@ def _execute_repairs(root: Path, findings: Sequence[Finding], add_tests: bool,
                     "review the listed paths; every change made by the repair was rolled back.",
                 )
         return repairs, tests, gates
-    except ReforgeError:
-        _restore(root, snapshots)
+    except ReforgeError as exc:
+        failures = _restore(root, snapshots)
+        if failures:
+            exc = ReforgeError(
+                str(exc),
+                f"{exc.args[1] if len(exc.args) > 1 else ''} Restore incomplete: "
+                f"{', '.join(failures[:8])} could not be restored.",
+                str(exc.args[2]) if len(exc.args) > 2 else "",
+            )
+            raise exc from None
         raise
     except Exception as exc:
-        _restore(root, snapshots)
+        failures = _restore(root, snapshots)
+        suffix = f" Restore incomplete: {', '.join(failures[:8])}." if failures else \
+            " the working tree was restored."
         raise ReforgeError(
             "The repair could not be applied.",
             f"the repair engine stopped before a reviewable patch existed: {exc}",
             "review the finding evidence, fix the source or the generated test file by hand, "
-            "then run the audit again; the working tree was restored.",
+            f"then run the audit again;{suffix}",
         ) from exc
 
 
@@ -613,7 +647,9 @@ def run_pipeline(root: Path, mode: str = "run", add_tests: bool = True,
             preexisting = _preexisting_dirty(root, (findings_rel,))
             targets = [item.path for item in fixable if not item.repaired]
             if targets:
-                last["dirty_targets"] = sorted(set(targets) & preexisting)
+                fresh = sorted(set(targets) & preexisting)
+                prior = {str(path) for path in (last.get("dirty_targets") or [])}
+                last["dirty_targets"] = sorted(prior | set(fresh))
             repairs, tests, gates = _execute_repairs(root, all_findings, add_tests, run_tests,
                                                      test_command, gate_runner,
                                                      extra_allowed=(findings_rel,),

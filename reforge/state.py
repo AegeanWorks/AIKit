@@ -448,6 +448,15 @@ def settle_run(run: Dict[str, object], state: Dict[str, object],
             state["active_run"] = None
         return True
     if reopen and not finished and run.get("status") == "completed":
+        active = state.get("active_run")
+        if active and active != run["id"]:
+            other = _find_by_id(state, str(active))
+            if other is not None and other.get("status") == "active":
+                raise ReforgeError(
+                    f"Cannot reopen audit run {run.get('id')} while {active} is active.",
+                    "reopening would orphan the active run with status active.",
+                    "stop or complete the active run first, or resume it explicitly.",
+                )
         run["status"] = "active"
         run["updated"] = _now()
         state["active_run"] = run["id"]
@@ -602,6 +611,15 @@ def resume_run(root: Path, state: Dict[str, object], run: Dict[str, object]) -> 
             "only a stopped run can be resumed without changing its history.",
             "use `reforge runs` to pick a stopped run, or `reforge start` for a new one.",
         )
+    active = state.get("active_run")
+    if active and active != run["id"]:
+        other = _find_by_id(state, str(active))
+        if other is not None and other.get("status") == "active":
+            raise ReforgeError(
+                f"Cannot resume audit run {run.get('id')} while {active} is active.",
+                "resuming would orphan the active run with status active.",
+                "stop the active run first, then resume.",
+            )
     run["status"] = "active"
     run["updated"] = _now()
     state["active_run"] = run["id"]

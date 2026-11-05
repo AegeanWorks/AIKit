@@ -266,11 +266,25 @@ def replay(entry: Mapping[str, Any], *,
         return {"outcome": OUTCOME_INCONCLUSIVE, "reason": detail}
     was_proof = bool(receipt.get("proof", False))
     is_proof = bool(fresh.get("proof", False))
+    was_p2p = receipt.get("pass_to_pass_ok")
+    is_p2p = fresh.get("pass_to_pass_ok")
+    p2p_checked = "pass_to_pass" in prove_kwargs
     if is_proof == was_proof:
-        return {"outcome": OUTCOME_PASS,
-                "reason": f"replay matches stored verdict proof={was_proof}"}
+        if was_p2p is not None and p2p_checked and bool(is_p2p) != bool(was_p2p):
+            return {"outcome": OUTCOME_FAIL,
+                    "reason": f"replay pass_to_pass_ok={is_p2p} differs from stored {was_p2p}",
+                    "pass_to_pass_checked": True}
+        reason = f"replay matches stored verdict proof={was_proof}"
+        if not p2p_checked and p2p:
+            reason += "; pass-to-pass unchecked"
+        result: Dict[str, Any] = {"outcome": OUTCOME_PASS, "reason": reason,
+                                  "pass_to_pass_checked": p2p_checked}
+        if p2p_checked:
+            result["pass_to_pass_ok"] = bool(is_p2p) if is_p2p is not None else None
+        return result
     return {"outcome": OUTCOME_FAIL,
-            "reason": f"replay proof={is_proof} differs from stored proof={was_proof}"}
+            "reason": f"replay proof={is_proof} differs from stored proof={was_proof}",
+            "pass_to_pass_checked": p2p_checked}
 
 
 def build_parser() -> argparse.ArgumentParser:

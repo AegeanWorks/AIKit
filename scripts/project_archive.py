@@ -106,14 +106,16 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
     after it. Returns whether the file changed.
     """
     try:
-        text = readme_path.read_text(encoding="utf-8-sig", errors="replace")
+        with open(readme_path, "r", encoding="utf-8-sig", errors="replace", newline="") as handle:
+            text = handle.read()
     except OSError:
         return False
     if "> **Archived**" in text:
         return False
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)
-    title = next((i for i, line in enumerate(lines) if line.startswith("# ")), None)
+    title = next((i for i, line in enumerate(lines)
+                  if line.lstrip().startswith("# ") or line.lstrip().startswith("#")), None)
     start = (title + 1) if title is not None else 0
     # Find the description block: first non-empty, non-badge block after the title.
     idx = start
@@ -280,10 +282,6 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         readme_text = readme_path.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         readme_text = ""
-    if "<FILL:" in readme_text:
-        return 1, _triad(f"'{name}' README still holds the template description placeholder.",
-                          "the GitHub description comes from the README's first paragraph.",
-                          "replace the <FILL: ...> paragraph with one sentence, then archive again.")
     original = extract_readme_description(src)
     if description is not None:
         override = description.strip()
@@ -295,6 +293,12 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
             return 1, _triad(f"invalid --description ({len(override)} characters).",
                              f"an override holds one line of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters.",
                              f"write one line of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters.")
+    elif "<FILL:" in readme_text:
+        return 1, _triad(f"'{name}' README still holds the template description placeholder.",
+                          "the GitHub description comes from the README's first paragraph.",
+                          "replace the <FILL: ...> paragraph with one sentence, or pass a valid "
+                          f"`--description` of {DESCRIPTION_MIN}-{DESCRIPTION_MAX} characters, "
+                          "then archive again.")
     elif not original or len(original) < DESCRIPTION_MIN:
         return 1, _triad(f"'{name}' has no usable README description ({len(original)} characters).",
                           "the archived GitHub repository keeps a description, and it comes from "
@@ -305,12 +309,22 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
         override = None
     new_desc = archive_github_description(original, override or description)
     # Dirty trees are refused: the archive commit must describe the archived tree.
-    code, porcelain = run(["git", "status", "--porcelain"], src)
+    # Untracked files never ship in the banner commit, so they do not block;
+    # only tracked modifications do.
+    code, porcelain = run(["git", "status", "--porcelain", "--untracked-files=no"], src)
     if code != 0:
         return 1, _triad(f"could not inspect '{name}' for uncommitted changes.",
                          "git status failed, so the archive cannot prove the tree it retires.",
                          "fix the git error shown, then archive again; nothing was moved.")
     dirty = bool(porcelain.strip())
+    if not dirty:
+        _code_untracked, _porcelain_untracked = run(["git", "status", "--porcelain"], src)
+        if _code_untracked == 0 and bool(_porcelain_untracked.strip()):
+            notes_untracked = True
+        else:
+            notes_untracked = False
+    else:
+        notes_untracked = False
     if dirty and not allow_dirty:
         return 1, _triad(f"'{name}' has uncommitted changes; nothing was archived.",
                           "the archive commit must describe the tree being retired, not a working "
@@ -320,6 +334,8 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     notes: List[str] = []
     if dirty and allow_dirty:
         notes.append("Note: uncommitted changes move along uncommitted.")
+    if not dirty and notes_untracked:
+        notes.append("Note: untracked files move along uncommitted.")
     repo_url = get_project_repo_url(src, runner=run)
     slug = repo_slug(src, name)
     if repo_url and "/" in repo_url:

@@ -329,6 +329,11 @@ def _surface_paths(project_root: Path, evidence: List[str]) -> List[str]:
     """The smallest practical surface: detected entry files plus a source tree if one exists."""
     paths: List[str] = []
     for relative in evidence:
+        if not isinstance(relative, str) or not relative:
+            continue
+        candidate = Path(relative)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            continue
         if (project_root / relative).is_file() and relative not in paths:
             paths.append(relative)
     for relative, pattern in (("src", "src/**"), ("game.js", "game.js"), ("public", "public/**")):

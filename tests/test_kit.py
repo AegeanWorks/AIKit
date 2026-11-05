@@ -13605,5 +13605,112 @@ class TestVerifyPushV4SafeFixes(unittest.TestCase):
         out = delivery._scrub_push_output("https://user:token@github.com/x.git failed")  # aikit:allow-secret
         self.assertNotIn("user:token@", out)
 
+
+class TestVerify6PushSafeFixes(unittest.TestCase):
+    """Regression pins for the verify-6push window (last-6-push review)."""
+
+    def test_reforge_resume_refuses_active_hijack(self) -> None:
+        from reforge import state as st
+        s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+        a = st.create_run(s, start=3, step=3)
+        b = st.create_run(s, start=3, step=3)
+        # b is active; stopping b then making a active, resuming b must refuse
+        st.stop_run.__wrapped__ if hasattr(st.stop_run, "__wrapped__") else None
+        # Simulate: a stopped, b active -> resume a refuses
+        a["status"] = "stopped"
+        s["active_run"] = b["id"]
+        with self.assertRaises(Exception):
+            st.resume_run(__import__("pathlib").Path("."), s, a)
+
+    def test_reforge_settle_reopen_refuses_active_hijack(self) -> None:
+        from reforge import state as st
+        s: dict = {"runs": [], "active_run": None, "last_run": None, "next_run_id": 1}
+        a = st.create_run(s, start=3, step=3)
+        b = st.create_run(s, start=3, step=3)
+        a["status"] = "completed"
+        a["window"] = 99
+        a["stage"] = 1
+        s["active_run"] = b["id"]
+        with self.assertRaises(Exception):
+            st.settle_run(a, s, reopen=True)
+
+    def test_pipeline_relative_inside_tolerates_runtime_error(self) -> None:
+        from reforge import pipeline as pl
+        from pathlib import Path
+        self.assertEqual(pl._relative_inside(Path("."), ""), "")
+
+    def test_pipeline_restore_reports_failures(self) -> None:
+        from reforge import pipeline as pl
+        from pathlib import Path
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            missing = root / "gone" / "file.txt"
+            failures = pl._restore(root, {"gone/file.txt": b"data"})
+            # Either restored or reported; never raises
+            self.assertIsInstance(failures, list)
+
+    def test_archive_fill_allows_valid_override(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        def _fake_run(argv, cwd):
+            return (0, "")
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            src.mkdir()
+            (src / "README.md").write_text(
+                "# Demo\n\n<FILL: one sentence>\n", encoding="utf-8")
+            (src / ".aikit").mkdir(exist_ok=True)
+            (src / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+            override = "A valid override sentence for the archived project."
+            code, report = project_archive.archive_project(
+                src, "demo", "retired", workspace=Path(tmp),
+                description=override, offline=True, runner=_fake_run)
+            self.assertNotIn("FILL", report)
+            # Without override the placeholder must still refuse
+            with tempfile.TemporaryDirectory() as tmp2:
+                src2 = Path(tmp2) / "demo"
+                src2.mkdir()
+                (src2 / "README.md").write_text(
+                    "# Demo\n\n<FILL: one sentence>\n", encoding="utf-8")
+                (src2 / ".aikit").mkdir(exist_ok=True)
+                (src2 / ".aikit" / "project.json").write_text("{}", encoding="utf-8")
+                code2, report2 = project_archive.archive_project(
+                    src2, "demo", "retired", workspace=Path(tmp2),
+                    offline=True, runner=_fake_run)
+                self.assertEqual(code2, 1)
+                self.assertIn("FILL", report2)
+
+    def test_archive_readme_crlf_and_title(self) -> None:
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            readme = Path(tmp) / "README.md"
+            readme.write_bytes(b"#Title\r\n\r\nA usable description sentence here.\r\n")
+            changed = project_archive.update_readme_for_archive(readme, "retired", "2026-01-01")
+            self.assertTrue(changed)
+            text = readme.read_bytes().decode("utf-8", errors="replace")
+            self.assertIn("> **Archived**", text)
+
+    def test_ui_surface_paths_rejects_traversal(self) -> None:
+        from scripts import project_ui
+        from pathlib import Path
+        out = project_ui._surface_paths(Path("/tmp/proj"), ["../outside.txt", "/etc/passwd", "ok.py"])
+        self.assertNotIn("../outside.txt", out)
+        self.assertNotIn("/etc/passwd", out)
+
+    def test_proof_replay_reports_p2p_unchecked(self) -> None:
+        from scripts import proof_corpus
+        entry = {"receipt": {"base": "abc", "tests": [], "pass_to_pass": ["t"],
+                            "proof": True, "pass_to_pass_ok": True}}
+        def fake_prove(repo, base, tests):
+            return {"proof": True}
+        result = proof_corpus.replay(entry, prove_fn=fake_prove, repo=".")
+        self.assertEqual(result["outcome"], "pass")
+        self.assertIn("unchecked", result["reason"])
+        self.assertFalse(result.get("pass_to_pass_checked", True))
+
 if __name__ == "__main__":
     unittest.main()

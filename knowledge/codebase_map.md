@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
-- **Total Classes**: `153`
+- **Total Classes**: `154`
 - **Total Top-Level Functions**: `972`
-- **Total Class Methods**: `1142`
-- **Total Source Lines**: `43692`
+- **Total Class Methods**: `1150`
+- **Total Source Lines**: `43888`
 
 ---
 
@@ -444,7 +444,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `953` lines (`48372` bytes)
+**Size**: `989` lines (`49931` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -452,7 +452,7 @@
 - `def _scanner(label, text)`
 - `def _stop_value(stop)`
 - `def _snapshot(root, findings, extra_paths)`
-- `def _restore(root, snapshots)`
+- `def _restore(root, snapshots)` - *Restore snapshotted bytes; returns paths that could not be restored.*
 - `def _relative_inside(root, path)` - *The repository-relative form of a supplied file, or an empty string when it is outside.*
 - `def _preexisting_dirty(root, ignore)` - *Paths already dirty before Reforge repairs; its own state and artifacts are excluded.*
 - `def _owned_repairs(last)` - *Paths Reforge repaired itself, excluding targets that were dirty before the repair.*
@@ -551,7 +551,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `679` lines (`27002` bytes)
+**Size**: `697` lines (`27977` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -1051,7 +1051,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `465` lines (`23710` bytes)
+**Size**: `481` lines (`24523` bytes)
 
 **Functions:**
 - `def _triad(what, why, fix)`
@@ -1356,7 +1356,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `370` lines (`15256` bytes)
+**Size**: `375` lines (`15454` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1381,7 +1381,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `336` lines (`14560` bytes)
+**Size**: `350` lines (`15331` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1849,7 +1849,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `13609` lines (`745761` bytes)
+**Size**: `13716` lines (`750892` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2915,6 +2915,15 @@
   - Method `.test_archive_is_archived_tolerates_corrupt()`
   - Method `.test_reforge_registry_includes_review_analyze()`
   - Method `.test_delivery_scrub_redacts_url_credentials()`
+- `class TestVerify6PushSafeFixes` - *Regression pins for the verify-6push window (last-6-push review).*
+  - Method `.test_reforge_resume_refuses_active_hijack()`
+  - Method `.test_reforge_settle_reopen_refuses_active_hijack()`
+  - Method `.test_pipeline_relative_inside_tolerates_runtime_error()`
+  - Method `.test_pipeline_restore_reports_failures()`
+  - Method `.test_archive_fill_allows_valid_override()`
+  - Method `.test_archive_readme_crlf_and_title()`
+  - Method `.test_ui_surface_paths_rejects_traversal()`
+  - Method `.test_proof_replay_reports_p2p_unchecked()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`
