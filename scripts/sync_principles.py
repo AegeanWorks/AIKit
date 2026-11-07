@@ -686,11 +686,34 @@ def changed_principles(old_text: str, new_text: str) -> List[str]:
     return changed
 
 
+def _clause_after(combined: str, pid: str, window: int = 300) -> str:
+    """The text window after one cited ID, for per-ID reasoning checks."""
+    idx = combined.find(pid)
+    if idx < 0:
+        return ""
+    return combined[idx:idx + window]
+
+
+def _needs_reasoning(clause: str) -> bool:
+    """Whether one cited-ID clause states a falsifiable reason, not just a name."""
+    low = clause.lower()
+    has_reason = ("because" in low or "since" in low or "conflict" in low
+                  or "verified" in low or "no conflict" in low)
+    has_evidence = ("`" in clause or "scripts/" in clause or "tests/" in clause
+                    or "knowledge/" in clause or "decisions" in low
+                    or "guidelines" in low or "gate" in low or "check" in low
+                    or re.search(r"\bR\d+\b", clause) is not None)
+    return has_reason and has_evidence and len(clause.strip()) >= 20
+
+
 def cross_check_errors(old_text: str, new_text: str, old_decisions: str, new_decisions: str) -> List[str]:
     """
     PRINCIPLE-000 R3 made decidable: every principle whose section changed since the last commit
     needs an ADR added since then whose `Cross-principle check:` line names every principle
     `--citing` prints for it. Completeness used to rest on each model's own list.
+
+    Presence alone is attendance without attention: each named ID must carry a
+    because/since/conflict clause with an evidence token, so a bare `(no conflict)` fails with a fix.
     """
     changed = changed_principles(old_text, new_text)
     if not changed:
@@ -703,7 +726,8 @@ def cross_check_errors(old_text: str, new_text: str, old_decisions: str, new_dec
     lines = [m.group(1) for body in added for m in re.finditer(r"Cross-principle check:([^\n]*)", body)]
     if not lines:
         return [f"{', '.join(changed)} changed but no added ADR has a 'Cross-principle check:' line"]
-    named = set(re.findall(r"PRINCIPLE-\d{3}", " ".join(lines)))
+    combined = " ".join(lines)
+    named = set(re.findall(r"PRINCIPLE-\d{3}", combined))
     errors = []
     for pid in changed:
         source = new_text if pid in principle_sections(new_text) else old_text
@@ -711,6 +735,16 @@ def cross_check_errors(old_text: str, new_text: str, old_decisions: str, new_dec
         if missing:
             errors.append(f"{pid} changed; its Cross-principle check line omits {', '.join(missing)} "
                           f"(python scripts/sync_principles.py --citing {pid})")
+            continue
+        for required in citing_principles(source, pid):
+            clause = _clause_after(combined, required)
+            if not _needs_reasoning(clause):
+                errors.append(
+                    f"{pid} changed; its Cross-principle check names {required} "
+                    f"without a because-clause and evidence "
+                    f"(write `{required}: <verdict> because <reason with path/gate/Rn>`; "
+                    f"bare `(no conflict)` is attendance without attention)")
+                break
     return errors
 
 

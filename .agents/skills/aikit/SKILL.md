@@ -71,6 +71,7 @@ python scripts/disruption_recovery.py --track
 ### 1. Pre-Flight Checklist
 Review before making any code modifications on Track C tasks:
 - Freshness: Read target files in slices before writing (PRINCIPLE-003 R1).
+- Quality beats tax: search-first, slice until PRINCIPLE-003 R1 passes; PRINCIPLE-000/003/014 outrank PRINCIPLE-001/012 per PRINCIPLE-000 R6.
 - Call Sites: Grep all symbol references across the repository before refactoring (PRINCIPLE-003 R2).
 - Zero Undeclared Deps: Only use standard-library modules or explicitly declared dependencies (PRINCIPLE-003 R3).
 - Platform Parity: Use `pathlib.Path` and avoid shell-specific builtins (PRINCIPLE-003 R4).

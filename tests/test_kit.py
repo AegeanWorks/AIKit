@@ -2010,7 +2010,10 @@ class TestPrinciple000Unambiguity(unittest.TestCase):
                          ["PRINCIPLE-001 changed; its Cross-principle check line omits PRINCIPLE-002 "
                           "(python scripts/sync_principles.py --citing PRINCIPLE-001)"])
         complete = adr + "### ADR-002: rule\n- Cross-principle check: PRINCIPLE-002 (no conflict).\n"
-        self.assertEqual(cross_check_errors(old, new, adr, complete), [])
+        self.assertNotEqual(cross_check_errors(old, new, adr, complete), [])
+        reasoned = (adr + "### ADR-002: rule\n- Cross-principle check: PRINCIPLE-002: "
+                    "no conflict because gate `python scripts/sync_principles.py --check` still passes R3.\n")
+        self.assertEqual(cross_check_errors(old, new, adr, reasoned), [])
 
     def test_capsule_does_not_license_skipping_procedure(self):
         # Red-green pin: "code quality primacy over procedural formalism" read, alone in Tier 1,

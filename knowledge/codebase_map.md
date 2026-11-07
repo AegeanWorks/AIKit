@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
-- **Total Top-Level Functions**: `976`
+- **Total Top-Level Functions**: `978`
 - **Total Class Methods**: `1184`
-- **Total Source Lines**: `44853`
+- **Total Source Lines**: `44890`
 
 ---
 
@@ -1502,7 +1502,7 @@
 ### [`scripts/sync_principles.py`](scripts/sync_principles.py)
 > *Principles Auto-Sync Tool (PRINCIPLE-017)*
 
-**Size**: `826` lines (`41466` bytes)
+**Size**: `860` lines (`43117` bytes)
 
 **Functions:**
 - `def is_generated_target(text)` - *True when `text` carries this tool's generated-file header (current or legacy).*
@@ -1526,6 +1526,8 @@
 - `def _adr_blocks(decisions)` - *ADR ID -> its text, for every `### ADR-NNN:` heading.*
 - `def checklist_sections(ssot_text)` - *Extract Pre-Flight and Post-Flight checklist text if present.*
 - `def changed_principles(old_text, new_text)` - *Principles whose `### PRINCIPLE-NNN:` section or governed checklists differ (PRINCIPLE-000 R3).*
+- `def _clause_after(combined, pid, window)` - *The text window after one cited ID, for per-ID reasoning checks.*
+- `def _needs_reasoning(clause)` - *Whether one cited-ID clause states a falsifiable reason, not just a name.*
 - `def cross_check_errors(old_text, new_text, old_decisions, new_decisions)` - *PRINCIPLE-000 R3 made decidable: every principle whose section changed since the last commit*
 - `def git_head_text(rel_path)` - *`rel_path` as committed at HEAD, or None when git, a commit or the file is missing.*
 - `def print_help()` - *Print command line usage for sync_principles.py.*
@@ -1853,7 +1855,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14365` lines (`782524` bytes)
+**Size**: `14368` lines (`782800` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
