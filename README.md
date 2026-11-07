@@ -24,6 +24,8 @@
   ```
   *(100% test pass required before staging or committing).*
 
+> **Standing policy lives in `knowledge/decisions.md`** (append-only ADR register, linked from `knowledge/INDEX.md`): push authorization (ADR-338) and the analyze-first mandate (ADR-339) bind every agent working here, foreign harnesses included. Search it before asking the operator; it outranks chat history.
+
 ### 🛠️ Core Operational Command Matrix
 | Operational Role| Canonical Command| Verification Gate|
 |---|---|---|
