@@ -4809,6 +4809,13 @@ class TestDisruptionRecovery(unittest.TestCase):
         # marker anywhere but last hid which gates were skipped (PRINCIPLE-002 R5).
         good = "fix(gates): repair map\n\nUnverified: tiers, dogfood (host load, rerun next)"
         self.assertTrue(validate_conventional_commit(good)[0])
+        # Prose merely mentioning the word stays innocent: only a line-initial
+        # marker counts as an override attempt.
+        for msg in ("fix(x): parse unverified: flag",
+                    "fix(x): handle unverified tokens",
+                    "fix(gates): repair map\n\nSee unverified: results above\n\nDone"):
+            with self.subTest(msg=msg):
+                self.assertTrue(validate_conventional_commit(msg)[0], msg)
         for msg in ("fix(gates): repair map\n\nUnverified:",
                     "fix(gates): repair map\n\nUnverified: x",
                     "fix(gates): repair map\n\nUnverified: tiers\n\nnotes after",
@@ -10022,6 +10029,12 @@ class TestPostCommitVerification(unittest.TestCase):
         decl = {"tests": ["tests/test_x.py"], "paths": ["scripts/**"],
                 "max_files": 2, "max_lines": 100}
         self.assertEqual(scope_errors(decl, ["scripts/a.py"], 10), [])
+        # `**` is recursive across directories (pathlib match is not).
+        self.assertEqual(scope_errors(decl, ["scripts/a/b/c.py"], 10), [])
+        self.assertEqual(scope_errors({"tests": ["tests/test_x.py"], "paths": ["scripts"]},
+                                       ["scripts/a/b.py"], 10), [])
+        self.assertEqual(scope_errors({"tests": ["tests/test_x.py"], "paths": ["**/*.py"]},
+                                       ["a.py", "x/y.py"], 10), [])
         # Ledger, declaration carrier and generated map never constrain scope.
         self.assertEqual(scope_errors(
             decl, ["scripts/a.py", ".agents/task_ledger.json",

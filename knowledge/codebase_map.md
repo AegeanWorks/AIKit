@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
-- **Total Top-Level Functions**: `987`
+- **Total Top-Level Functions**: `988`
 - **Total Class Methods**: `1187`
-- **Total Source Lines**: `45108`
+- **Total Source Lines**: `45148`
 
 ---
 
@@ -875,7 +875,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2159` lines (`102722` bytes)
+**Size**: `2160` lines (`102827` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -1644,7 +1644,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `695` lines (`33830` bytes)
+**Size**: `721` lines (`34829` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1654,6 +1654,7 @@
 - `def _scope_list(value, field)` - *Validate one optional scope allowlist; absent means unenforced.*
 - `def _scope_int(value, field)` - *Validate one optional scope budget; 0/absent means unenforced.*
 - `def _scope_exempt(path)` - *Whether `path` (repo-relative, forward slashes) sits outside scope.*
+- `def _glob_match(path, pattern)` - *Recursive glob: `**` spans zero or more segments, `*?[]` stay in-segment.*
 - `def _scope_match(path, patterns)` - *Whether one repo-relative path matches any allowlist glob.*
 - `def scope_errors(declaration, files, added_lines)` - *Scope failures for one declaration against changed files and diff size.*
 - `def _numstat_total(output)` - *Added plus deleted lines across a `git diff --numstat` output.*
@@ -1864,7 +1865,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14417` lines (`785873` bytes)
+**Size**: `14430` lines (`786779` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*

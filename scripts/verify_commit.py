@@ -191,11 +191,37 @@ def _scope_exempt(path: str) -> bool:
     return normalized == "task_ledger.json" or normalized.endswith("/task_ledger.json")
 
 
+def _glob_match(path: str, pattern: str) -> bool:
+    """Recursive glob: `**` spans zero or more segments, `*?[]` stay in-segment.
+
+    `pathlib.PurePath.match` does not let `**` cross directories
+    (`scripts/**` misses `scripts/a/b.py`), so scope matching is segment-wise
+    here. A pattern without glob characters also matches everything beneath
+    that directory (`scripts` covers `scripts/a.py`).
+    """
+    import fnmatch as _fn
+    candidate = path.replace("\\", "/").strip()
+    pat = pattern.replace("\\", "/").strip()
+    if not any(char in pat for char in "*?["):
+        return candidate == pat or candidate.startswith(pat.rstrip("/") + "/")
+    p_segs = pat.split("/")
+    s_segs = candidate.split("/")
+
+    def rec(pi: int, si: int) -> bool:
+        if pi == len(p_segs):
+            return si == len(s_segs)
+        if p_segs[pi] == "**":
+            return any(rec(pi + 1, k) for k in range(si, len(s_segs) + 1))
+        if si >= len(s_segs):
+            return False
+        return _fn.fnmatchcase(s_segs[si], p_segs[pi]) and rec(pi + 1, si + 1)
+
+    return rec(0, 0)
+
+
 def _scope_match(path: str, patterns: List[str]) -> bool:
     """Whether one repo-relative path matches any allowlist glob."""
-    from pathlib import PurePosixPath as _Pure
-    candidate = _Pure(path.replace("\\", "/"))
-    return any(candidate.match(pattern) for pattern in patterns)
+    return any(_glob_match(path, pattern) for pattern in patterns)
 
 
 def scope_errors(declaration: Dict[str, Any], files: List[str],

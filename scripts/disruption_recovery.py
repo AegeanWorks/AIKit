@@ -1505,13 +1505,14 @@ def validate_conventional_commit(message: str) -> Tuple[bool, str]:
 
     # Informed override (PRINCIPLE-002 R5): a message that names Unverified must end
     # with the line `Unverified: <the gates named>`. A bare marker, an empty gate
-    # list, or the marker anywhere but last hides which gates were skipped.
-    if "nverified:" in message or "nverified :" in message:
+    # list, or the marker anywhere but last hides which gates were skipped. Only a
+    # line-initial marker counts; prose merely mentioning the word stays innocent.
+    import re as _re
+    if any(_re.match(r"^[ \t]*[Uu]nverified[ \t]*:", line) for line in lines):
         last = ""
         for line in lines:
             if line.strip():
                 last = line.strip()
-        import re as _re
         if not _re.match(r"^Unverified:[ \t]*\S.{5,}\s*$", last):
             return (False, "Malformed Unverified override: the message must end with the line "
                     "'Unverified: <the gates named>' naming each unrun or failing gate "
