@@ -42,6 +42,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # Tests that commit (reforge repair, integration fixtures) need an identity;
+      # fresh runners have none, so the repair commit fails before any assertion runs.
+      - name: Provide git identity for committing tests
+        run: |
+          git config --global user.email "aikit-ci@example.com"
+          git config --global user.name "AIKit CI"
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v7
         with:

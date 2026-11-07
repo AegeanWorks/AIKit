@@ -10,7 +10,7 @@
 - **Total Classes**: `157`
 - **Total Top-Level Functions**: `989`
 - **Total Class Methods**: `1189`
-- **Total Source Lines**: `45211`
+- **Total Source Lines**: `45213`
 
 ---
 
@@ -1465,7 +1465,7 @@
 ### [`scripts/subagent_delegate.py`](scripts/subagent_delegate.py)
 > *Sub-agent delegation: run one OpenCode sub-agent on a bounded brief (ADR-126, ADR-128).*
 
-**Size**: `280` lines (`14647` bytes)
+**Size**: `282` lines (`14828` bytes)
 
 **Functions:**
 - `def delegate_kill_path(workspace)` - *Default kill-file location for `workspace` (S-D F2).*
@@ -1866,7 +1866,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14452` lines (`788643` bytes)
+**Size**: `14452` lines (`788663` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*

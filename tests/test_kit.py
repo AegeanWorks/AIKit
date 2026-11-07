@@ -4860,11 +4860,11 @@ class TestDisruptionRecovery(unittest.TestCase):
         # contention, not a fault; it crashed a parallel checkpoint under suite load.
         real_open, calls = os.open, []
 
-        def flaky_open(path, flags, *args):
+        def flaky_open(path, flags, *args, **kwargs):
             calls.append(path)
             if len(calls) == 1:
                 raise PermissionError(13, "delete pending")
-            return real_open(path, flags, *args)
+            return real_open(path, flags, *args, **kwargs)
 
         self.addCleanup(setattr, os, "open", real_open)
         os.open = flaky_open

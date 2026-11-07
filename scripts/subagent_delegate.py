@@ -113,7 +113,9 @@ def direct_executable(found: str) -> str:
         match = SHIM_TARGET_RE.search(path.read_text(encoding="utf-8", errors="replace"))
     except OSError:
         return found
-    target = path.parent / match.group(1) if match else None
+    # npm shims address their target with Windows separators; split on both so the
+    # target resolves on POSIX too, where a backslash is a filename character.
+    target = path.parent / match.group(1).replace("\\", "/") if match else None
     return str(target) if target is not None and target.is_file() else found
 
 
