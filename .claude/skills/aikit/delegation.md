@@ -29,3 +29,4 @@ opencode run --standalone --format json --agent reviewer "<audit_prompt>"
 opencode run --standalone --format json --agent coder --model ollama/qwen2.5-coder:latest --auto "<prompt>"
 ```
 *(Subagents MUST NOT write to the ledger; only the root orchestrator writes checkpoints).*
+- **One task per ledger**: each workspace has one active task (`workspace_ledger_path`); parallel work uses a separate project (`--workspace`) or worktree, never two writers to one ledger — a second agent waits or uses `--take-over` after the first stopped.
