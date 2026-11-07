@@ -9,8 +9,8 @@
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
 - **Total Top-Level Functions**: `989`
-- **Total Class Methods**: `1189`
-- **Total Source Lines**: `45215`
+- **Total Class Methods**: `1190`
+- **Total Source Lines**: `45231`
 
 ---
 
@@ -1599,7 +1599,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1212` lines (`57326` bytes)
+**Size**: `1214` lines (`57447` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1866,7 +1866,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14457` lines (`788920` bytes)
+**Size**: `14471` lines (`789940` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1972,6 +1972,7 @@
 - `class TestPythonFileDiscovery` - *`find_python_files` prunes ignored directories relative to the root (ADR-115).*
   - Method `.test_a_repository_under_an_ignored_name_is_still_scanned()`
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`
+  - Method `.test_top_level_wildcard_gitignore_prunes_the_directory()`
   - Method `.test_this_repository_ignores_references()`
   - Method `.test_this_repository_ignores_kilo_state()`
   - Method `.test_temporary_python_buffers_are_not_catalogued()`

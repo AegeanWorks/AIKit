@@ -1356,6 +1356,20 @@ class TestPythonFileDiscovery(unittest.TestCase):
         self.assertEqual(found, ["keep/references/x.py", "notes/n.py", "pkg/mod.py"],
                          "only `name/` or `/name/` entries prune, and only at the top level")
 
+    def test_top_level_wildcard_gitignore_prunes_the_directory(self):
+        # PRINCIPLE-016 R7 / ADR-333: `/reports/*` keeps the triage inbox local-only, but the
+        # discovery walker only understood `name/`, so every repro script entered the code map
+        # and failed AIKit's structure gate even though git never tracks it.
+        root = Path(tempfile.mkdtemp(prefix="test_discovery_reports_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for rel in ("pkg/mod.py", "reports/repro.py", "keep/reports/x.py"):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text("x = 1\n", encoding="utf-8")
+        (root / ".gitignore").write_text("reports/*\n!/reports/README.md\n", encoding="utf-8")
+        found = [p.relative_to(root).as_posix() for p in find_python_files(root)]
+        self.assertEqual(found, ["keep/reports/x.py", "pkg/mod.py"],
+                         "a top-level `/name/*` entry prunes that directory, nowhere else")
+
     def test_this_repository_ignores_references(self):
         self.assertIn("references/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
 
@@ -9489,6 +9503,37 @@ class TestProjectArchive(unittest.TestCase):
             self.assertTrue(update_readme_for_archive(readme, "retired", "2026-11-05"))
             self.assertIn("> **Archived**: retired", readme.read_text(encoding="utf-8"))
 
+    def test_banner_goes_after_description_when_media_block_precedes_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            readme = root / "README.md"
+            readme.write_text(
+                "# demo\n\n"
+                "<!-- aegean:media:start -->\n"
+                "<p align=\"center\"><img src=\"assets/social-preview.png\" alt=\"demo\"></p>\n"
+                "<!-- aegean:media:end -->\n\n"
+                "A tool that does X for Y users here.\n\n## Quick\n",
+                encoding="utf-8")
+            self.assertTrue(update_readme_for_archive(readme, "superseded by X", "2026-11-05"))
+            text = readme.read_text(encoding="utf-8")
+            self.assertLess(text.index("A tool that does X for Y users here."),
+                            text.index("> **Archived**"),
+                            "the banner must follow the description, not the media block")
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+
+    def test_existing_archive_banner_is_not_the_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "README.md").write_text(
+                "# demo\n\n"
+                "> **Archived**: retired for X (archived 2026-11-05). "
+                "This project is read-only; its GitHub repository is archived.\n\n"
+                "A tool that does X for Y users here.\n",
+                encoding="utf-8")
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+
     def test_github_description_prefixes_archived_once(self):
         self.assertEqual(archive_github_description("A tool that does X."),
                          "[ARCHIVED] A tool that does X.")
@@ -9551,7 +9596,12 @@ class TestProjectArchive(unittest.TestCase):
             self.assertEqual(code, 0, report)
             kinds = [" ".join(str(a) for a in call) for call in self.calls]
             self.assertTrue(any("push" in kind for kind in kinds), kinds)
-            self.assertTrue(any("repo edit" in kind and "description" in kind for kind in kinds), kinds)
+            edits = [kind for kind in kinds if "repo edit" in kind and "description" in kind]
+            self.assertTrue(edits, kinds)
+            self.assertTrue(any("[ARCHIVED] A tool that turns X into Y for Z users here." in edit
+                                for edit in edits), edits)
+            self.assertFalse(any("superseded by X" in edit for edit in edits),
+                             "the archive reason is not the repository description")
             self.assertTrue(any("repo archive" in kind for kind in kinds), kinds)
             self.assertIn("[ARCHIVED]", report)
             dst = ws / "projects" / "archive" / "demo"

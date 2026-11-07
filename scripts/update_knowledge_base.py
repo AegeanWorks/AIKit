@@ -235,15 +235,17 @@ def _extract_symbols_uncached(file_path: Path, content: str, strict: bool) -> Di
     }
 
 
-# A root `.gitignore` line naming one directory, `name/` or `/name/`: no glob, no negation.
-GITIGNORED_DIR_RE = re.compile(r"^/?([^\s/*?\[\]!#]+)/$")
+# A root `.gitignore` line naming one directory (`name/`, `/name/`) or all of its contents
+# (`name/*`, `/name/*`): no other glob, no negation.
+GITIGNORED_DIR_RE = re.compile(r"^/?([^\s/*?\[\]!#]+)/(?:\*)?$")
 
 
 def gitignored_top_dirs(root: Path) -> Set[str]:
     """
     The top-level directories `root/.gitignore` excludes by name. Git never tracks them, so their
     code is no part of the repository and must not enter its map or structure checks (ADR-201).
-    Glob and nested patterns are left to git: only the plain form is recognised.
+    Only the plain directory form and the all-contents form (`/reports/*`) are recognised; other
+    glob and nested patterns are left to git.
     """
     try:
         lines = (root / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
