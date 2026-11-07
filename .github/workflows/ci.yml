@@ -88,11 +88,14 @@ jobs:
       - name: Universal CLI contract
         shell: bash
         run: |
+          # NOTE: the runner invokes this script with `set -e`, and the misuse probe
+          # exits 2 by design. A bare probe would kill the shell before `code=$?`
+          # runs, so the probe must be guarded by `||` for the gate to execute at all.
           for s in sync_principles disruption_recovery update_knowledge_base dogfood check_reachability check_secrets; do
             python "scripts/$s.py" --help > /dev/null < /dev/null \
               || { echo "::error::scripts/$s.py --help did not exit 0"; exit 1; }
-            python "scripts/$s.py" --not-a-real-flag > /dev/null 2>&1 < /dev/null
-            code=$?
+            code=0
+            python "scripts/$s.py" --not-a-real-flag > /dev/null 2>&1 < /dev/null || code=$?
             if [ "$code" -ne 2 ]; then
               echo "::error::scripts/$s.py returned $code on CLI misuse, expected 2"
               exit 1
