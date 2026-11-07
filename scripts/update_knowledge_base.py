@@ -65,7 +65,7 @@ IGNORE_DIRS = {
 # Oldest Python the repository supports (README "Runtime Prerequisites", PRINCIPLE-003 R4). Parsing
 # with this grammar makes the AST gate reject syntax that only newer interpreters accept, which a
 # developer on a newer Python would otherwise never see fail locally.
-MIN_PYTHON = (3, 10)
+MIN_PYTHON = (3, 13)
 
 FUNCTION_NODES = (ast.FunctionDef, ast.AsyncFunctionDef)
 

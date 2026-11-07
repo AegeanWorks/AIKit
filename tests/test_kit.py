@@ -728,7 +728,7 @@ class TestPrincipleSync(unittest.TestCase):
 
         # 2. Orientation block & prerequisites
         self.assertIn("30-Second Cold-Start Quick Reference", readme_content, "Missing 30s quick reference in README.md")
-        self.assertIn("Python 3.10+", readme_content, "Missing Python runtime prerequisite in README.md")
+        self.assertIn("Python 3.13+", readme_content, "Missing Python runtime prerequisite in README.md")
         self.assertIn("python -m unittest discover tests", readme_content, "Missing canonical test command in README.md")
         
         # 3. Whole-Tree Drift Shield and command parity, by the same check the gate runs. This
@@ -819,7 +819,7 @@ class TestPrinciple005ReadmeGate(unittest.TestCase):
     """PRINCIPLE-005: every README rule a program can decide is decided by `audit_readme`."""
 
     TREE = (
-        "## ⚡ 30-Second Cold-Start Quick Reference\n- **Runtime Prerequisites**: Python 3.10+\n"
+        "## ⚡ 30-Second Cold-Start Quick Reference\n- **Runtime Prerequisites**: Python 3.13+\n"
         "- **Canonical Regression Shield Gate**:\n  ```bash\n  make test\n  ```\n"
         "## 📦 What's Inside\n```text\nrepo/\n"
         "├── README.md\n├── scripts/\n│   └── tool.py      <- a tool\n└── docs/\n```\n"
@@ -911,7 +911,7 @@ class TestPrinciple005ReadmeGate(unittest.TestCase):
                  "**Canonical Regression Shield Gate**: run the tests.\n")
         self.assertIn("README.md has no heading containing 'Cold-Start Quick Reference' (R1)",
                       self.audit(prose + self.TREE.split("## 📦")[1].join(["## 📦", ""])))
-        no_version = self.TREE.replace("Python 3.10+", "Python")
+        no_version = self.TREE.replace("Python 3.13+", "Python")
         self.assertIn("'- **Runtime Prerequisites**:' names no minimum version (R1)", self.audit(no_version))
         no_command = self.TREE.replace("  ```bash\n  make test\n  ```\n", "")
         self.assertIn("the Quick Reference has no fenced command right after "
@@ -2863,34 +2863,39 @@ class TestPrinciple003Unambiguity(unittest.TestCase):
         self.assertIn("temp-buffer scan: denied", report)
 
     def test_ast_gate_rejects_syntax_newer_than_the_minimum(self):
-        # R4/R7: the developer's interpreter is newer than the declared minimum (3.14 vs 3.10), so
+        # R4/R7: the developer's interpreter is newer than the declared minimum (3.14 vs 3.13), so
         # newer syntax would pass locally and fail for users. The gate parses at MIN_PYTHON.
-        self.assertEqual(MIN_PYTHON, (3, 10))
+        self.assertEqual(MIN_PYTHON, (3, 13))
         prereq = next(l for l in README_MD.read_text(encoding="utf-8").splitlines()
                       if "Runtime Prerequisites" in l)
         self.assertIn(f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+", prereq, "MIN_PYTHON drifted from README")
         probe = Path(tempfile.mkdtemp(prefix="test_minver_")) / "m.py"
         self.addCleanup(shutil.rmtree, probe.parent, ignore_errors=True)
-        for name, source in (("except* (3.11)", "try:\n    pass\nexcept* ValueError:\n    pass\n"),
-                             ("PEP 695 (3.12)", "def f[T](x: T) -> T:\n    return x\n")):
+        for name, source in (("t-string (3.14)", 'x = t"hello {name}"\n'),):
             with self.subTest(syntax=name):
                 probe.write_text(source, encoding="utf-8")
                 with self.assertRaises(ValueError):
                     extract_python_symbols(probe, strict=True)
+        probe.write_text("def f[T](x: T) -> T:\n    return x\n", encoding="utf-8")
+        self.assertNotIn("error", extract_python_symbols(probe))  # PEP 695 is 3.13 syntax now
+        probe.write_text('f"{x["k"]}"\n', encoding="utf-8")
+        self.assertNotIn("error", extract_python_symbols(probe))  # PEP 701 nesting is 3.13 syntax now
         probe.write_text("match 1:\n    case 1:\n        pass\n", encoding="utf-8")
-        self.assertNotIn("error", extract_python_symbols(probe))  # 3.10 syntax is fine
+        self.assertNotIn("error", extract_python_symbols(probe))  # 3.13 syntax is fine
 
     def test_no_standard_library_apis_newer_than_the_minimum(self):
-        # The parser cannot see API age; these are the post-3.10 stdlib names most often reached for.
-        # Names are assembled from fragments so this test's own source never matches itself.
-        names = ["toml" + "lib", "itertools." + "batched", ".walk" + "()", "datetime." + "UTC",
-                 "typing." + "Self", "Exception" + "Group", "Task" + "Group", "contextlib." + "chdir",
-                 "Str" + "Enum", "file_" + "digest"]
+        # The parser cannot see API age; these are the post-3.13 standard-library names most
+        # likely to be reached for. Names are assembled from fragments so this test's own
+        # source never matches itself. The list tracks the floor: it names APIs added after
+        # 3.13 and must grow when the floor moves again.
+        names = ["compression." + "zstd", "annotation" + "lib"]
         newer = "|".join(re.escape(n) for n in names)
-        for path in [*sorted((ROOT_DIR / "scripts").glob("*.py")), *sorted((ROOT_DIR / "tests").glob("*.py"))]:
+        for path in [*(sorted((ROOT_DIR / "scripts").glob("*.py"))),
+                     *(sorted((ROOT_DIR / "tests").glob("*.py"))),
+                     *(sorted((ROOT_DIR / "reforge").glob("*.py")))]:
             source = path.read_text(encoding="utf-8")
             with self.subTest(file=path.name):
-                self.assertNotRegex(source, newer, f"{path.name} uses a standard-library API newer than 3.10")
+                self.assertNotRegex(source, newer, f"{path.name} uses a standard-library API newer than 3.13")
 
     def test_scripts_follow_platform_parity(self):
         # R4, mechanically: no shell strings, no hardcoded interpreter names.
@@ -6312,7 +6317,7 @@ class TestProjectRegistry(unittest.TestCase):
             return audit_readme(text, tracked, lambda rel: (folder / rel).exists(), lambda rel: None)
 
         self.assertIn("unfilled '<FILL:' placeholder", "".join(audit(readme)))
-        self.assertEqual(audit(re.sub(r"<FILL:[^>]*>", "Python 3.10+ and git", readme)), [])
+        self.assertEqual(audit(re.sub(r"<FILL:[^>]*>", "Python 3.13+ and git", readme)), [])
 
     def test_fix_adopts_a_detected_ui_contract(self):
         folder = self.make_folder(
@@ -6330,7 +6335,7 @@ class TestProjectRegistry(unittest.TestCase):
         folder = self.make_folder(
             ("README.md",
              "# demo\n\n## ⚡ 30-Second Cold-Start Quick Reference\n"
-             "- **Runtime Prerequisites**: Python 3.10+\n"
+             "- **Runtime Prerequisites**: Python 3.13+\n"
              "- **Canonical Regression Shield Gate**:\n  ```bash\n  python -m unittest discover\n  ```\n\n"
              "## 📦 What's Inside\n\n```text\ndemo/\n"
              "├── .gitignore\n"
@@ -6357,7 +6362,7 @@ class TestProjectRegistry(unittest.TestCase):
         folder = self.make_folder(
             ("README.md",
              "# demo\n\n## ⚡ 30-Second Cold-Start Quick Reference\n"
-             "- **Runtime Prerequisites**: Python 3.10+\n"
+             "- **Runtime Prerequisites**: Python 3.13+\n"
              "- **Canonical Regression Shield Gate**:\n  ```bash\n  python -m unittest discover\n  ```\n\n"
              "## 📦 What's Inside\n\n```text\ndemo/\n"
              "├── .gitignore\n"
@@ -7578,8 +7583,8 @@ class TestGateCommandsHaveOneLine(unittest.TestCase):
 
 class TestAnnotationsResolveOnEverySupportedPython(unittest.TestCase):
     """
-    Python 3.14 evaluates annotations only when they are read (PEP 649); Python 3.10 to 3.13,
-    which README and CI support, evaluate them when `def` runs. An annotation naming something
+    Python 3.14 evaluates annotations only when they are read (PEP 649); Python 3.13,
+    which this repo still supports, evaluates them when `def` runs. An annotation naming something
     never imported therefore passes every test on 3.14 and makes the module unimportable on the
     rest. `aikit_cli` shipped exactly that (`Dict`, ADR-181), and CI could not catch it. Reading
     every `__annotations__` here forces the older, eager evaluation on any interpreter.
@@ -7594,7 +7599,7 @@ class TestAnnotationsResolveOnEverySupportedPython(unittest.TestCase):
                 continue
             module = importlib.import_module(f"scripts.{path.stem}")
             # Module-level annotations (`TABLE: Dict[str, int] = {}`) are deferred on 3.14 too and
-            # evaluated at import on 3.10-3.13; reading them here covers that case (ADR-188).
+            # evaluated at import on 3.13; reading them here covers that case (ADR-188).
             try:
                 module.__annotations__
             except NameError as error:
@@ -7611,7 +7616,7 @@ class TestAnnotationsResolveOnEverySupportedPython(unittest.TestCase):
                             owner.__annotations__
                         except NameError as error:
                             unresolved.append(f"{module.__name__}.{owner.__qualname__}: {error}")
-        self.assertEqual(unresolved, [], "these annotations break import on Python 3.10-3.13")
+        self.assertEqual(unresolved, [], "these annotations break import on Python 3.13")
 
 
 class TestAikitHelpFastPath(unittest.TestCase):

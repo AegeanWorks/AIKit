@@ -10,7 +10,7 @@
 - **Total Classes**: `157`
 - **Total Top-Level Functions**: `989`
 - **Total Class Methods**: `1189`
-- **Total Source Lines**: `45213`
+- **Total Source Lines**: `45215`
 
 ---
 
@@ -1705,7 +1705,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2160` lines (`111905` bytes)
+**Size**: `2157` lines (`111653` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1848,10 +1848,10 @@
   - Method `.test_delivered_registration_is_best_effort()`
   - Method `.test_check_push_reports_registered_ideas()`
   - Method `.test_publish_reports_registered_ideas_only_after_success()`
-- `class TestFstringsParseOnPython310` - *Since 3.12 (PEP 701) an f-string may reuse its own quote, or hold a backslash or `#`, inside*
-  - Method `.rejected_on_310(src)`
-  - Method `.test_the_check_flags_what_310_rejects_and_nothing_it_accepts()`
-  - Method `.test_no_fstring_in_aikit_needs_python_312()`
+- `class TestTstringsNeedPython314` - *T-strings (PEP 750) tokenize only on 3.14+; on the 3.13 floor they are a*
+  - Method `.uses_tstring(src)`
+  - Method `.test_the_check_flags_tstrings_and_nothing_else()`
+  - Method `.test_no_tstring_in_aikit_needs_python_314()`
 
 **Functions:**
 - `def review_attestations(packet)` - *One valid quote and note per packet hunk, for tests that need a complete answer.*
@@ -1866,7 +1866,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14452` lines (`788663` bytes)
+**Size**: `14457` lines (`788920` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2453,7 +2453,7 @@
 - `class TestGateCommandsHaveOneLine` - *Windows `cmd /c` runs only the first line of a command, so `exit 0\nexit 7` reported success*
   - Method `.test_a_nul_inside_a_command_is_refused_instead_of_crashing()`
   - Method `.test_a_line_break_inside_a_command_is_refused_without_running_it()`
-- `class TestAnnotationsResolveOnEverySupportedPython` - *Python 3.14 evaluates annotations only when they are read (PEP 649); Python 3.10 to 3.13,*
+- `class TestAnnotationsResolveOnEverySupportedPython` - *Python 3.14 evaluates annotations only when they are read (PEP 649); Python 3.13,*
   - Method `.test_every_annotation_in_scripts_names_something_defined()`
 - `class TestAikitHelpFastPath` - *`python aikit.py --help` parses with scripts/aikit_parser.py alone, so it must stay light*
   - Method `.test_parser_constants_match_the_modules_they_mirror()`

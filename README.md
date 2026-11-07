@@ -2,7 +2,7 @@
 
 <!-- aegean:media:start -->
 <p align="center"><img src="assets/social-preview.png" alt="AIKit social preview" width="100%"></p>
-<p align="center"><a href="LICENSE"><img src="https://img.shields.io/badge/license-AL--1.1-2f9e44" alt="License"></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-3776AB" alt="Python 3.10+"></a></p>
+<p align="center"><a href="LICENSE"><img src="https://img.shields.io/badge/license-AL--1.1-2f9e44" alt="License"></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.13%2B-3776AB" alt="Python 3.13+"></a></p>
 *The banner is AI-generated and illustrative, not a literal feature map.*
 <!-- aegean:media:end -->
 
@@ -17,7 +17,7 @@
 
 > **Orientation Contract**: verified commands and prerequisites below.
 
-- **Runtime Prerequisites**: Python 3.10+ (standard library only; no pip dependencies), `git`, and `gh` for GitHub work.
+- **Runtime Prerequisites**: Python 3.13+ (standard library only; no pip dependencies), `git`, and `gh` for GitHub work.
 - **Canonical Regression Shield Gate**:
   ```bash
   python -m unittest discover tests
@@ -39,7 +39,7 @@
 | **Verify Rule Freshness**| `python scripts/sync_principles.py --check`| Read-only; exits 1 on rule drift, or when a principle changed since the last commit lacks an ADR naming its `--citing` set (PRINCIPLE-000 R3)|
 | **Find Principles to Read**| `python scripts/sync_principles.py --involved <paths/commands/output>`| Same answer for every agent (PRINCIPLE-001 R3)|
 | **Cross-Principle Check Set**| `python scripts/sync_principles.py --citing <PRINCIPLE-NNN>`| Principles a rule change must be checked against (PRINCIPLE-000 R3)|
-| **Update AST & Knowledge**| `python scripts/update_knowledge_base.py`| Rewrites the codebase map, then runs every audit of `--check` below; exits 1 on a syntax error (Python 3.10 grammar) or any audit failure|
+| **Update AST & Knowledge**| `python scripts/update_knowledge_base.py`| Rewrites the codebase map, then runs every audit of `--check` below; exits 1 on a syntax error (Python 3.13 grammar) or any audit failure|
 | **Codebase Digest**| `python scripts/update_knowledge_base.py --digest`| Read-only; one line per module in at most 100 lines, shared code first; a cut is stated|
 | **Verify AST Map Freshness**| `python scripts/update_knowledge_base.py --check`| Read-only; exits 1 on a stale codebase map, README drift (PRINCIPLE-005), a `python <path>.py` naming a missing file, an ADR ID out of order, unfinished code (PRINCIPLE-007 R3) or a code-structure violation (PRINCIPLE-009 to PRINCIPLE-011)|
 | **Classify Lifecycle Track**| `python scripts/disruption_recovery.py --track`| Prints Track A/B/C of current changes (PRINCIPLE-002 R3)|
