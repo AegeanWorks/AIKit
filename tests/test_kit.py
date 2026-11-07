@@ -130,6 +130,7 @@ from scripts.disruption_recovery import (
 from scripts.aikit_cli import build_parser, main as aikit_main
 from scripts.verify_commit import (
     PROOF_DEFAULTS,
+    _numstat_total,
     proof_command_from_declaration,
     proof_gate_command,
     scanned_range,
@@ -10059,6 +10060,14 @@ class TestPostCommitVerification(unittest.TestCase):
         self.assertTrue(scope_errors(decl, ["scripts/a.py"], 101))
         self.assertEqual(scope_errors({"tests": ["tests/test_x.py"]},
                                        ["anything/at/all.py"], 10**9), [])
+
+    def test_numstat_counts_binary_files_as_single_line_changes(self):
+        # `git diff --numstat` reports `- -` for binaries; each counts as one
+        # changed line so a binary cannot slip under a `max_lines` budget uncounted.
+        self.assertEqual(_numstat_total("10\t2\ta.py\n"), 12)
+        self.assertEqual(_numstat_total("-\t-\timg.png\n"), 1)
+        self.assertEqual(_numstat_total("-\t-\ta.png\n3\t1\tb.py\n"), 5)
+        self.assertEqual(_numstat_total(""), 0)
 
     def test_a_proof_declaration_without_tests_or_required_sources_is_refused(self):
         with self.assertRaises(ValueError):

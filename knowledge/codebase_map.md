@@ -9,8 +9,8 @@
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
 - **Total Top-Level Functions**: `989`
-- **Total Class Methods**: `1188`
-- **Total Source Lines**: `45191`
+- **Total Class Methods**: `1189`
+- **Total Source Lines**: `45211`
 
 ---
 
@@ -1645,7 +1645,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `721` lines (`34829` bytes)
+**Size**: `732` lines (`35256` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1659,7 +1659,7 @@
 - `def _scope_match(path, patterns)` - *Whether one repo-relative path matches any allowlist glob.*
 - `def scope_errors(declaration, files, added_lines)` - *Scope failures for one declaration against changed files and diff size.*
 - `def _numstat_total(output)` - *Added plus deleted lines across a `git diff --numstat` output.*
-- `def commit_files_and_lines(ref, repo, run)` - *Changed files and changed lines for one commit (root commit = whole tree).*
+- `def commit_files_and_lines(ref, repo, run)` - *Changed files and changed lines for one commit.*
 - `def proof_command_from_declaration(declaration, *, worktree, parent, script)` - *Build the proof-gate command from a parsed `.aikit/proof.json` object.*
 - `def scope_step(worktree, ref, repo, run)` - *Scope verdict for a commit carrying `.aikit/proof.json`; None when absent.*
 - `def proof_gate_command(worktree, ref, run)` - *The declared proof command for a commit, or None when no declaration exists.*
@@ -1866,7 +1866,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14443` lines (`788142` bytes)
+**Size**: `14452` lines (`788643` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2672,6 +2672,7 @@
   - Method `.test_min_killed_flag_follows_the_schema_default()`
   - Method `.test_scope_keys_are_optional_but_validated()`
   - Method `.test_scope_errors_name_outside_files_and_broken_budgets()`
+  - Method `.test_numstat_counts_binary_files_as_single_line_changes()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`
   - Method `.test_verify_commit_fails_when_the_declared_proof_gate_fails()`

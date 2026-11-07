@@ -256,17 +256,28 @@ def scope_errors(declaration: Dict[str, Any], files: List[str],
 
 
 def _numstat_total(output: str) -> int:
-    """Added plus deleted lines across a `git diff --numstat` output."""
+    """Added plus deleted lines across a `git diff --numstat` output.
+
+    Binary files report `- -` instead of counts; each counts as one changed
+    line so a binary cannot slip under a `max_lines` budget uncounted.
+    """
     total = 0
     for line in output.splitlines():
         fields = line.split()
         if len(fields) >= 3 and fields[0].isdigit() and fields[1].isdigit():
             total += int(fields[0]) + int(fields[1])
+        elif len(fields) >= 3 and fields[0] == "-" and fields[1] == "-":
+            total += 1
     return total
 
 
 def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str], int]:
-    """Changed files and changed lines for one commit (root commit = whole tree)."""
+    """Changed files and changed lines for one commit.
+
+    A root commit has no parent to diff against: the whole tree counts as
+    changed files with 0 lines, so `max_files` still binds while `max_lines`
+    cannot (there is no base for a line delta).
+    """
     code, parent = run(["git", "rev-parse", f"{ref}^"], repo)
     if code == 0 and parent.strip():
         base = parent.strip().splitlines()[0].strip()
