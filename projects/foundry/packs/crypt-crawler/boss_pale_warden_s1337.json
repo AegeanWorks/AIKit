@@ -1,0 +1,36 @@
+{
+  "boss_id": "boss_pale_warden_s1337",
+  "loot": {
+    "item_id": "ring_shadow"
+  },
+  "name": "Pale Warden",
+  "pack_version": "1.0",
+  "phases": [
+    {
+      "effect": "summon_skeletons",
+      "tell": "Pale Warden tears the floor open; the dead climb out.",
+      "threshold_pct": 50
+    },
+    {
+      "effect": "enrage",
+      "tell": "Pale Warden fights like a cornered god now.",
+      "threshold_pct": 25
+    }
+  ],
+  "spawn": {
+    "anchor": "stairs",
+    "depth": 3,
+    "replaces": "boss_lich",
+    "seeds": [
+      1337
+    ]
+  },
+  "stats": {
+    "attack": 20,
+    "defense": 7,
+    "gold_reward": 141,
+    "hp": 184,
+    "xp_reward": 192
+  },
+  "target_game": "crypt-crawler"
+}
