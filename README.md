@@ -161,7 +161,6 @@ portable_agent_kit/
 │   ├── proof_gate.py             <- Fail-to-pass proof gate (IDEA-956)
 │   ├── project_compat.py         <- AI-compat scaffold + proof (inventory/deltas/screenshots)
 │   └── verify_commit.py          <- Verifies a commit alone in a throwaway worktree
-├── projects/                   <- Built software (each subfolder its own repo)
 ├── reports/                    <- Local-only research inbox (PRINCIPLE-016 R7; only README.md tracked)
 │   └── README.md               <- Inbox lifecycle: triage into the register, then delete
 ├── tests/
