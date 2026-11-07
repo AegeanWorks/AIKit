@@ -163,9 +163,13 @@ sync config or standalone marker any more (ADR-248).
 Optional commit-level object. `tests` is a required non-empty list of test paths; `sources` is an
 optional list of source paths to mutate; `mutants` and `min_killed` are non-negative integers;
 `require_mutation` is a boolean that needs `sources` and a positive `mutants`; `waive` is an
-optional list of `FILE:LINE:OPERATOR` keys. When the file exists in a commit, `verify_commit.py`
-runs `scripts/proof_gate.py` against the commit worktree and its parent and fails the commit when
-the proof or the required mutation threshold fails (ADR-291). `prove` also refuses mock-only
+optional list of `FILE:LINE:OPERATOR` keys; `paths` is an optional list of relative glob patterns
+(no absolute paths, no `..`) bounding the files the commit may change; `max_files` and `max_lines`
+are non-negative integers bounding changed files and changed lines (0/absent means unenforced).
+When the file exists in a commit, `verify_commit.py` runs `scripts/proof_gate.py` against the commit worktree and its parent and fails the commit when
+the proof or the required mutation threshold fails (ADR-291), and runs its own `scope` step failing
+the commit on files outside `paths` or over either budget; the ledger, the declaration carrier
+itself, and the generated codebase map are exempt from scope. `prove` also refuses mock-only
 `test_*` methods whose every assertion is a mock echo (ADR-315).
 
 ### Compat Record (`.aikit/compat.json`, generated projects)

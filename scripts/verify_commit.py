@@ -65,6 +65,9 @@ PROOF_DEFAULTS = {
     "mutants": 0,
     "min_killed": 3,
     "require_mutation": False,
+    "paths": [],
+    "max_files": 0,
+    "max_lines": 0,
 }
 # A whole gate set runs inside the worktree; past this the run is hung, not slow.
 GATE_TIMEOUT_SECONDS = 600
@@ -134,6 +137,122 @@ def _string_list(value: Any, field: str, *, required: bool = False) -> List[str]
     return cleaned
 
 
+def _valid_scope_pattern(pattern: str) -> bool:
+    """A relative glob that cannot escape the repository (mirrors ui_contract)."""
+    if not isinstance(pattern, str) or not pattern.strip():
+        return False
+    normalized = pattern.replace("\\", "/").strip()
+    if normalized.startswith("/") or (len(normalized) > 1 and normalized[1] == ":"):
+        return False
+    return ".." not in normalized.split("/")
+
+
+def _scope_list(value: Any, field: str) -> List[str]:
+    """Validate one optional scope allowlist; absent means unenforced."""
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(
+        isinstance(item, str) and item.strip() for item in value
+    ):
+        raise ValueError(f"{PROOF_FILE} {field!r} must be a list of non-empty relative patterns")
+    cleaned = [item.replace("\\", "/").strip() for item in value]
+    for item in cleaned:
+        if item.startswith("-"):
+            raise ValueError(f"{PROOF_FILE} {field!r} must not hold flags like {item!r}")
+        if not _valid_scope_pattern(item):
+            raise ValueError(
+                f"{PROOF_FILE} {field!r} holds {item!r}: paths must be relative, "
+                "never absolute, and must not contain '..'. "
+                "Why: an absolute or escaping pattern silently widens the scope it claims to bound. "
+                "Fix: write relative globs such as `scripts/**`.")
+    return cleaned
+
+
+def _scope_int(value: Any, field: str) -> int:
+    """Validate one optional scope budget; 0/absent means unenforced."""
+    if value is None:
+        return 0
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ValueError(f"{PROOF_FILE} {field!r} must be a non-negative integer")
+    return value
+
+
+# Files a scope allowlist never constrains: the ledger (bookkeeping the task
+# owns, never committed as evidence), the declaration carrier itself, and the
+# generated codebase map (rebuilt and separately gated by --check).
+SCOPE_EXEMPT_EXACT = (".aikit/proof.json", "knowledge/codebase_map.md")
+
+
+def _scope_exempt(path: str) -> bool:
+    """Whether `path` (repo-relative, forward slashes) sits outside scope."""
+    normalized = path.replace("\\", "/")
+    if normalized in SCOPE_EXEMPT_EXACT:
+        return True
+    return normalized == "task_ledger.json" or normalized.endswith("/task_ledger.json")
+
+
+def _scope_match(path: str, patterns: List[str]) -> bool:
+    """Whether one repo-relative path matches any allowlist glob."""
+    from pathlib import PurePosixPath as _Pure
+    candidate = _Pure(path.replace("\\", "/"))
+    return any(candidate.match(pattern) for pattern in patterns)
+
+
+def scope_errors(declaration: Dict[str, Any], files: List[str],
+                 added_lines: int) -> List[str]:
+    """Scope failures for one declaration against changed files and diff size."""
+    errors: List[str] = []
+    patterns = [str(p) for p in declaration.get("paths", [])]
+    max_files = int(declaration.get("max_files", 0) or 0)
+    max_lines = int(declaration.get("max_lines", 0) or 0)
+    if not patterns and not max_files and not max_lines:
+        return errors
+    scoped = [f for f in files if not _scope_exempt(f)]
+    if patterns:
+        outside = sorted(f for f in scoped if not _scope_match(f, patterns))
+        if outside:
+            errors.append(
+                f"scope: {len(outside)} file(s) outside `paths`: {', '.join(outside[:5])}"
+                f"{' ...' if len(outside) > 5 else ''}. "
+                "Why: the declaration bounds the change; an unlisted file is out of scope. "
+                "Fix: list the path pattern in `paths`, or drop the file from the commit.")
+    if max_files and len(scoped) > max_files:
+        errors.append(
+            f"scope: {len(scoped)} file(s) exceed `max_files` {max_files}. "
+            "Why: an unbounded diff cannot be reviewed as one unit. "
+            "Fix: split the change, or raise `max_files` deliberately.")
+    if max_lines and added_lines > max_lines:
+        errors.append(
+            f"scope: {added_lines} changed line(s) exceed `max_lines` {max_lines}. "
+            "Why: an unbounded diff cannot be reviewed as one unit. "
+            "Fix: split the change, or raise `max_lines` deliberately.")
+    return errors
+
+
+def _numstat_total(output: str) -> int:
+    """Added plus deleted lines across a `git diff --numstat` output."""
+    total = 0
+    for line in output.splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and fields[0].isdigit() and fields[1].isdigit():
+            total += int(fields[0]) + int(fields[1])
+    return total
+
+
+def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str], int]:
+    """Changed files and changed lines for one commit (root commit = whole tree)."""
+    code, parent = run(["git", "rev-parse", f"{ref}^"], repo)
+    if code == 0 and parent.strip():
+        base = parent.strip().splitlines()[0].strip()
+        code, names = run(["git", "diff-tree", "--no-commit-id", "--name-only",
+                           "-r", ref], repo)
+        files = [line for line in names.splitlines() if line.strip()] if code == 0 else []
+        code, stat = run(["git", "diff", "--numstat", f"{base}", ref], repo)
+        return files, _numstat_total(stat) if code == 0 else 0
+    code, names = run(["git", "ls-tree", "-r", "--name-only", ref], repo)
+    return ([line for line in names.splitlines() if line.strip()] if code == 0 else [], 0)
+
+
 def proof_command_from_declaration(
     declaration: object, *, worktree: Path, parent: str, script: Path
 ) -> List[str]:
@@ -169,6 +288,9 @@ def proof_command_from_declaration(
         raise ValueError(
             f"{PROOF_FILE} 'require_mutation' needs 'sources' and 'mutants' greater than zero"
         )
+    _scope_list(declaration.get("paths", PROOF_DEFAULTS["paths"]), "paths")
+    _scope_int(declaration.get("max_files", PROOF_DEFAULTS["max_files"]), "max_files")
+    _scope_int(declaration.get("max_lines", PROOF_DEFAULTS["max_lines"]), "max_lines")
     command = [
         sys.executable, str(script), "--repo", str(worktree), "--base", parent,
         "--tests", *tests,
@@ -186,6 +308,32 @@ def proof_command_from_declaration(
     for key in waive:
         command += ["--waive", key]
     return command
+
+
+def scope_step(worktree: Path, ref: str, repo: Path, run: Runner
+               ) -> Optional[Tuple[bool, str, List[str]]]:
+    """Scope verdict for a commit carrying `.aikit/proof.json`; None when absent."""
+    path = worktree / PROOF_FILE
+    if not path.is_file():
+        return None
+    try:
+        declaration = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return False, str(exc), [f"[FAIL] scope declaration: {exc}"]
+    if not isinstance(declaration, dict):
+        return False, "not a JSON object", ["[FAIL] scope declaration: not a JSON object"]
+    try:
+        _scope_list(declaration.get("paths", []), "paths")
+        _scope_int(declaration.get("max_files", 0), "max_files")
+        _scope_int(declaration.get("max_lines", 0), "max_lines")
+    except ValueError as exc:
+        return False, str(exc), [f"[FAIL] scope declaration: {exc}"]
+    files, lines = commit_files_and_lines(ref, repo, run)
+    problems = scope_errors(declaration, files, lines)
+    if problems:
+        return False, "; ".join(problems), ["[FAIL] scope"] + [
+            f"       {line}" for problem in problems for line in problem.splitlines()]
+    return True, f"{len(files)} file(s), {lines} line(s) inside scope", ["[PASS] scope"]
 
 
 def proof_gate_command(worktree: Path, ref: str, run: Runner) -> Optional[List[str]]:
@@ -412,6 +560,13 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
                 if code != 0:
                     failures.append("proof")
                     report += [f"       {line}" for line in tail.splitlines()]
+            scope = scope_step(worktree, ref, repo, run)
+            if scope is not None:
+                passed, evidence, scope_lines = scope
+                report += scope_lines
+                steps.append(("scope", passed, evidence))
+                if not passed:
+                    failures.append("scope")
     finally:
         # The worktree is removed whether or not a gate failed, and its registration with it.
         if worktree_added:

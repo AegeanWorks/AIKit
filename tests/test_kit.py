@@ -133,6 +133,7 @@ from scripts.verify_commit import (
     proof_command_from_declaration,
     proof_gate_command,
     scanned_range,
+    scope_errors,
     shrunk_files,
     verify_commit,
 )
@@ -4800,6 +4801,18 @@ class TestDisruptionRecovery(unittest.TestCase):
         for msg in ("feat(x): [milestone 3/2] overshoot", "feat(x): [milestone 1/1] single",
                     "feat(x): [milestone 1/7] too many", "feat(x): [milestone 0/3] zero",
                     "feat(x): do it [milestone 1/2]", "feat(x): [milestone 1/2]"):
+            with self.subTest(msg=msg):
+                self.assertFalse(validate_conventional_commit(msg)[0])
+
+    def test_unverified_override_names_gates_on_its_last_line(self):
+        # Red-green pin: a bare `Unverified:` marker, an empty gate list, or the
+        # marker anywhere but last hid which gates were skipped (PRINCIPLE-002 R5).
+        good = "fix(gates): repair map\n\nUnverified: tiers, dogfood (host load, rerun next)"
+        self.assertTrue(validate_conventional_commit(good)[0])
+        for msg in ("fix(gates): repair map\n\nUnverified:",
+                    "fix(gates): repair map\n\nUnverified: x",
+                    "fix(gates): repair map\n\nUnverified: tiers\n\nnotes after",
+                    "fix(gates): repair map\n\nunverified: tiers, slow host"):
             with self.subTest(msg=msg):
                 self.assertFalse(validate_conventional_commit(msg)[0])
 
@@ -9984,6 +9997,42 @@ class TestPostCommitVerification(unittest.TestCase):
             worktree=Path("/worktree"), parent="abc",
             script=Path("/worktree/scripts/proof_gate.py"))
         self.assertIn("--min-killed", explicit)
+
+    def test_scope_keys_are_optional_but_validated(self):
+        # paths[]/max_files/max_lines ride the closed schema: optional, validated,
+        # never passed to proof_gate (scope is verify_commit's own step).
+        base = {"tests": ["tests/test_x.py"]}
+        command = proof_command_from_declaration(
+            dict(base, paths=["scripts/**"], max_files=5, max_lines=500),
+            worktree=Path("/worktree"), parent="abc",
+            script=Path("/worktree/scripts/proof_gate.py"))
+        self.assertIn("tests/test_x.py", command)
+        for bad in ({"tests": ["tests/test_x.py"], "paths": ["/abs/x.py"]},
+                    {"tests": ["tests/test_x.py"], "paths": ["../escape.py"]},
+                    {"tests": ["tests/test_x.py"], "paths": "scripts/**"},
+                    {"tests": ["tests/test_x.py"], "max_files": -1},
+                    {"tests": ["tests/test_x.py"], "max_lines": "many"}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    proof_command_from_declaration(
+                        bad, worktree=Path("/worktree"), parent="abc",
+                        script=Path("/worktree/scripts/proof_gate.py"))
+
+    def test_scope_errors_name_outside_files_and_broken_budgets(self):
+        decl = {"tests": ["tests/test_x.py"], "paths": ["scripts/**"],
+                "max_files": 2, "max_lines": 100}
+        self.assertEqual(scope_errors(decl, ["scripts/a.py"], 10), [])
+        # Ledger, declaration carrier and generated map never constrain scope.
+        self.assertEqual(scope_errors(
+            decl, ["scripts/a.py", ".agents/task_ledger.json",
+                   ".aikit/proof.json", "knowledge/codebase_map.md"], 10), [])
+        outside = scope_errors(decl, ["scripts/a.py", "idea_catcher/x.py"], 10)
+        self.assertTrue(any("outside `paths`" in e and "idea_catcher/x.py" in e for e in outside))
+        self.assertTrue(scope_errors(decl, ["scripts/a.py", "scripts/b.py",
+                                            "scripts/c.py"], 10))
+        self.assertTrue(scope_errors(decl, ["scripts/a.py"], 101))
+        self.assertEqual(scope_errors({"tests": ["tests/test_x.py"]},
+                                       ["anything/at/all.py"], 10**9), [])
 
     def test_a_proof_declaration_without_tests_or_required_sources_is_refused(self):
         with self.assertRaises(ValueError):

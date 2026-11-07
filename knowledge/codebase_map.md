@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
-- **Total Top-Level Functions**: `978`
-- **Total Class Methods**: `1184`
-- **Total Source Lines**: `44890`
+- **Total Top-Level Functions**: `987`
+- **Total Class Methods**: `1187`
+- **Total Source Lines**: `45108`
 
 ---
 
@@ -875,7 +875,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2145` lines (`101989` bytes)
+**Size**: `2159` lines (`102722` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -1644,13 +1644,22 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `540` lines (`26468` bytes)
+**Size**: `695` lines (`33830` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
 - `def gate_commands(secret_range)` - *The gates PRINCIPLE-018 R3 names, as they run inside the worktree, each with its own bound.*
 - `def _string_list(value, field, *, required)` - *Validate one declaration list; return stripped strings.*
+- `def _valid_scope_pattern(pattern)` - *A relative glob that cannot escape the repository (mirrors ui_contract).*
+- `def _scope_list(value, field)` - *Validate one optional scope allowlist; absent means unenforced.*
+- `def _scope_int(value, field)` - *Validate one optional scope budget; 0/absent means unenforced.*
+- `def _scope_exempt(path)` - *Whether `path` (repo-relative, forward slashes) sits outside scope.*
+- `def _scope_match(path, patterns)` - *Whether one repo-relative path matches any allowlist glob.*
+- `def scope_errors(declaration, files, added_lines)` - *Scope failures for one declaration against changed files and diff size.*
+- `def _numstat_total(output)` - *Added plus deleted lines across a `git diff --numstat` output.*
+- `def commit_files_and_lines(ref, repo, run)` - *Changed files and changed lines for one commit (root commit = whole tree).*
 - `def proof_command_from_declaration(declaration, *, worktree, parent, script)` - *Build the proof-gate command from a parsed `.aikit/proof.json` object.*
+- `def scope_step(worktree, ref, repo, run)` - *Scope verdict for a commit carrying `.aikit/proof.json`; None when absent.*
 - `def proof_gate_command(worktree, ref, run)` - *The declared proof command for a commit, or None when no declaration exists.*
 - `def scanned_range(repo, ref, run)` - *The commits this verification covers, as resolved SHAs: everything past the upstream when one*
 - `def shrunk_files(sizes, ratio, min_bytes)` - *Each path, from (old, new) sizes, that fell below `ratio` of an old size of at least `min_bytes`.*
@@ -1855,7 +1864,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14368` lines (`782800` bytes)
+**Size**: `14417` lines (`785873` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2235,6 +2244,7 @@
   - Method `.test_dynamic_re_decomposition_on_discovery()`
   - Method `.test_conventional_commit_validation()`
   - Method `.test_milestone_tags_are_well_formed_and_bounded()`
+  - Method `.test_unverified_override_names_gates_on_its_last_line()`
   - Method `.test_unwritable_ledger_reports_the_triad_not_a_traceback()`
   - Method `.test_ledger_stores_repository_relative_paths()`
   - Method `.test_lock_retries_through_windows_delete_pending_permission_error()`
@@ -2657,6 +2667,8 @@
   - Method `.test_proof_gate_command_reads_the_declaration_and_parent()`
   - Method `.test_a_proof_declaration_with_unknown_keys_is_refused()`
   - Method `.test_min_killed_flag_follows_the_schema_default()`
+  - Method `.test_scope_keys_are_optional_but_validated()`
+  - Method `.test_scope_errors_name_outside_files_and_broken_budgets()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`
   - Method `.test_verify_commit_fails_when_the_declared_proof_gate_fails()`
