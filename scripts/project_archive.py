@@ -35,6 +35,19 @@ from scripts.update_knowledge_base import write_generated_file
 
 Runner = Callable[[List[str], Path], Tuple[int, str]]
 ARCHIVE_DIRNAME = "archive"
+_ARCHIVE_BANNER_RE = re.compile(r"^>\s*\*\*Archived\*\*")
+
+
+def _is_archive_banner(line: str) -> bool:
+    """Whether a line is the notice this module inserts, not a project description."""
+    return bool(_ARCHIVE_BANNER_RE.match(line.strip()))
+
+
+def _visible_text(raw: str) -> str:
+    """Markdown/HTML line reduced to visible text; media-only lines reduce to empty."""
+    text = re.sub(r"<!--.*?-->", "", raw)
+    text = re.sub(r"<[^>]+>", "", text)
+    return text.strip()
 
 
 def _triad(what: str, why: str, fix: str) -> str:
@@ -128,7 +141,8 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
     idx = start
     while idx < len(lines):
         stripped = lines[idx].strip()
-        if stripped == "" or stripped.startswith("[![") or stripped.startswith("![") or stripped.startswith("<!--"):
+        if (not stripped or stripped.startswith(("[![", "![", "<!--"))
+                or _is_archive_banner(stripped) or not _visible_text(stripped)):
             idx += 1
             continue
         break

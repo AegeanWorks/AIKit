@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
-- **Total Top-Level Functions**: `989`
-- **Total Class Methods**: `1190`
-- **Total Source Lines**: `45231`
+- **Total Top-Level Functions**: `991`
+- **Total Class Methods**: `1192`
+- **Total Source Lines**: `45285`
 
 ---
 
@@ -1056,9 +1056,11 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `554` lines (`28918` bytes)
+**Size**: `568` lines (`29431` bytes)
 
 **Functions:**
+- `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
+- `def _visible_text(raw)` - *Markdown/HTML line reduced to visible text; media-only lines reduce to empty.*
 - `def _triad(what, why, fix)`
 - `def archive_dir(workspace)` - *The folder archived projects live in: ``projects/archive/`` (git-ignored via ``projects/``).*
 - `def archived_destination(workspace, name, to)` - *Where ``name`` moves to: ``to`` when given, else ``projects/archive/<name>``.*
@@ -1251,7 +1253,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `333` lines (`16228` bytes)
+**Size**: `337` lines (`16473` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1866,7 +1868,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14471` lines (`789940` bytes)
+**Size**: `14507` lines (`791962` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2621,6 +2623,8 @@
   - Method `.runner(**replies)`
   - Method `.test_banner_goes_after_description_and_is_idempotent()`
   - Method `.test_banner_ignores_casual_archived_mention()`
+  - Method `.test_banner_goes_after_description_when_media_block_precedes_it()`
+  - Method `.test_existing_archive_banner_is_not_the_description()`
   - Method `.test_github_description_prefixes_archived_once()`
   - Method `.test_destination_defaults_to_projects_archive()`
   - Method `.test_move_refuses_existing_destination()`

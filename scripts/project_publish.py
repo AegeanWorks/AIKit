@@ -92,6 +92,10 @@ def extract_readme_description(project_root: Path) -> str:
             continue
         if stripped.startswith("#"):
             break
+        if stripped.startswith(">") and "**Archived**" in stripped:
+            # The archive notice is not the project's description. A re-archive
+            # must keep the original sentence, not prefix the reason to it.
+            continue
         clean = _clean_markdown_line(stripped)
         if clean:
             desc_lines.append(clean)
