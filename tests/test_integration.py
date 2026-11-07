@@ -1302,7 +1302,7 @@ class TestProjectSecretScan(unittest.TestCase):
         self.addCleanup(remove_tree, kit)
         repo = copy_project(kit)
         # Split so this file itself holds no credential-shaped literal.
-        key = "sk-" + "ant-api03-" + "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefghij"  # aikit:allow-secret
+        key = "sk-" + "ant-api03-" + "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefghij"  # aikit:allow-secret -- split test fixture, no live key
         (repo / "app.py").write_text("x = 1\n", encoding="utf-8")
         subprocess.run(["git", "add", "app.py"], cwd=repo, timeout=PROC_TIMEOUT, check=True)
         with contextlib.redirect_stdout(io.StringIO()):

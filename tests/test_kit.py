@@ -3577,8 +3577,8 @@ class TestSecretHygieneScanner(unittest.TestCase):
     def test_findings_never_echo_the_secret(self):
         # Red-green pin (ADR-110): the scanner printed each caught credential in full (P019 R4).
         lines = {
-            'AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7NOTREAL"': "AKIAIOSFODNN7NOTREAL",  # aikit:allow-secret
-            'token_value = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE"': "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE",  # aikit:allow-secret
+            'AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7NOTREAL"': "AKIAIOSFODNN7NOTREAL",  # aikit:allow-secret -- documented fixture shape
+            'token_value = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE"': "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE",  # aikit:allow-secret -- documented fixture shape
         }
         for line, secret in lines.items():
             with self.subTest(line=line):
@@ -3672,14 +3672,14 @@ class TestSecretHygieneScanner(unittest.TestCase):
 
     def test_detects_known_credential_shapes(self):
         cases = {
-            "AWS access key id": 'AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7NOTREAL"',  # aikit:allow-secret
-            "GitHub token": 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"',  # aikit:allow-secret
-            "Slack token": 'tok = "xoxb-1234567890-abcdefghijklmnop"',  # aikit:allow-secret
-            "Google API key": 'k = "AIzaSyB1cD3fG5hJ7kL9mN1pQ3rS5tU7vW9xY2z"',  # aikit:allow-secret
-            "Stripe secret key": 'k = "sk_live_abcdefghijklmnopqrstuvwx"',  # aikit:allow-secret
-            "Password in URL": 'dsn = "postgres://admin:s3cretPassw0rd@db.internal:5432/app"',  # aikit:allow-secret
-            "Private key block": "-----BEGIN RSA PRIVATE KEY-----",  # aikit:allow-secret
-            "Hardcoded password assignment": 'password = "correcthorsebattery"',  # aikit:allow-secret
+            "AWS access key id": 'AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7NOTREAL"',  # aikit:allow-secret -- documented fixture shape
+            "GitHub token": 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"',  # aikit:allow-secret -- documented fixture shape
+            "Slack token": 'tok = "xoxb-1234567890-abcdefghijklmnop"',  # aikit:allow-secret -- documented fixture shape
+            "Google API key": 'k = "AIzaSyB1cD3fG5hJ7kL9mN1pQ3rS5tU7vW9xY2z"',  # aikit:allow-secret -- documented fixture shape
+            "Stripe secret key": 'k = "sk_live_abcdefghijklmnopqrstuvwx"',  # aikit:allow-secret -- documented fixture shape
+            "Password in URL": 'dsn = "postgres://admin:s3cretPassw0rd@db.internal:5432/app"',  # aikit:allow-secret -- documented fixture shape
+            "Private key block": "-----BEGIN RSA PRIVATE KEY-----",  # aikit:allow-secret -- documented fixture shape
+            "Hardcoded password assignment": 'password = "correcthorsebattery"',  # aikit:allow-secret -- documented fixture shape
         }
         for detector, line in cases.items():
             with self.subTest(detector=detector):
@@ -3693,7 +3693,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
             'token = os.environ.get("TOKEN")',
             'API_KEY=<your-key-here>',
             'password = "changeme"',
-            'secret = "${VAULT_SECRET}"',  # aikit:allow-secret
+            'secret = "${VAULT_SECRET}"',  # aikit:allow-secret -- interpolation fixture, not a literal
             'key = "placeholder"',
             'hard_coded = "short"',
             'const key = callKey(input.sessionID, input.callID)',
@@ -3708,7 +3708,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
         # Red-green pin: the scanner first MISSED "AKIAIOSFODNN7EXAMPLE" purely because the line  # aikit:allow-secret
         # contained the word "example". A weak hint must never suppress a high-confidence match,
         # or a live key on an "# example usage" line would sail through.
-        line = '# example usage: AWS_KEY = "AKIAIOSFODNN7NOTREAL"'  # aikit:allow-secret
+        line = '# example usage: AWS_KEY = "AKIAIOSFODNN7NOTREAL"'  # aikit:allow-secret -- example-usage fixture, not a live key
         findings = scan_text("fixture.py", line)
         self.assertTrue(findings, "a weak allowlist word suppressed a pattern match")
         self.assertEqual(findings[0][2], "AWS access key id")
@@ -3737,7 +3737,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
         findings = secrets_module.scan_text("fixture.py", f"blob = '{many}'\n")
         self.assertLessEqual(len(findings), 1)
         findings = secrets_module.scan_text(
-            "fixture.py", f"blob = '{encoded}'  # aikit:allow-secret[GitHub token]\n")
+            "fixture.py", f"blob = '{encoded}'  # aikit:allow-secret[GitHub token] -- encoded test fixture\n")
         self.assertEqual(findings, [])
         self.assertEqual(secrets_module.scan_text("fixture.py", "note = 'hello world'\n"), [])
 
@@ -3873,15 +3873,28 @@ class TestSecretHygieneScanner(unittest.TestCase):
             secrets_module._is_valid_baseline_detector("high-entropy value for token"))
 
     def test_explicit_pragma_suppresses_everything(self):
-        line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
+        line = 'tok = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret -- test fixture token'
         self.assertEqual(scan_text("fixture.py", line), [],
                          "explicit pragma did not suppress the finding")
+
+    def test_a_reasonless_pragma_excuses_nothing(self):
+        # Fail closed: a bare or scoped pragma without an inline reason is not
+        # an excuse, so the finding stands and names the detector. Token shapes
+        # stay escaped so this file itself remains clean under the scanner.
+        bare = 'tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"  # aikit:allow-secret'
+        self.assertTrue(scan_text("fixture.py", bare))
+        scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
+                  '  # aikit:allow-secret[github token]')
+        self.assertTrue(scan_text("fixture.py", scoped))
+        short = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
+                 '  # aikit:allow-secret -- x')
+        self.assertTrue(scan_text("fixture.py", short))
 
     def test_a_scoped_pragma_suppresses_only_the_named_detector(self):
         # IDEA-1115: least-privilege suppressions name detectors from the registry.
         # Shapes below are escaped so this file stays clean under the scanner itself.
         scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
-                  '  # aikit:allow-secret[github token]')
+                  '  # aikit:allow-secret[github token] -- test fixture token')
         self.assertEqual(scan_text("fixture.py", scoped), [])
         scoped = ('tok = "ghp\x5fabcdefghijklmnopqrstuvwxyz0123456789"'
                   '  # aikit:allow-secret[slack token]')
@@ -3894,7 +3907,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
 
     def test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name(self):
         note = ('note = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE0Q2W4E6a\x42"'
-                '  # aikit:allow-secret[high-entropy-literal]')
+                '  # aikit:allow-secret[high-entropy-literal] -- test fixture literal')
         self.assertEqual(scan_text("fixture.py", note), [])
         note = ('note = "q8Zx3LmP0vR7tK2wY9nB4cH6jF1dS5aE0Q2W4E6a\x42"'
                 '  # aikit:allow-secret[high-entropy-value]')
@@ -3916,7 +3929,7 @@ class TestSecretHygieneScanner(unittest.TestCase):
     def test_agent_memory_free_text_is_scanned(self):
         # PRINCIPLE-019 R3: the ledger's impact fields are git-tracked, so a credential quoted
         # while explaining reasoning becomes permanent history.
-        leaky = 'why = "rotate ghp_abcdefghijklmnopqrstuvwxyz0123456789 after deploy"'  # aikit:allow-secret
+        leaky = 'why = "rotate ghp_abcdefghijklmnopqrstuvwxyz0123456789 after deploy"'  # aikit:allow-secret -- ledger free-text fixture
         self.assertTrue(scan_text("agent-memory:task_ledger.json", leaky),
                         "a credential in ledger free-text was not detected")
 
@@ -9229,7 +9242,7 @@ class TestProjectPublish(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / ".git").mkdir()
             (Path(tmp) / ".git" / "config").write_text(
-                '[remote "origin"]\n\turl = https://me:s3cret@github.com/me/app.git\n',  # aikit:allow-secret
+                '[remote "origin"]\n\turl = https://me:s3cret@github.com/me/app.git\n',  # aikit:allow-secret -- URL fixture with userinfo
                 encoding="utf-8")
             self.assertEqual(get_project_repo_url(Path(tmp)), hidden)
         url = get_project_repo_url(Path("/p/app"), runner=self.runner(
@@ -9240,7 +9253,7 @@ class TestProjectPublish(unittest.TestCase):
         self.assertEqual(scp, "git@github.com:me/app.git", "an scp-style user is not a credential")
 
     def test_push_reports_never_show_credentials(self):
-        token_url = "https://me:s3cret@github.com/me/app.git"  # aikit:allow-secret
+        token_url = "https://me:s3cret@github.com/me/app.git"  # aikit:allow-secret -- URL fixture with userinfo
         refused = self.runner(**{"get-url": (0, token_url), "push": (1, f"fatal: {token_url} refused")})
 
         def unpushed(argv, cwd):
@@ -13669,7 +13682,7 @@ class TestVerifyPushV4SafeFixes(unittest.TestCase):
 
     def test_delivery_scrub_redacts_url_credentials(self) -> None:
         from reforge import delivery
-        out = delivery._scrub_push_output("https://user:token@github.com/x.git failed")  # aikit:allow-secret
+        out = delivery._scrub_push_output("https://user:token@github.com/x.git failed")  # aikit:allow-secret -- scrub-output fixture
         self.assertNotIn("user:token@", out)
 
 

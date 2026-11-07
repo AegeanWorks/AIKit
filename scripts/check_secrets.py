@@ -16,9 +16,10 @@ It scans two surfaces that AI agents leak through in practice:
 
 Detection is pattern-first (known credential shapes have near-zero false-positive rates) with a
 conservative high-entropy fallback for assignment-shaped lines only. Deliberate exceptions use an
-inline `# aikit:allow-secret` pragma or the ALLOWLIST_SUBSTRINGS set - never a silenced scanner.
-The pragma accepts an optional scope, `# aikit:allow-secret[detector, ...]`, naming DETECTOR_NAMES
-entries to excuse; every other detector on the same line still reports.
+inline `# aikit:allow-secret -- reason` pragma or the ALLOWLIST_SUBSTRINGS set - never a silenced scanner.
+The pragma accepts an optional scope, `# aikit:allow-secret[detector, ...] -- reason`, naming DETECTOR_NAMES
+entries to excuse; every other detector on the same line still reports. A pragma without a `-- reason`
+excuses nothing.
 
 Zero external dependencies (standard library only).
 
@@ -91,7 +92,7 @@ SECRET_PATTERNS: Tuple[Tuple[str, str], ...] = (
 
 # A value that is wholly an interpolation or a template placeholder is an indirection, not a
 # literal credential. This must be honoured by the pattern detectors too, not only the entropy
-# fallback: `password = "${DB_PASS}"` is correct code, and a scanner that blocks correct code  # aikit:allow-secret
+# fallback: `password = "${DB_PASS}"` is correct code, and a scanner that blocks correct code  # aikit:allow-secret -- template indirection, not a credential
 # gets bypassed, which protects nothing.
 INTERPOLATION_ONLY_RE = re.compile(
     r"""[:=]\s*["']?\s*(?:\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*|\{\{[^}]*\}\}|"""
@@ -117,14 +118,17 @@ _BASE64_CANDIDATE_RE = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
 _HEX_CANDIDATE_RE = re.compile(r"\b(?:[0-9a-fA-F]{2}){20,}\b")
 
 # Allowlisting is risk-tiered, because a weak word must never veto a high-confidence match.
-# A red-check caught this: "AKIAIOSFODNN7EXAMPLE" was missed purely because the line contained  # aikit:allow-secret
+# A red-check caught this: "AKIAIOSFODNN7EXAMPLE" was missed purely because the line contained  # aikit:allow-secret -- canonical example key in a comment, not a credential
 # the word "example", which would equally have hidden a live key on an "# example usage" line.
 #
-# STRONG markers are unambiguous placeholders and the explicit pragma: they suppress everything.
+# STRONG markers are unambiguous placeholders and the explicit pragma (with a `-- reason`):
+# they suppress everything. A reasonless pragma excuses nothing (fail closed).
+# "akiaiosfodnn7example" is AWS's own published documentation example: by construction
+# never a live secret, cited in ADR prose that takes no edits. Lowercase form: matching runs against the lowered line.
 # WEAK markers suppress only the low-confidence entropy fallback, never a pattern match.
 STRONG_ALLOWLIST = frozenset({
     PRAGMA, "your-key-here", "your_key_here", "<your", "placeholder", "changeme",
-    "redacted", "<redacted>", "xxxxxxxx", "0000000000",
+    "redacted", "<redacted>", "xxxxxxxx", "0000000000", "akiaiosfodnn7example",
 })
 WEAK_ALLOWLIST = frozenset({"example", "sample", "dummy", "fake", "test-token"})
 
@@ -142,6 +146,10 @@ HIGH_ENTROPY_VALUE = "high-entropy-value"
 HIGH_ENTROPY_LITERAL = "high-entropy-literal"
 # A scoped pragma names the detectors it excuses: `aikit:allow-secret[name, ...]`.
 SCOPED_PRAGMA_RE = re.compile(r"aikit:allow-secret\s*\[([^\]]+)\]")
+# A justified pragma carries its reason on the line: `aikit:allow-secret -- <reason>`
+# (scoped: `aikit:allow-secret[name, ...] -- <reason>`). A pragma without a reason
+# excuses nothing (fail closed, PRINCIPLE-019 R5): silently silenced scans help no one.
+PRAGMA_REASON_RE = re.compile(r"aikit:allow-secret(?:\s*\[[^\]]+\])?\s*--\s*\S.{5,}")
 
 # Only the scanner's own pattern table is exempt. Documentation and instruction files can carry a
 # pasted credential, so skipping them made `--all`'s "every tracked file" claim false (ADR-163).
@@ -179,14 +187,24 @@ def is_weakly_allowlisted(line: str) -> bool:
 def pragma_scope(line: str) -> Optional[FrozenSet[str]]:
     """The detector names a scoped pragma excuses, or None for a bare pragma or none.
 
-    A scoped pragma (`aikit:allow-secret[name, ...]`) suppresses only findings whose
-    detector is named, case-insensitively; an unknown name matches nothing, fail-closed.
-    A bare pragma keeps its legacy meaning: it suppresses everything on the line.
+    A scoped pragma (`aikit:allow-secret[name, ...] -- reason`) suppresses only findings
+    whose detector is named, case-insensitively; an unknown name matches nothing, fail-closed.
+    A bare pragma with a reason suppresses everything on the line; without one it
+    suppresses nothing.
     """
     match = SCOPED_PRAGMA_RE.search(line.lower())
     if match is None:
         return None
     return frozenset(part.strip() for part in match.group(1).split(",") if part.strip())
+
+
+def pragma_has_reason(line: str) -> bool:
+    """Whether an allow-secret pragma carries an inline `-- reason` (PRINCIPLE-019 R5).
+
+    A pragma without a reason excuses nothing; the suppression must say why on
+    the line it silences, where the next reader (and the scanner) can see it.
+    """
+    return PRAGMA_REASON_RE.search(line.lower()) is not None
 
 
 def detector_in_scope(detector: str, scope: FrozenSet[str]) -> bool:
@@ -206,12 +224,24 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
     """Return (label, line_no, detector, excerpt) for every finding in a blob of text."""
     findings: List[Tuple[str, int, str, str]] = []
     for lineno, line in enumerate(text.splitlines(), 1):
-        # A bare pragma keeps its legacy meaning and suppresses everything on the line; a
-        # scoped pragma (`aikit:allow-secret[name, ...]`) suppresses only the detectors it
-        # names, so every other detector on the same line still reports (IDEA-1115).
+        # A bare pragma with a `-- reason` suppresses everything on the line; a scoped
+        # pragma (`aikit:allow-secret[name, ...] -- reason`) suppresses only the detectors
+        # it names, so every other detector on the same line still reports (IDEA-1115).
+        # Either form without a reason excuses nothing (fail closed). An unambiguous
+        # placeholder suppresses on its own merit; a pragma token mentioned alongside
+        # one (prose about the pragma, as in ADR text) is discussion, not a claim.
         scope = pragma_scope(line)
-        if scope is None and is_strongly_allowlisted(line):
-            continue
+        has_pragma = PRAGMA in line.lower()
+        if scope is None:
+            if not has_pragma and is_strongly_allowlisted(line):
+                continue
+            if has_pragma and pragma_has_reason(line):
+                continue
+            if has_pragma and any(token in line.lower()
+                                  for token in STRONG_ALLOWLIST if token != PRAGMA):
+                continue
+        if has_pragma and not pragma_has_reason(line):
+            scope = frozenset()  # a reasonless pragma excuses nothing, scoped or bare
         stripped = line.strip()
         if not stripped:
             continue
@@ -758,7 +788,7 @@ def run_scan(mode: str = "staged", target: Optional[Path] = None,
           " (PRINCIPLE-019 R6).")
     print("   Fix: remove the value, supply it via an environment variable or secret store,")
     print(f"        rotate it if it was ever pushed, or mark a false positive with a"
-          f" '# {PRAGMA}' pragma.")
+          f" '# {PRAGMA} -- reason' pragma.")
     print("=" * 58)
     return 1
 
@@ -792,7 +822,7 @@ Options:
   -h, --help       Show this help message and exit
 
 False positives:
-  Add a '# aikit:allow-secret' pragma on the line, or extend ALLOWLIST_SUBSTRINGS.
+  Add a '# aikit:allow-secret -- reason' pragma on the line, or extend ALLOWLIST_SUBSTRINGS.
 
 Exit codes:
   0  clean    1  potential secret found, or a surface could not be scanned    2  CLI argument misuse

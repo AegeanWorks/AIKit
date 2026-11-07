@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `69`
 - **Total Classes**: `157`
-- **Total Top-Level Functions**: `988`
-- **Total Class Methods**: `1187`
-- **Total Source Lines**: `45148`
+- **Total Top-Level Functions**: `989`
+- **Total Class Methods**: `1188`
+- **Total Source Lines**: `45191`
 
 ---
 
@@ -789,7 +789,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `883` lines (`41961` bytes)
+**Size**: `913` lines (`43908` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -799,6 +799,7 @@
 - `def is_strongly_allowlisted(line)` - *An explicit pragma or an unambiguous placeholder suppresses every detector.*
 - `def is_weakly_allowlisted(line)` - *A hint like "example" suppresses only the low-confidence entropy fallback.*
 - `def pragma_scope(line)` - *The detector names a scoped pragma excuses, or None for a bare pragma or none.*
+- `def pragma_has_reason(line)` - *Whether an allow-secret pragma carries an inline `-- reason` (PRINCIPLE-019 R5).*
 - `def detector_in_scope(detector, scope)` - *Whether a finding label is excused by a scoped pragma's names.*
 - `def scan_text(label, text)` - *Return (label, line_no, detector, excerpt) for every finding in a blob of text.*
 - `def looks_random(value)` - *A token shaped like a generated key: mixed case and digits, and high entropy. Hex digests*
@@ -1704,7 +1705,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2160` lines (`111870` bytes)
+**Size**: `2160` lines (`111905` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1865,7 +1866,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14430` lines (`786779` bytes)
+**Size**: `14443` lines (`788142` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2174,6 +2175,7 @@
   - Method `.test_baseline_rejects_never_emitted_encoded_entropy()`
   - Method `.test_baseline_entropy_value_needs_a_variable_name()`
   - Method `.test_explicit_pragma_suppresses_everything()`
+  - Method `.test_a_reasonless_pragma_excuses_nothing()`
   - Method `.test_a_scoped_pragma_suppresses_only_the_named_detector()`
   - Method `.test_scoped_pragma_covers_the_entropy_fallbacks_by_canonical_name()`
   - Method `.test_every_detector_has_a_vocabulary_entry()`
