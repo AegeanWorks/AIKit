@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
 from scripts.disruption_recovery import ROOT_DIR
+from scripts.git_guard import install_pre_push_hook, publish_environment
 from scripts.project_registry import DESCRIPTION_MIN, repository_name
 
 SECRETS_CLI = ROOT_DIR / "scripts" / "check_secrets.py"
@@ -285,6 +286,7 @@ def publish_project(project_root: Path, name: str, public: bool = False,
     caller can refuse an unusable one before any gate runs.
     """
     run = runner or run_command
+    install_pre_push_hook(project_root, name)
     if run(["git", "rev-parse", "--verify", "HEAD"], project_root)[0] != 0:
         return 1, _triad(f"project '{name}' has no commit to publish.",
                          "only committed history is uploaded.",
@@ -302,7 +304,8 @@ def publish_project(project_root: Path, name: str, public: bool = False,
     desc = description if description is not None else extract_readme_description(project_root)
 
     if has_origin:
-        code, output = run(["git", "push", "-u", "origin", "HEAD"], project_root)
+        with publish_environment():
+            code, output = run(["git", "push", "-u", "origin", "HEAD"], project_root)
         if code != 0:
             return 1, _triad(f"pushing '{name}' to {origin.strip()} failed.\n{output[-800:]}",
                              "the remote refused the push or could not be reached; nothing is forced.",
@@ -320,8 +323,9 @@ def publish_project(project_root: Path, name: str, public: bool = False,
     visibility = "--public" if public else "--private"
     desc_args = ["--description", desc] if desc else []
     repository = f"{owner}/{repository_name(name)}" if owner else repository_name(name)
-    code, output = run(["gh", "repo", "create", repository, visibility, "--source", str(project_root),
-                        "--remote", "origin", "--push", *desc_args], project_root)
+    with publish_environment():
+        code, output = run(["gh", "repo", "create", repository, visibility, "--source", str(project_root),
+                            "--remote", "origin", "--push", *desc_args], project_root)
     if code != 0:
         return 1, _triad(f"creating the GitHub repository '{repository}' failed.\n{output[-800:]}",
                          "GitHub refused the repository, for example because the name is taken. GitHub "

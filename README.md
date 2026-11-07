@@ -144,6 +144,7 @@ portable_agent_kit/
 │   ├── aikit_help.py             <- Generated top-level help for the --help fast path
 │   ├── subagent_delegate.py      <- Bounded OpenCode sub-agent runs
 │   ├── project_publish.py        <- Uploads a project to its own GitHub repo
+│   ├── git_guard.py              <- pre-push guard: raw push is refused (ADR-341)
 │   ├── project_archive.py        <- Retires a project to projects/archive/ and archives GitHub
 │   ├── dossier_sync.py           <- Publish-time AegeanWorks catalogue sync (ADR-308)
 │   ├── project_ui.py             <- Durable has_ui/ui_kind identifier (ADR-233)
@@ -202,11 +203,11 @@ python aikit.py ui allow my-app "Btn*" --reason "<why>"  # intended inventory re
 python aikit.py ui finish my-app --reviewed  # close after review; a guideline can waive the human
 python aikit.py fix my-app          # restore memory/README, adopt UI, refresh map, then check
 python aikit.py guideline my-app "money is integer cents" --source user  # project rule
-python aikit.py publish my-app [--owner ORG] [--license auto]  # repo, description, recorded AI topics
+python aikit.py publish my-app [--owner ORG] [--license auto]  # pre-push guard, repo, description, recorded AI topics
 python aikit.py archive my-app --reason "superseded by X" [--offline]  # move to projects/archive/, archive GitHub repo
 python aikit.py license my-app [--suggest|--set game|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science)
 ```
-A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
+A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` installs a `.git/hooks/pre-push` guard: a raw `git push` is refused until the project is uploaded through AIKit (ADR-341), then needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
 
 ## 🔁 Aegean Reforge: Host Review & Safe Repair
 

@@ -28,6 +28,7 @@ from scripts.disruption_recovery import (
     atomic_write_json,
     file_lock,
 )
+from scripts.git_guard import install_pre_push_hook
 from scripts.update_knowledge_base import check_readme, guideline_errors, write_generated_file
 
 PROJECTS_DIRNAME = "projects"
@@ -1109,6 +1110,7 @@ def create_project(name: str, test_command: Optional[str] = None, workspace: Pat
         from scripts.project_compat import scaffold_compat
         scaffold_compat(project_root, "headless")
         git_start(project_root)
+        install_pre_push_hook(project_root, name)
     except BaseException:
         # Only this call created the folder, so removing it leaves no half-made project behind.
         shutil.rmtree(project_root, ignore_errors=True)
@@ -1166,6 +1168,7 @@ def attach_project(folder: Path, name: Optional[str] = None, test_command: Optio
             attached = load_attached(kit)
             attached[name] = str(folder)
             atomic_write_json(path, {"schema": SCHEMA_VERSION, "projects": attached})
+    install_pre_push_hook(folder, name)
     return name, folder, created
 
 

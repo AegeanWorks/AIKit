@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `69`
-- **Total Classes**: `157`
-- **Total Top-Level Functions**: `991`
-- **Total Class Methods**: `1192`
-- **Total Source Lines**: `45285`
+- **Total Python Modules**: `70`
+- **Total Classes**: `159`
+- **Total Top-Level Functions**: `998`
+- **Total Class Methods**: `1198`
+- **Total Source Lines**: `45543`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1546` lines (`78024` bytes)
+**Size**: `1556` lines (`78611` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1040,6 +1040,21 @@
 
 ---
 
+### [`scripts/git_guard.py`](scripts/git_guard.py)
+> *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
+
+**Size**: `120` lines (`3858` bytes)
+
+**Functions:**
+- `def hook_path(project_root)` - *The repository's pre-push hook path, or None when the folder is not a git repo.*
+- `def install_pre_push_hook(project_root, project_name)` - *Install the guard and return its path, or None when there is no git repository.*
+- `def is_guard_installed(project_root)` - *Whether the project's pre-push hook is the AIKit guard.*
+- `def publish_environment()` - *Mark the current process as an authorised AIKit publish.*
+- `def _hook_script(project_name)`
+- `def _read_text(path)`
+
+---
+
 ### [`scripts/marked_blocks.py`](scripts/marked_blocks.py)
 > *Generated text inside a file the user owns, fenced by `<!-- aegean:<name>:start -->` and*
 
@@ -1253,7 +1268,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `337` lines (`16473` bytes)
+**Size**: `341` lines (`16672` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1275,7 +1290,7 @@
 ### [`scripts/project_registry.py`](scripts/project_registry.py)
 > *Project registry: the projects AIKit builds (cockpit model, ADR-119).*
 
-**Size**: `1252` lines (`58658` bytes)
+**Size**: `1255` lines (`58800` bytes)
 
 **Classes:**
 - `class ProjectError` - *A request AIKit cannot carry out, with its reason and remedy (PRINCIPLE-011 R6).*
@@ -1707,7 +1722,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2157` lines (`111653` bytes)
+**Size**: `2199` lines (`113316` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1854,8 +1869,11 @@
   - Method `.uses_tstring(src)`
   - Method `.test_the_check_flags_tstrings_and_nothing_else()`
   - Method `.test_no_tstring_in_aikit_needs_python_314()`
+- `class TestPublishGuardHook` - *The installed hook actually blocks a raw push and allows AIKit's push.*
+  - Method `.test_hook_blocks_raw_push_and_allows_aikit_publish()`
 
 **Functions:**
+- `def _sh_path()` - *The POSIX shell Git uses for hooks, including Git for Windows' bundled sh.*
 - `def review_attestations(packet)` - *One valid quote and note per packet hunk, for tests that need a complete answer.*
 - `def complete_readme(project_root)` - *Fill a seed README's `<FILL:` marker the way a project's first commit must (ADR-138).*
 - `def remove_tree(path)` - *Remove a test tree even when copied `.git` objects kept their read-only bit (Windows).*
@@ -1868,7 +1886,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14507` lines (`791962` bytes)
+**Size**: `14586` lines (`795211` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2592,6 +2610,12 @@
   - Method `.test_scan_commits_reads_a_merge_resolution_line()`
   - Method `.test_merge_scan_deduplicates_the_same_hunk()`
   - Method `.test_scanner_catches_a_bare_gemini_key()`
+- `class TestPublishGuard` - *Direct `git push` is blocked unless the process is `aikit publish` (ADR-341).*
+  - Method `.test_install_writes_guard_and_preserves_an_existing_hook()`
+  - Method `.test_no_git_repository_is_a_no_op()`
+  - Method `.test_create_project_installs_the_guard()`
+  - Method `.test_publish_environment_sets_and_restores()`
+  - Method `.test_publish_project_installs_the_guard_before_pushing()`
 - `class TestProjectPublish` - *`aikit publish`: a project in its own GitHub repository, private unless asked (ADR-134).*
   - Method `.runner(**replies)` - *A scripted stand-in for git, gh and the secret scan; records every call.*
   - Method `.made(word)`

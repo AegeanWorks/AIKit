@@ -43,6 +43,7 @@ from scripts.project_publish import (
     get_project_repo_url,
     publish_project,
 )
+from scripts.git_guard import install_pre_push_hook, is_guard_installed
 from scripts.project_archive import archive_project, is_archived
 
 from scripts.project_registry import (
@@ -733,6 +734,15 @@ def cmd_fix(args: argparse.Namespace) -> int:
 
 def cmd_publish(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
+    # Install the local guard before any refusal: even a failed publish must block a raw retry.
+    guard = install_pre_push_hook(project.path, project.name)
+    if guard is not None and not is_guard_installed(project.path):
+        return report_error(ProjectError(
+            f"the publish guard could not be installed in '{project.name}'.",
+            "a direct git push would bypass AIKit's publish gates.",
+            "check .git/hooks permissions, then publish again.",
+            exit_code=1,
+        ))
     # A restricted project is not distributed: a public repository would hand it out (ADR-214).
     if args.public and license_state(project.path).tier == TIER_RESTRICTED:
         return report_error(ProjectError(

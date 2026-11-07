@@ -46,6 +46,23 @@ from scripts.aikit_cli import main as aikit_main  # noqa: E402
 from scripts import ui_contract  # noqa: E402
 from scripts.check_project_hygiene import scan_artifacts, scan_tree  # noqa: E402
 from scripts.project_registry import create_project, render_project_readme  # noqa: E402
+from scripts.git_guard import install_pre_push_hook  # noqa: E402
+
+
+def _sh_path():
+    """The POSIX shell Git uses for hooks, including Git for Windows' bundled sh."""
+    found = shutil.which("sh")
+    if found:
+        return found
+    git = shutil.which("git")
+    if not git:
+        return None
+    root = Path(git).resolve().parent.parent
+    for candidate in (root / "bin" / "sh.exe", root / "usr" / "bin" / "sh.exe"):
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
 from scripts.disruption_recovery import (  # noqa: E402
     load_ledger,
     record_checkpoint,
@@ -2151,6 +2168,31 @@ class TestTstringsNeedPython314(unittest.TestCase):
         found = [f"{path.name}:{pos}" for path in files + [ROOT_DIR / "aikit.py"]
                  for pos in self.uses_tstring(path.read_text(encoding="utf-8"))]
         self.assertEqual(found, [], "these t-strings are SyntaxErrors on Python 3.13")
+
+
+@unittest.skipUnless(_sh_path(), "POSIX sh is unavailable")
+class TestPublishGuardHook(unittest.TestCase):
+    """The installed hook actually blocks a raw push and allows AIKit's push."""
+
+    def test_hook_blocks_raw_push_and_allows_aikit_publish(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git" / "hooks").mkdir(parents=True)
+            hook = install_pre_push_hook(root, "demo")
+            env = os.environ.copy()
+            env.pop("AIKIT_PUBLISH", None)
+            blocked = subprocess.run(
+                [_sh_path(), str(hook)], cwd=root, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=5, env=env,
+            )
+            self.assertEqual(blocked.returncode, 1)
+            self.assertIn("aikit.py publish demo", blocked.stderr)
+            env["AIKIT_PUBLISH"] = "1"
+            allowed = subprocess.run(
+                [_sh_path(), str(hook)], cwd=root, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=5, env=env,
+            )
+            self.assertEqual(allowed.returncode, 0)
 
 
 if __name__ == "__main__":

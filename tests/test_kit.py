@@ -146,6 +146,13 @@ from scripts.project_publish import (
     get_project_repo_url,
     publish_project,
 )
+from scripts.git_guard import (
+    HOOK_MARKER,
+    PUBLISH_ENV,
+    install_pre_push_hook,
+    is_guard_installed,
+    publish_environment,
+)
 from scripts.project_archive import (
     archive_github_description,
     archive_project,
@@ -9026,6 +9033,78 @@ class TestFreeModelPolicy(unittest.TestCase):
         # A fabricated value: a real key, even split in two, is a committed credential (ADR-133).
         key = "AQ." + "FakeKey0" * 6 + "xy"
         self.assertTrue(scan_text("notes.md", key))
+
+class TestPublishGuard(unittest.TestCase):
+    """Direct `git push` is blocked unless the process is `aikit publish` (ADR-341)."""
+
+    def test_install_writes_guard_and_preserves_an_existing_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hooks = root / ".git" / "hooks"
+            hooks.mkdir(parents=True)
+            foreign = hooks / "pre-push"
+            foreign.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            target = install_pre_push_hook(root, "demo")
+            self.assertIsNotNone(target)
+            self.assertTrue(is_guard_installed(root))
+            self.assertIn(HOOK_MARKER, target.read_text(encoding="utf-8"))
+            self.assertIn("aikit.py publish demo", target.read_text(encoding="utf-8"))
+            self.assertEqual((hooks / "pre-push.local").read_text(encoding="utf-8"),
+                             "#!/bin/sh\nexit 0\n")
+
+    def test_no_git_repository_is_a_no_op(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(install_pre_push_hook(Path(tmp), "demo"))
+
+    def test_create_project_installs_the_guard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def git_start(project_root):
+                (project_root / ".git" / "hooks").mkdir(parents=True)
+
+            project = create_project("guarded", workspace=Path(tmp), git_start=git_start)
+            self.assertTrue(is_guard_installed(project))
+
+    def test_publish_environment_sets_and_restores(self):
+        previous = os.environ.get(PUBLISH_ENV)
+        os.environ.pop(PUBLISH_ENV, None)
+        try:
+            with publish_environment():
+                self.assertEqual(os.getenv(PUBLISH_ENV), "1")
+            self.assertIsNone(os.getenv(PUBLISH_ENV))
+            os.environ[PUBLISH_ENV] = "keep"
+            with publish_environment():
+                self.assertEqual(os.getenv(PUBLISH_ENV), "1")
+            self.assertEqual(os.getenv(PUBLISH_ENV), "keep")
+        finally:
+            if previous is None:
+                os.environ.pop(PUBLISH_ENV, None)
+            else:
+                os.environ[PUBLISH_ENV] = previous
+
+    def test_publish_project_installs_the_guard_before_pushing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git" / "hooks").mkdir(parents=True)
+            calls = []
+
+            def run(argv, cwd):
+                calls.append(argv)
+                if "get-url" in argv:
+                    return 1, ""
+                if "rev-parse" in argv:
+                    return 0, "abc123"
+                if "check_secrets.py" in argv:
+                    return 0, "[OK]"
+                if "create" in argv:
+                    return 0, "https://github.com/me/app"
+                return 0, ""
+
+            code, report = publish_project(root, "app", runner=run)
+            self.assertEqual(code, 0, report)
+            self.assertTrue(is_guard_installed(root))
+            create = next(call for call in calls if "create" in call)
+            self.assertIn("--push", create)
+
 
 class TestProjectPublish(unittest.TestCase):
     """`aikit publish`: a project in its own GitHub repository, private unless asked (ADR-134)."""
