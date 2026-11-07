@@ -1043,7 +1043,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `120` lines (`3858` bytes)
+**Size**: `120` lines (`3861` bytes)
 
 **Functions:**
 - `def hook_path(project_root)` - *The repository's pre-push hook path, or None when the folder is not a git repo.*

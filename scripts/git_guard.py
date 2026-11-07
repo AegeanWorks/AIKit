@@ -21,7 +21,7 @@ HOOK_MARKER = "# AIKit publish guard"
 LOCAL_HOOK_NAME = "pre-push.local"
 PUBLISH_ENV = "AIKIT_PUBLISH"
 _HOOK_NAME = "pre-push"
-_SAFE_NAME = re.compile(r"^[a-z0-9_-]+$")
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 def hook_path(project_root: Path) -> Optional[Path]:
