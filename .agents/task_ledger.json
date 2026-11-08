@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 131",
-      "phase_num": 3,
-      "description": "Reforge stage 131: stage 131 host review reviewed; run active; coverage 22/22",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150437.4607246,
-      "timestamp_str": "2026-11-08 18:07:17",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 132",
-      "phase_num": 3,
-      "description": "Reforge stage 132: window 396, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150442.9813673,
-      "timestamp_str": "2026-11-08 18:07:22",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 132",
       "phase_num": 3,
       "description": "Reforge stage 132: stage 132 host review reviewed; run active; coverage 21/21",
@@ -236,6 +214,28 @@
       "status": "in_progress",
       "timestamp": 1794150554.3776174,
       "timestamp_str": "2026-11-08 18:09:14",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 141",
+      "phase_num": 3,
+      "description": "Reforge stage 141: window 423, 3 commit(s), 25 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150569.6210334,
+      "timestamp_str": "2026-11-08 18:09:29",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 141",
+      "phase_num": 3,
+      "description": "Reforge stage 141: stage 141 host review reviewed; run active; coverage 53/53",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150576.2024817,
+      "timestamp_str": "2026-11-08 18:09:36",
       "agent": "opencode"
     }
   ]
