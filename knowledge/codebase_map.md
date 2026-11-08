@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1221`
-- **Total Source Lines**: `46136`
+- **Total Class Methods**: `1222`
+- **Total Source Lines**: `46151`
 
 ---
 
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14918` lines (`812376` bytes)
+**Size**: `14933` lines (`813128` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2472,6 +2472,7 @@
   - Method `.test_a_failing_gate_keeps_its_code_and_gains_the_rewrite_note()`
   - Method `.test_rewritten_paths_compares_content_hashes()`
   - Method `.test_snapshot_consumes_rename_sources_and_hashes_targets()`
+  - Method `.test_snapshot_consumes_copy_sources_and_hashes_targets()`
   - Method `.test_snapshot_marks_unreadable_files_without_failing()`
   - Method `.test_snapshot_returns_none_when_git_cannot_answer()`
 - `class TestProjectHygieneScan` - *The hygiene scan decides from the AST and from lines what the project gates could not (ADR-137).*

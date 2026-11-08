@@ -7460,6 +7460,21 @@ class TestProjectGates(unittest.TestCase):
         self.assertNotIn(".txt", snap or {},
                          "the decoy file is untouched by the rename entry")
 
+    def test_snapshot_consumes_copy_sources_and_hashes_targets(self):
+        from scripts import project_gates
+        root = Path(tempfile.mkdtemp(prefix="test_snapshot_copy_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        (root / "new.txt").write_text("one\n", encoding="utf-8")
+
+        def copy_status(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, " C new.txt\0old.txt\0", "")
+
+        with mock.patch.object(project_gates.subprocess, "run", side_effect=copy_status):
+            snap = _tracked_snapshot(root)
+        self.assertIn("new.txt", snap or {})
+        self.assertNotIn("old.txt", snap or {},
+                         "the copy source must be consumed, not read as a path")
+
     def test_snapshot_marks_unreadable_files_without_failing(self):
         from scripts import project_gates
         root = Path(tempfile.mkdtemp(prefix="test_snapshot_gone_"))
