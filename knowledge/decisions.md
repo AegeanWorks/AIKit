@@ -3874,3 +3874,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Import `tomllib` unconditionally, remove the `tomllib is None` branch, and extend `TestRuntimeFloorConsistency` to assert the Reforge module neither mentions 3.10 nor defines the fallback.
 - **Consequences**: TOML review is always available and the floor statement is true for every production module. No behavior changes on 3.13+. The new assertions fail on the previous fallback and leave every other assertion intact.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because `tomllib` is older than the declared floor; PRINCIPLE-009: no conflict because the module's role is unchanged; PRINCIPLE-014: no conflict because the floor test fails before the fix and none is weakened.
+
+### ADR-383: The CI CLI contract covers every exit-2 gate script
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `97b50ff` made the CI CLI contract loop `set -e` safe, but the loop still named only six scripts. `check_project_hygiene.py`, `proof_gate.py`, and `check_test_budgets.py` implement the same `--help`/exit-2 contract and were omitted, so the step's "all entrypoints" claim was false.
+- **Decision**: Add the three scripts to the loop, correct the closing message, and extend `TestCiContractGuards` to parse the loop and require the full set.
+- **Consequences**: Every standalone gate script that declares the exit-2 contract is exercised on both OS legs. A future script must add itself to the loop and the test, so the claim cannot silently drift again.
+- **Cross-principle check**: PRINCIPLE-011: no conflict because the CLI misuse contract is now enforced more broadly; PRINCIPLE-014: no conflict because the new test fails on the previous loop and none is weakened; PRINCIPLE-018: no conflict because only the CI gate changes.

@@ -1381,6 +1381,20 @@ class TestCiContractGuards(unittest.TestCase):
         self.assertIn('if [ "$code" -ne 2 ]; then', text)
         self.assertIn("expected 2", text)
 
+    def test_cli_contract_probe_covers_every_exit_two_gate_script(self):
+        ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml")
+        text = ci.read_text(encoding="utf-8")
+        loop = re.search(r"for s in ([^;]+); do", text)
+        self.assertIsNotNone(loop, "the CLI contract loop is missing")
+        names = set(loop.group(1).split())
+        expected = {
+            "sync_principles", "disruption_recovery", "update_knowledge_base", "dogfood",
+            "check_reachability", "check_secrets", "check_project_hygiene", "proof_gate",
+            "check_test_budgets",
+        }
+        self.assertTrue(expected.issubset(names),
+                        f"scripts missing from the CLI contract loop: {expected - names}")
+
     def test_ci_supplies_the_identity_committing_tests_need(self):
         ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml")
         text = ci.read_text(encoding="utf-8")

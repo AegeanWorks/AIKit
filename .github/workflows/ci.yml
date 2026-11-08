@@ -94,7 +94,7 @@ jobs:
           # NOTE: the runner invokes this script with `set -e`, and the misuse probe
           # exits 2 by design. A bare probe would kill the shell before `code=$?`
           # runs, so the probe must be guarded by `||` for the gate to execute at all.
-          for s in sync_principles disruption_recovery update_knowledge_base dogfood check_reachability check_secrets; do
+          for s in sync_principles disruption_recovery update_knowledge_base dogfood check_reachability check_secrets check_project_hygiene proof_gate check_test_budgets; do
             python "scripts/$s.py" --help > /dev/null < /dev/null \
               || { echo "::error::scripts/$s.py --help did not exit 0"; exit 1; }
             code=0
@@ -104,7 +104,7 @@ jobs:
               exit 1
             fi
           done
-          echo "CLI contract verified across all entrypoints"
+          echo "CLI contract verified across every exit-2 gate script"
 
       # PRINCIPLE-019 Rule 5: a committed credential cannot be reverted, only rotated.
       - name: Secret hygiene scan
