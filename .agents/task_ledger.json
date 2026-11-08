@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 93",
-      "phase_num": 3,
-      "description": "Reforge stage 93: stage 93 host review reviewed; run active; coverage 91/91",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149973.2886603,
-      "timestamp_str": "2026-11-08 17:59:33",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 94",
-      "phase_num": 3,
-      "description": "Reforge stage 94: window 282, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149983.8275347,
-      "timestamp_str": "2026-11-08 17:59:43",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 94",
       "phase_num": 3,
       "description": "Reforge stage 94: stage 94 host review reviewed; run active; coverage 49/49",
@@ -239,6 +217,28 @@
       "status": "in_progress",
       "timestamp": 1794150130.6019855,
       "timestamp_str": "2026-11-08 18:02:10",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 102",
+      "phase_num": 3,
+      "description": "Reforge stage 102: window 306, 3 commit(s), 1 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150134.4209397,
+      "timestamp_str": "2026-11-08 18:02:14",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 102",
+      "phase_num": 3,
+      "description": "Reforge stage 102: stage 102 host review reviewed; run active; coverage 1/1",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150134.991519,
+      "timestamp_str": "2026-11-08 18:02:14",
       "agent": "opencode"
     }
   ]
