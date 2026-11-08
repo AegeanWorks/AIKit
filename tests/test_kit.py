@@ -10914,6 +10914,10 @@ class TestReforgeCore(unittest.TestCase):
             small = Path(tmp) / "ok.py"
             small.write_text("x=1\n", encoding="utf-8")
             self.assertTrue(project_ui._is_small(small, 100_000))
+            small.write_bytes(b"x" * 100_000)
+            self.assertTrue(project_ui._is_small(small, 100_000))
+            small.write_bytes(b"x" * 100_001)
+            self.assertFalse(project_ui._is_small(small, 100_000))
 
     def test_compat_ui_contract_upgrades_cli_service_to_web(self):
         import json as _json
