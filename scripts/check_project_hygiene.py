@@ -307,6 +307,8 @@ def check_environ_index(rel: str, tree: ast.Module) -> Iterable[Finding]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Subscript):
             continue
+        if not isinstance(node.ctx, ast.Load):
+            continue
         value = node.value
         if isinstance(value, ast.Attribute) and value.attr == "environ" \
                 and isinstance(value.value, ast.Name) and value.value.id == "os":
@@ -318,8 +320,12 @@ def check_environ_index(rel: str, tree: ast.Module) -> Iterable[Finding]:
 def _open_mode(call: ast.Call) -> Optional[str]:
     """The literal mode of an open() call, or None when binary-ness is not decidable."""
     mode = _keyword(call, "mode")
-    if mode is None and len(call.args) >= 2:
-        mode = call.args[1]
+    if mode is None:
+        if isinstance(call.func, ast.Attribute):
+            if call.args:
+                mode = call.args[0]
+        elif len(call.args) >= 2:
+            mode = call.args[1]
     if mode is None:
         return "r"
     if isinstance(mode, ast.Constant) and isinstance(mode.value, str):

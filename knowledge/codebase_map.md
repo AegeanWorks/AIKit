@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1219`
-- **Total Source Lines**: `46117`
+- **Total Class Methods**: `1221`
+- **Total Source Lines**: `46136`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `794` lines (`38720` bytes)
+**Size**: `800` lines (`38913` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -981,7 +981,7 @@
 ### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
 > *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
 
-**Size**: `456` lines (`19874` bytes)
+**Size**: `457` lines (`19908` bytes)
 
 **Functions:**
 - `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*
@@ -1044,7 +1044,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `276` lines (`9633` bytes)
+**Size**: `278` lines (`9814` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
@@ -1101,7 +1101,7 @@
 ### [`scripts/project_artwork.py`](scripts/project_artwork.py)
 > *Image-model brand artwork for projects (ADR-239).*
 
-**Size**: `546` lines (`30122` bytes)
+**Size**: `546` lines (`30187` bytes)
 
 **Functions:**
 - `def _hex_rgb(value)`
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14908` lines (`811827` bytes)
+**Size**: `14918` lines (`812376` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2484,6 +2484,8 @@
   - Method `.test_absolute_paths_only_when_they_reach_file_access()`
   - Method `.test_inline_allow_marker_needs_a_reason()`
   - Method `.test_a_typed_allow_marker_scopes_suppression_to_its_rule()`
+  - Method `.test_binary_path_open_is_not_flagged_for_encoding()`
+  - Method `.test_environ_subscript_writes_are_not_reads()`
   - Method `.test_every_emitted_rule_code_is_registered()`
   - Method `.test_asset_urls_skip_loopback_namespaces_and_marked_lines()`
   - Method `.test_scan_tree_skips_vendored_dirs_and_reports_unreadable_files()`

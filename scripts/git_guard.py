@@ -107,6 +107,7 @@ def _global_hooks_path() -> Optional[str]:
                             paths.append(candidate)
                             break
             else:
+                # hygiene: allow the POSIX system git config is a standard absolute path
                 paths.append(Path("/etc/gitconfig"))
         elif system:
             paths.append(Path(system).expanduser())
@@ -226,6 +227,7 @@ def install_pre_push_hook(project_root: Path, project_name: str) -> Optional[Pat
         temp.unlink(missing_ok=True)
     try:
         target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    # hygiene: allow the executable bit is best effort; the hook content still gates pushes
     except OSError:
         pass
     return target

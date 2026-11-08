@@ -193,8 +193,8 @@ def _local_description(root: Path, name: str, fallback: str = "") -> str:
                     pick = next((line for line in lines[1:3] if line), lines[0])
                     return pick[:280]
             except OSError:
-                pass
-    return fallback or f"{repository_name(name)} — an AegeanWorks project."
+                return fallback or f"{repository_name(name)} - an AegeanWorks project."
+    return fallback or f"{repository_name(name)} - an AegeanWorks project."
 
 
 def generate_model_brand(project_root: Path, name: str,

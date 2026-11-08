@@ -77,7 +77,8 @@ def _write_if_changed(path: Path, text: str) -> bool:
         if path.is_file() and path.read_text(encoding="utf-8") == text:
             return False
     except OSError:
-        pass
+        _write(path, text)
+        return True
     _write(path, text)
     return True
 

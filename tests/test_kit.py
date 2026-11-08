@@ -7581,6 +7581,16 @@ class TestProjectHygieneScan(unittest.TestCase):
         self.assertEqual(self.rules("import os\nos.system('x')  # hygiene: allow [nope] bootstrapper\n"),
                           {"os-system"})
 
+    def test_binary_path_open_is_not_flagged_for_encoding(self):
+        binary = self.rules('from pathlib import Path\nPath("x").open("rb")\n')
+        self.assertNotIn("open-encoding", binary)
+        text = self.rules('from pathlib import Path\nPath("x").open()\n')
+        self.assertIn("open-encoding", text)
+
+    def test_environ_subscript_writes_are_not_reads(self):
+        self.assertEqual(self.rules('import os\nos.environ["X"] = "1"\n'), set())
+        self.assertEqual(self.rules('import os\nx = os.environ["X"]\n'), {"environ-index"})
+
     def test_every_emitted_rule_code_is_registered(self):
         # IDEA-1235: the registry is the code's vocabulary; a new rule adds its row here.
         import ast as _ast
