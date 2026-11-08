@@ -7630,6 +7630,12 @@ class TestProjectHygieneScan(unittest.TestCase):
         self.assertNotIn("open-encoding", io_binary)
         io_text = self.rules('import io\nio.open("x")\n')
         self.assertIn("open-encoding", io_text)
+        gzip_binary = self.rules(
+            'import gzip\nwith gzip.open("x.gz", "rb") as h:\n    h.read()\n')
+        self.assertNotIn("open-encoding", gzip_binary)
+        codecs_binary = self.rules(
+            'import codecs\nwith codecs.open("x.bin", "rb") as h:\n    h.read()\n')
+        self.assertNotIn("open-encoding", codecs_binary)
 
     def test_environ_subscript_writes_are_not_reads(self):
         self.assertEqual(self.rules('import os\nos.environ["X"] = "1"\n'), set())

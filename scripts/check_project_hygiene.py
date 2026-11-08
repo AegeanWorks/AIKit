@@ -323,9 +323,10 @@ def _open_mode(call: ast.Call) -> Optional[str]:
     """The literal mode of an open() call, or None when binary-ness is not decidable."""
     mode = _keyword(call, "mode")
     # Builtin/`io.open(path, mode)` put the path first; `Path.open(mode)` does not.
+    module_open = {"io", "codecs", "gzip", "bz2", "lzma", "builtins"}
     builtin_like = isinstance(call.func, ast.Name) or (
         isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)
-        and call.func.value.id == "io"
+        and call.func.value.id in module_open
     )
     mode_index = 1 if builtin_like else 0
     if mode is None and len(call.args) > mode_index:
