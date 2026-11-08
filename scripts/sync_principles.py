@@ -687,11 +687,21 @@ def changed_principles(old_text: str, new_text: str) -> List[str]:
 
 
 def _clause_after(combined: str, pid: str, window: int = 300) -> str:
-    """The text window after one cited ID, for per-ID reasoning checks."""
-    idx = combined.find(pid)
-    if idx < 0:
+    """One cited ID's clause, cut before the next labeled principle.
+
+    A fixed window let a later clause's evidence satisfy an earlier bare
+    ``(no conflict)``. The boundary is the next ``PRINCIPLE-NNN:`` label, so
+    each ID is judged on its own text.
+    """
+    match = re.search(rf"{re.escape(pid)}(?=\s*[:(])", combined)
+    if match is None:
+        match = re.search(re.escape(pid), combined)
+    if match is None:
         return ""
-    return combined[idx:idx + window]
+    rest = combined[match.end():]
+    boundary = re.search(r"PRINCIPLE-\d{3}\s*:", rest)
+    end = match.end() + (boundary.start() if boundary else window)
+    return combined[match.start():min(end, match.start() + window)]
 
 
 def _needs_reasoning(clause: str) -> bool:

@@ -61,6 +61,8 @@ from scripts.sync_principles import (
     MAX_DOMAIN_CHARS,
     changed_principles,
     cross_check_errors,
+    _clause_after,
+    _needs_reasoning,
     render_readme_table,
     sync_readme_table,
     README_TABLE_BEGIN,
@@ -2086,6 +2088,14 @@ class TestPrinciple000Unambiguity(unittest.TestCase):
         reasoned = (adr + "### ADR-002: rule\n- Cross-principle check: PRINCIPLE-002: "
                     "no conflict because gate `python scripts/sync_principles.py --check` still passes R3.\n")
         self.assertEqual(cross_check_errors(old, new, adr, reasoned), [])
+
+    def test_cross_check_reason_is_per_id(self):
+        # A later clause's evidence must not satisfy an earlier bare clause.
+        combined = ("PRINCIPLE-002 (no conflict). "
+                    "PRINCIPLE-003: no conflict because gate `scripts/sync_principles.py --check` passes R3.")
+        clause = _clause_after(combined, "PRINCIPLE-002")
+        self.assertEqual(clause.strip(), "PRINCIPLE-002 (no conflict).")
+        self.assertFalse(_needs_reasoning(clause))
 
     def test_capsule_does_not_license_skipping_procedure(self):
         # Red-green pin: "code quality primacy over procedural formalism" read, alone in Tier 1,

@@ -1,48 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-18push",
+    "task_id": "verify-19push",
     "last_phase": "implementation",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794112959.9133184,
+    "updated_at": 1794113556.1766837,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "aikit-publish-guard",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/3] git_guard installed by new, attach and publish; publish sets AIKIT_PUBLISH for its own push",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794094773.016367,
-      "timestamp_str": "2026-11-08 02:39:33",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "aikit-publish-guard",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[3/3] Unit+integration pass; checklists: passed; Unverified: timing budgets (host at ~100% CPU, functional tiers OK)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794094773.6021585,
-      "timestamp_str": "2026-11-08 02:39:33",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "aikit-publish-guard",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'aikit-publish-guard' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794094774.18003,
-      "timestamp_str": "2026-11-08 02:39:34",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "verify-3push",
       "phase": "planning",
@@ -265,6 +233,45 @@
       "status": "in_progress",
       "timestamp": 1794112959.9133184,
       "timestamp_str": "2026-11-08 07:42:39",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-18push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-18push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794113555.5043614,
+      "timestamp_str": "2026-11-08 07:52:35",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-19push",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/3] Review the final 19-push window and judge cross-principle reasoning per clause",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794113555.8433273,
+      "timestamp_str": "2026-11-08 07:52:35",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The 300-character window let a later clause's evidence satisfy an earlier bare (no conflict), defeating the per-ID reasoning check.",
+        "benefits": "Each required principle now carries its own reason and evidence; a bare clause cannot borrow the next clause's justification.",
+        "risks": "contract: cross-check parser; dependency: stdlib; concurrency: none; state: sync_principles, tests, decisions, map",
+        "mitigation": "failing-first per-ID test, live sync check, read-only gates, dogfood, verify_commit before push"
+      },
+      "plan_digest": "4d284dc24caed681e591a37f1694403a463900e88b1db7bced154c08c154826d"
+    },
+    {
+      "task_id": "verify-19push",
+      "phase": "implementation",
+      "phase_num": 4,
+      "description": "[2/3] Per-clause cross-check boundary; tests, sync gate, read-only gates and dogfood passed; skipped timing budgets (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794113556.1766837,
+      "timestamp_str": "2026-11-08 07:52:36",
       "agent": "opencode:goal"
     }
   ]

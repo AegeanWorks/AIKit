@@ -3604,3 +3604,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: ADR-337 found that fresh CI runners have no git identity, so tests that commit (reforge repair and integration fixtures) fail before any assertion. The workflow now sets `user.email` and `user.name` globally.
 - **Decision**: Add a unit pin that the CI workflow contains both identity lines. It reads the workflow text and spawns no process.
 - **Consequences**: Removing or renaming the identity step fails the unit tier before a Linux-only run rediscovers it. The pin covers the runner prerequisite, not the commit tests themselves.
+
+### ADR-349: Cross-principle reasoning is judged per clause
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The 19-push review found that `_clause_after` returned a fixed 300-character window. A later clause's `because ... scripts/...` evidence could therefore satisfy an earlier bare `(no conflict)`, defeating the per-ID reasoning check added in this range.
+- **Decision**: Cut a cited ID's clause at the next `PRINCIPLE-NNN:` label before judging it. A label is the ID followed by `:` or `(`; prose mentions do not start a clause. The unit tier pins a bare clause followed by a reasoned one.
+- **Consequences**: Each required principle must carry its own reason and evidence. A bare clause can no longer borrow the next clause's justification.
