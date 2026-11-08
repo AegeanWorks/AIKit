@@ -97,8 +97,13 @@ def _global_hooks_path() -> Optional[str]:
         system = os.environ.get("GIT_CONFIG_SYSTEM")
         if system is None:
             if os.name == "nt":
-                # Git for Windows keeps its system config beside the executable
-                # (<install>/etc/gitconfig), which is more reliable than PROGRAMDATA.
+                # Both standard system locations: the machine-wide PROGRAMDATA
+                # config and the install tree beside git.exe, which wins if both exist.
+                programdata = os.environ.get("PROGRAMDATA")
+                if programdata:
+                    fallback = Path(programdata) / "Git" / "config"
+                    if fallback.is_file():
+                        paths.append(fallback)
                 executable = shutil.which("git")
                 if executable:
                     for ancestor in Path(executable).resolve().parents:

@@ -3722,3 +3722,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Skip only `Store` environment subscripts, leaving `Load` and `Del` flagged; choose the mode argument by call form, with builtin/`io.open` using the second argument and `Path.open` the first.
 - **Consequences**: Environment deletes are treated like reads, binary `io.open` is silent, and text `io.open` remains flagged. The unit tier pins all four forms.
 - **Cross-principle check**: PRINCIPLE-011: no conflict because hard environment access remains checked; PRINCIPLE-003: no conflict because text encoding is still enforced; PRINCIPLE-014: no conflict because the new assertions fail on the previous rules and none is weakened.
+
+### ADR-364: Keep the PROGRAMDATA system-config fallback
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Commit `560412b` added `%PROGRAMDATA%\Git\config` as the Windows system config; commit `7562d78` replaced it with the install-relative `etc/gitconfig`. A portable or differently installed Git can have no config beside the executable while the machine-wide config remains.
+- **Decision**: Check `%PROGRAMDATA%\Git\config` first, then the install-relative `etc/gitconfig`, which wins when both exist. Record `PROGRAMDATA` in the reachability allowlist.
+- **Consequences**: Both standard Windows system-config locations are honored without a subprocess. The Windows-only test covers a portable executable with only the machine config.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because the path work is platform-guarded and uses `pathlib`; PRINCIPLE-013: no conflict because no persisted state changes; PRINCIPLE-014: no conflict because the new Windows test fails without the fallback and no assertion is weakened.

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1225`
-- **Total Source Lines**: `46214`
+- **Total Class Methods**: `1226`
+- **Total Source Lines**: `46246`
 
 ---
 
@@ -772,7 +772,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `382` lines (`17115` bytes)
+**Size**: `382` lines (`17139` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -1044,7 +1044,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `278` lines (`9814` bytes)
+**Size**: `283` lines (`10065` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14975` lines (`815499` bytes)
+**Size**: `15002` lines (`816955` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2648,6 +2648,7 @@
   - Method `.test_core_hooks_path_is_respected()`
   - Method `.test_global_core_hooks_path_is_respected()`
   - Method `.test_windows_system_hooks_path_is_respected()`
+  - Method `.test_programdata_system_hooks_path_is_a_fallback()`
   - Method `.test_system_config_env_override_is_respected()`
   - Method `.test_included_config_hooks_path_is_respected()`
   - Method `.test_create_project_installs_the_guard()`
