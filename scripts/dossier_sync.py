@@ -176,12 +176,18 @@ def _upsert_metadata(dossier: Path, entry: Dict[str, object]) -> bool:
     path = dossier / "tests" / "metadata" / "repositories.json"
     data = _load_json(path)
     repositories = list(data.get("repositories") or [])
+    changed = False
     for index, repo in enumerate(repositories):
         if str(repo.get("name", "")).lower() == str(entry["name"]).lower():
-            repositories[index] = entry
+            if repo != entry:
+                repositories[index] = entry
+                changed = True
             break
     else:
         repositories.append(entry)
+        changed = True
+    if not changed:
+        return False
     data["repositories"] = repositories
     data["captured_at"] = _today()
     return _write_if_changed(path, _dump_json(data))
@@ -191,8 +197,12 @@ def _upsert_snapshot(dossier: Path, entry: Dict[str, object]) -> bool:
     metadata = _load_json(dossier / "tests" / "metadata" / "repositories.json")
     path = dossier / "docs" / "atlas-snapshot.json"
     data = _load_json(path)
-    data["profile"] = metadata.get("profile") or data.get("profile")
-    data["repositories"] = metadata.get("repositories") or [entry]
+    profile = metadata.get("profile") or data.get("profile")
+    repositories = metadata.get("repositories") or [entry]
+    if data.get("profile") == profile and data.get("repositories") == repositories:
+        return False
+    data["profile"] = profile
+    data["repositories"] = repositories
     data["generated_at"] = _today()
     return _write_if_changed(path, _dump_json(data))
 

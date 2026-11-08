@@ -547,6 +547,9 @@ def ui_review_waiver(project_root: Path) -> Optional[str]:
         text = line.lower()
         asks_nobody = any(phrase in text for phrase in (
             "do not ask", "don't ask", "never ask", "no human", "not ask"))
+        if re.search(r"\b(?:do not|don't|never)\s+(?:ask|request)\s+"
+                     r"(?:for\s+)?(?:a\s+|the\s+)?(?:ui\s+review\s+)?waiver\b", text):
+            continue
         names_review = "ui review" in text or "ui/ux review" in text
         if asks_nobody and names_review:
             return line

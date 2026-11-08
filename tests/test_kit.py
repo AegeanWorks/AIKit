@@ -7269,6 +7269,30 @@ class TestProjectRegistry(unittest.TestCase):
         for misleading in ("outside its contract", "abort", "revert", "ui allow"):
             self.assertNotIn(misleading, err, f"review-only failure still says '{misleading}'")
 
+    def test_ui_review_waiver_ignores_a_line_that_refuses_a_waiver(self):
+        from scripts import aikit_cli
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir()
+            (root / ".aikit" / "guidelines.md").write_text(
+                "- **G-001** (user): Do not ask for a UI review waiver; "
+                "always record a human review.\n",
+                encoding="utf-8")
+            self.assertIsNone(aikit_cli.ui_review_waiver(root))
+
+    def test_ui_review_waiver_accepts_an_explicit_no_human_rule(self):
+        from scripts import aikit_cli
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".aikit").mkdir()
+            (root / ".aikit" / "guidelines.md").write_text(
+                "- **G-001** (user): No human UI review is required; "
+                "agents record the review.\n",
+                encoding="utf-8")
+            self.assertIn("No human UI review", aikit_cli.ui_review_waiver(root) or "")
+
     def test_ui_finish_with_a_contract_finding_keeps_the_contract_advice(self):
         folder = self.make_folder()
         attach_project(folder, "contractapp", workspace=self.kit)
@@ -14050,6 +14074,14 @@ class TestDossierCatalogueSync(unittest.TestCase):
         self.assertIn("| [NewApp](https://github.com/AegeanWorks/NewApp) | The same tool, re-described. |", readme)
         metadata = json.loads((self.dossier / "tests/metadata/repositories.json").read_text(encoding="utf-8"))
         self.assertEqual([repo["name"] for repo in metadata["repositories"]], ["OldProject", "NewApp"])
+
+    def test_sync_entry_is_idempotent_across_a_date_change(self):
+        with mock.patch.object(dossier_sync, "_today", return_value="2026-11-01"):
+            dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools")
+        first = self._snapshot()
+        with mock.patch.object(dossier_sync, "_today", return_value="2026-11-02"):
+            self.assertEqual(dossier_sync.sync_entry(self.dossier, self._entry(), "AL", "tools"), [])
+        self.assertEqual(self._snapshot(), first)
 
     def test_repository_slug_parses_github_origin_forms(self):
         self.assertEqual(dossier_sync.repository_slug("https://github.com/AegeanWorks/Keystone.git"),

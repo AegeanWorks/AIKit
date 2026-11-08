@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1008`
-- **Total Class Methods**: `1238`
-- **Total Source Lines**: `46510`
+- **Total Class Methods**: `1241`
+- **Total Source Lines**: `46555`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1577` lines (`79548` bytes)
+**Size**: `1580` lines (`79726` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -981,7 +981,7 @@
 ### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
 > *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
 
-**Size**: `457` lines (`19908` bytes)
+**Size**: `467` lines (`20216` bytes)
 
 **Functions:**
 - `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*
@@ -1898,7 +1898,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15193` lines (`827109` bytes)
+**Size**: `15225` lines (`828651` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2453,6 +2453,8 @@
   - Method `.test_ui_init_writes_the_react_vite_pilot_contract()`
   - Method `.test_ui_evidence_and_json_error_paths()`
   - Method `.test_ui_finish_blocked_only_by_review_says_so_and_offers_no_revert()`
+  - Method `.test_ui_review_waiver_ignores_a_line_that_refuses_a_waiver()`
+  - Method `.test_ui_review_waiver_accepts_an_explicit_no_human_rule()`
   - Method `.test_ui_finish_with_a_contract_finding_keeps_the_contract_advice()`
   - Method `.test_ui_finish_prints_every_allowed_removal_and_its_reason()`
   - Method `.test_ui_init_generic_override_from_cli()`
@@ -2982,6 +2984,7 @@
   - Method `._snapshot()`
   - Method `.test_sync_entry_writes_every_catalogue_artifact()`
   - Method `.test_sync_entry_is_idempotent_and_updates_metadata_in_place()`
+  - Method `.test_sync_entry_is_idempotent_across_a_date_change()`
   - Method `.test_repository_slug_parses_github_origin_forms()`
   - Method `.test_build_entry_refuses_a_repository_without_language()`
   - Method `.test_sync_published_skips_a_foreign_origin_and_an_absent_dossier()`
