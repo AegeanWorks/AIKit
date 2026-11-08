@@ -13,62 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 48",
-      "phase_num": 3,
-      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit (regression=1)",
-      "files_affected": [
-        "scripts/aikit_cli.py"
-      ],
-      "status": "in_progress",
-      "timestamp": 1794146197.5728073,
-      "timestamp_str": "2026-11-08 16:56:37",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 48",
-      "phase_num": 3,
-      "description": "Reforge stage 48: stage 48 host review reviewed; run active; coverage 24/24",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146250.6029916,
-      "timestamp_str": "2026-11-08 16:57:30",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 48",
-      "phase_num": 3,
-      "description": "Reforge stage 48: stage 48 host review reviewed; run active; coverage 24/24",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146286.9077222,
-      "timestamp_str": "2026-11-08 16:58:06",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "verify-54push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] HEAD project pin shares the normalized boundary; 993 unit tests, targeted integration boundary, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146324.7721748,
-      "timestamp_str": "2026-11-08 16:58:44",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-54push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-54push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794146325.010377,
-      "timestamp_str": "2026-11-08 16:58:45",
-      "agent": "opencode:goal"
-    },
-    {
       "task_id": "verify-57push-v2",
       "phase": "in_progress",
       "phase_num": 2,
@@ -172,7 +116,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 51",
       "phase_num": 3,
-      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794147835.5456438,
@@ -183,7 +127,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 51",
       "phase_num": 3,
-      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794147836.3087568,
@@ -216,7 +160,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 52",
       "phase_num": 3,
-      "description": "Reforge stage 52: window 156, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 52: window 156, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794148072.034182,
@@ -283,6 +227,28 @@
       "timestamp": 1794148264.98741,
       "timestamp_str": "2026-11-08 17:31:04",
       "agent": "opencode:goal"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 53",
+      "phase_num": 3,
+      "description": "Reforge stage 53: window 159, 3 commit(s), 18 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794148500.0939717,
+      "timestamp_str": "2026-11-08 17:35:00",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 53",
+      "phase_num": 3,
+      "description": "Reforge stage 53: stage 53 host review reviewed; run active; coverage 139/139",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794148518.127595,
+      "timestamp_str": "2026-11-08 17:35:18",
+      "agent": "opencode"
     }
   ]
 }
