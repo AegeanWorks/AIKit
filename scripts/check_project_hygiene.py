@@ -308,7 +308,8 @@ def check_environ_index(rel: str, tree: ast.Module) -> Iterable[Finding]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Subscript):
             continue
-        if not isinstance(node.ctx, ast.Load):
+        if isinstance(node.ctx, ast.Store):
+            # `os.environ[key] = value` is a write, not a key read; a delete can still raise.
             continue
         value = node.value
         if isinstance(value, ast.Attribute) and value.attr == "environ" \
@@ -321,12 +322,14 @@ def check_environ_index(rel: str, tree: ast.Module) -> Iterable[Finding]:
 def _open_mode(call: ast.Call) -> Optional[str]:
     """The literal mode of an open() call, or None when binary-ness is not decidable."""
     mode = _keyword(call, "mode")
-    if mode is None:
-        if isinstance(call.func, ast.Attribute):
-            if call.args:
-                mode = call.args[0]
-        elif len(call.args) >= 2:
-            mode = call.args[1]
+    # Builtin/`io.open(path, mode)` put the path first; `Path.open(mode)` does not.
+    builtin_like = isinstance(call.func, ast.Name) or (
+        isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)
+        and call.func.value.id == "io"
+    )
+    mode_index = 1 if builtin_like else 0
+    if mode is None and len(call.args) > mode_index:
+        mode = call.args[mode_index]
     if mode is None:
         return "r"
     if isinstance(mode, ast.Constant) and isinstance(mode.value, str):

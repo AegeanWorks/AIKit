@@ -7615,10 +7615,15 @@ class TestProjectHygieneScan(unittest.TestCase):
         self.assertNotIn("open-encoding", binary)
         text = self.rules('from pathlib import Path\nPath("x").open()\n')
         self.assertIn("open-encoding", text)
+        io_binary = self.rules('import io\nwith io.open("x", "rb") as h:\n    h.read()\n')
+        self.assertNotIn("open-encoding", io_binary)
+        io_text = self.rules('import io\nio.open("x")\n')
+        self.assertIn("open-encoding", io_text)
 
     def test_environ_subscript_writes_are_not_reads(self):
         self.assertEqual(self.rules('import os\nos.environ["X"] = "1"\n'), set())
         self.assertEqual(self.rules('import os\nx = os.environ["X"]\n'), {"environ-index"})
+        self.assertEqual(self.rules('import os\ndel os.environ["X"]\n'), {"environ-index"})
 
     def test_every_emitted_rule_code_is_registered(self):
         # IDEA-1235: the registry is the code's vocabulary; a new rule adds its row here.

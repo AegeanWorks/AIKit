@@ -3714,3 +3714,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Capture the whole reason and require at least three total non-space characters; typed markers keep their rule scoping and still fail closed.
 - **Consequences**: Reasons beginning with a short article work, while empty, `no` and `x` markers still suppress nothing. The unit tier pins both the accepted and rejected forms.
 - **Cross-principle check**: PRINCIPLE-000: no conflict because the documented-exception path becomes usable instead of silently failing; PRINCIPLE-014: no conflict because the new assertions fail on the previous regex and none is weakened; PRINCIPLE-003: no conflict because the marker remains a local, line-bounded exception.
+
+### ADR-363: Environment deletes and io.open keep their true form
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The false-positive fix skipped every non-`Load` `os.environ` subscript, hiding `del os.environ[key]`, which still raises when the key is absent. It also treated every `.open` as `Path.open`, so `io.open(path, "rb")` took the path as the mode and flagged a binary open as text.
+- **Decision**: Skip only `Store` environment subscripts, leaving `Load` and `Del` flagged; choose the mode argument by call form, with builtin/`io.open` using the second argument and `Path.open` the first.
+- **Consequences**: Environment deletes are treated like reads, binary `io.open` is silent, and text `io.open` remains flagged. The unit tier pins all four forms.
+- **Cross-principle check**: PRINCIPLE-011: no conflict because hard environment access remains checked; PRINCIPLE-003: no conflict because text encoding is still enforced; PRINCIPLE-014: no conflict because the new assertions fail on the previous rules and none is weakened.
