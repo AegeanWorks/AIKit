@@ -314,7 +314,7 @@ def blast_verdict(before_hash: Optional[str], after_hash: Optional[str],
     bundles, never a bare "altered" claim).
     """
     if before_hash is None or after_hash is None:
-        return True, "zero host mutation; tracked content hash identical", []
+        return False, "blast radius unproven: git status unavailable", []
     if before_hash == after_hash:
         return True, "zero host mutation; tracked content hash identical", []
     paths = diff_snapshots(before_snap, after_snap)

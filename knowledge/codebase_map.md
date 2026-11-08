@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1219`
-- **Total Source Lines**: `46111`
+- **Total Source Lines**: `46117`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1560` lines (`78681` bytes)
+**Size**: `1562` lines (`78871` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -953,7 +953,7 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `672` lines (`30503` bytes)
+**Size**: `672` lines (`30499` bytes)
 
 **Functions:**
 - `def sanitized_env(base)` - *Child env without code-injection vectors (S-A F1/F2).*
@@ -1077,7 +1077,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `567` lines (`29383` bytes)
+**Size**: `568` lines (`29460` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1384,7 +1384,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `400` lines (`16161` bytes)
+**Size**: `402` lines (`16342` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14907` lines (`811766` bytes)
+**Size**: `14908` lines (`811827` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*

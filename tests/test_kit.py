@@ -1794,8 +1794,9 @@ class TestDogfoodFingerprint(unittest.TestCase):
         self.assertFalse(loud)
         self.assertIn("a.txt", loud_detail)
         self.assertEqual(loud_paths, ["modified: a.txt"])
-        missing, _, _ = blast_verdict(None, "h2", None, changed)
-        self.assertTrue(missing, "git-unavailable proves nothing either way, like before")
+        missing, missing_detail, _ = blast_verdict(None, "h2", None, changed)
+        self.assertFalse(missing, "git-unavailable proves nothing, so it must not pass")
+        self.assertIn("unproven", missing_detail)
 
     def test_repo_fingerprint_matches_snapshot_hash(self):
         # Single source of truth: repo_fingerprint() must equal fingerprint_of() over the

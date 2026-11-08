@@ -374,6 +374,7 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                 cleaned = cleaned.rsplit(":", 1)[-1]
             tail = cleaned.rsplit("/", 2)
             qualified = f"{tail[-2]}/{tail[-1]}" if len(tail) >= 2 and tail[-1] and tail[-2] else ""
+        # hygiene: allow a malformed origin URL falls back to the local slug
         except (AttributeError, ValueError):
             qualified = ""
         if qualified:

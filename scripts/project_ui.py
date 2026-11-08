@@ -124,6 +124,7 @@ def _compat_ui_kind(root: Path, kind: str, evidence: List[Path]) -> Optional[str
             evidence.append(compat_path)
             evidence.extend(shot_paths)
             return UI_WEB
+    # hygiene: allow a corrupt or unreadable compat contract leaves the detected identity intact
     except (OSError, ValueError):
         return None
     return None
@@ -133,6 +134,7 @@ def _package_dependencies(root: Path) -> Dict[str, str]:
     package = root / "package.json"
     try:
         data = json.loads(package.read_text(encoding="utf-8")) if package.is_file() else {}
+    # hygiene: allow a missing or unreadable package.json means no npm dependencies
     except (OSError, ValueError):
         return {}
     found: Dict[str, str] = {}

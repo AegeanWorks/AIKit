@@ -522,6 +522,7 @@ def default_topic_warning(project: Project) -> Optional[str]:
     """The default-only topic warning, or None when the project has a domain topic."""
     try:
         config = load_config(project.path)
+    # hygiene: allow the default-topic warning is best effort; a missing record omits it
     except (OSError, ValueError, KeyError, ProjectError):
         return None
     topics = list(config.get("topics") or [])
@@ -529,6 +530,7 @@ def default_topic_warning(project: Project) -> Optional[str]:
         state = license_state(project.path)
         kind = state.kind
         restricted = state.tier == TIER_RESTRICTED
+    # hygiene: allow the license tier is best effort; an unreadable record keeps the default warning
     except (OSError, ValueError, ProjectError):
         kind, restricted = None, False
     defaults = set(INTEGRATION_TOPICS) | set(license_topics(kind, restricted=restricted))
