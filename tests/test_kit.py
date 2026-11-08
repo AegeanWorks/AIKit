@@ -1357,6 +1357,11 @@ class TestRuntimeFloorConsistency(unittest.TestCase):
         self.assertIn("`MIN_PYTHON` (3.13)", audit)
         self.assertNotIn("`MIN_PYTHON` (Python 3.10)", audit)
         self.assertNotIn("`MIN_PYTHON` (3.10)", audit)
+        textdetect = (root / "reforge" / "textdetect.py").read_text(encoding="utf-8")
+        self.assertNotIn("Python 3.10", textdetect,
+                         "Reforge must not reclaim a runtime below the declared floor")
+        self.assertNotIn("tomllib = None", textdetect,
+                         "the floor guarantees the standard-library TOML parser")
 
 
 class TestCiContractGuards(unittest.TestCase):

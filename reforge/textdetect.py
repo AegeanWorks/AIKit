@@ -12,16 +12,12 @@ Binary files are reported by the caller as not analysed, because they cannot be 
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 from typing import List, Optional, Sequence
 
 from reforge.detectors import RULES, allow_marker
 from reforge.model import Finding
-
-try:  # Python 3.11+ ships TOML in the standard library; older runtimes check nothing.
-    import tomllib
-except ImportError:  # pragma: no cover - exercised only on Python 3.10
-    tomllib = None  # type: ignore[assignment]
 
 JSON_SUFFIXES = (".json",)
 TOML_SUFFIXES = (".toml",)
@@ -73,8 +69,6 @@ def _invalid_json(path: str, source: str, lines: Sequence[str], commit: str) -> 
 
 
 def _invalid_toml(path: str, source: str, lines: Sequence[str], commit: str) -> List[Finding]:
-    if tomllib is None:  # pragma: no cover - Python 3.10 has no parser, so nothing is claimed
-        return []
     try:
         tomllib.loads(source)
     except ValueError as exc:

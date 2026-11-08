@@ -10,7 +10,7 @@
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1014`
 - **Total Class Methods**: `1251`
-- **Total Source Lines**: `46815`
+- **Total Source Lines**: `46814`
 
 ---
 
@@ -604,7 +604,7 @@
 ### [`reforge/textdetect.py`](reforge/textdetect.py)
 > *Structural review of changed text files that need no language front end.*
 
-**Size**: `113` lines (`4311` bytes)
+**Size**: `107` lines (`3987` bytes)
 
 **Functions:**
 - `def is_text(source)` - *Whether a file revision can be reviewed as text instead of skipped as binary.*
@@ -1904,7 +1904,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15392` lines (`836995` bytes)
+**Size**: `15397` lines (`837358` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*

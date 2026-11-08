@@ -3866,3 +3866,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Expose `gitignored_kept_files` and `gitignored_top_dirs_raw`; in `scan_tree`, keep a directory walkable only when a scanned suffix is re-included, intersect that with the raw ignored set, and skip every other file under it.
 - **Consequences**: Ignored evidence stays out of the scan while the re-included tracked file is still checked. The root `/reports/*` plus `!/reports/README.md` still prunes `reports/` because a README is not a scanned suffix, so the root scan stays fast. The unit tier covers both a clean kept file with a bad ignored sibling and a bad kept file.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because tracked code remains mapped; PRINCIPLE-014: no conflict because the new test fails on the previous walk and none is weakened; PRINCIPLE-010: no conflict because ignoring evidence keeps the walk bounded.
+
+### ADR-382: Reforge follows the 3.13 runtime floor
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `7a13761` raised `MIN_PYTHON` to 3.13 and extended the API-age test to scan `reforge/`, but `reforge/textdetect.py` still guarded `tomllib` with an `ImportError` fallback and comments claiming Python 3.10 support. On the supported floor `tomllib` always exists, so the fallback is dead and the comments contradict the declared runtime.
+- **Decision**: Import `tomllib` unconditionally, remove the `tomllib is None` branch, and extend `TestRuntimeFloorConsistency` to assert the Reforge module neither mentions 3.10 nor defines the fallback.
+- **Consequences**: TOML review is always available and the floor statement is true for every production module. No behavior changes on 3.13+. The new assertions fail on the previous fallback and leave every other assertion intact.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because `tomllib` is older than the declared floor; PRINCIPLE-009: no conflict because the module's role is unchanged; PRINCIPLE-014: no conflict because the floor test fails before the fix and none is weakened.
