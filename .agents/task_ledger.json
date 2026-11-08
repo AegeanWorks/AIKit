@@ -13,92 +13,10 @@
   },
   "checkpoints": [
     {
-      "task_id": "verify-48push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-48push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794145470.7652812,
-      "timestamp_str": "2026-11-08 16:44:30",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 46",
-      "phase_num": 3,
-      "description": "Reforge stage 46: window 138, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145564.5331302,
-      "timestamp_str": "2026-11-08 16:46:04",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 46",
-      "phase_num": 3,
-      "description": "Reforge stage 46: stage 46 host review reviewed; run active; coverage 19/19",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145651.2875445,
-      "timestamp_str": "2026-11-08 16:47:31",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 46",
-      "phase_num": 3,
-      "description": "Reforge stage 46: stage 46 host review reviewed; run active; coverage 19/19",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145664.5389256,
-      "timestamp_str": "2026-11-08 16:47:44",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "verify-51push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 51 pushes: finish the Python 3.13 floor in the audit ledger",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145682.6863081,
-      "timestamp_str": "2026-11-08 16:48:02",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "Commit 7a13761 raised MIN_PYTHON to 3.13 across code, README, GUIDELINES and CI, but knowledge/principles_audit_ledger.md still describes the strict AST gate as Python 3.10 in two current-rule entries.",
-        "benefits": "The audit ledger agrees with the floor everywhere, and the floor test now covers it.",
-        "risks": "contract: knowledge floor statements; dependency: none; concurrency: none; state: audit ledger, tests, ADR, map",
-        "mitigation": "failing-first ledger assertions, full unit tier, root scan and gates"
-      },
-      "plan_digest": "0b9ff939e237f426b255eb6e13cd45413d90a3e03f26f2784beac721c626723d"
-    },
-    {
-      "task_id": "verify-51push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Audit ledger follows Python 3.13; 993 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145862.4972608,
-      "timestamp_str": "2026-11-08 16:51:02",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-51push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-51push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794145862.8449311,
-      "timestamp_str": "2026-11-08 16:51:02",
-      "agent": "opencode:goal"
-    },
-    {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 47",
       "phase_num": 3,
-      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794145979.3990788,
@@ -138,7 +56,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 48",
       "phase_num": 3,
-      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit (regression=1)",
+      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=1)",
       "files_affected": [
         "scripts/aikit_cli.py"
       ],
@@ -289,6 +207,50 @@
       "timestamp": 1794147635.0855484,
       "timestamp_str": "2026-11-08 17:20:35",
       "agent": "opencode:goal"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 51",
+      "phase_num": 3,
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794147835.5456438,
+      "timestamp_str": "2026-11-08 17:23:55",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 51",
+      "phase_num": 3,
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794147836.3087568,
+      "timestamp_str": "2026-11-08 17:23:56",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 51",
+      "phase_num": 3,
+      "description": "Reforge stage 51: stage 51 host review reviewed; run active; coverage 24/24",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794147862.7813277,
+      "timestamp_str": "2026-11-08 17:24:22",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 51",
+      "phase_num": 3,
+      "description": "Reforge stage 51: stage 51 host review reviewed; run active; coverage 24/24",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794147873.7058253,
+      "timestamp_str": "2026-11-08 17:24:33",
+      "agent": "opencode"
     }
   ]
 }
