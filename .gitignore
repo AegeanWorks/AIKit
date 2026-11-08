@@ -80,6 +80,6 @@ screenshot-*.png
 /reports/*
 !/reports/README.md
 
-# Local article drafts: kept out of Git and the map; the hygiene scan also skips
-# the folder. Draft tooling is local-only, like the reports inbox.
+# Local article drafts: local-only evidence, like the reports inbox. Git and
+# the code map skip the folder; the hygiene asset scan still inspects drafts.
 /articles/
