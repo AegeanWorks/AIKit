@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 144",
-      "phase_num": 3,
-      "description": "Reforge stage 144: stage 144 host review reviewed; run active; coverage 73/73",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150629.6545055,
-      "timestamp_str": "2026-11-08 18:10:29",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 145",
-      "phase_num": 3,
-      "description": "Reforge stage 145: window 435, 3 commit(s), 34 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150646.141998,
-      "timestamp_str": "2026-11-08 18:10:46",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 145",
       "phase_num": 3,
       "description": "Reforge stage 145: stage 145 host review reviewed; run active; coverage 147/147",
@@ -236,6 +214,28 @@
       "status": "in_progress",
       "timestamp": 1794150712.5289865,
       "timestamp_str": "2026-11-08 18:11:52",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 153",
+      "phase_num": 3,
+      "description": "Reforge stage 153: window 459, 3 commit(s), 10 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150717.5486388,
+      "timestamp_str": "2026-11-08 18:11:57",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 153",
+      "phase_num": 3,
+      "description": "Reforge stage 153: stage 153 host review reviewed; run active; coverage 45/45",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150719.5919006,
+      "timestamp_str": "2026-11-08 18:11:59",
       "agent": "opencode"
     }
   ]
