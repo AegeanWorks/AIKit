@@ -10300,6 +10300,45 @@ class TestProjectArchive(unittest.TestCase):
             self.assertEqual(extract_readme_description(root),
                              "A tool that does X for Y users here.")
 
+    def test_multiline_html_comment_is_not_the_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            readme = root / "README.md"
+            readme.write_text(
+                "# demo\n\n"
+                "<!--\n"
+                "This README is generated from templates.\n"
+                "Do not edit by hand.\n"
+                "-->\n\n"
+                "A tool that does X for Y users here.\n\n## Quick\n",
+                encoding="utf-8")
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+            self.assertTrue(update_readme_for_archive(readme, "superseded by X", "2026-11-05"))
+            text = readme.read_text(encoding="utf-8")
+            self.assertLess(text.index("A tool that does X for Y users here."),
+                            text.index("> **Archived**"),
+                            "the banner must follow the description, not a comment")
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+
+    def test_horizontal_rule_is_not_the_description(self):
+        for rule in ("---", "***", "___"):
+            with self.subTest(rule=rule), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                readme = root / "README.md"
+                readme.write_text(
+                    f"# demo\n\n{rule}\n\n"
+                    "A tool that does X for Y users here.\n\n## Quick\n",
+                    encoding="utf-8")
+                self.assertEqual(extract_readme_description(root),
+                                 "A tool that does X for Y users here.")
+                self.assertTrue(update_readme_for_archive(readme, "superseded by X", "2026-11-05"))
+                text = readme.read_text(encoding="utf-8")
+                self.assertLess(text.index("A tool that does X for Y users here."),
+                                text.index("> **Archived**"),
+                                "the banner must follow the description, not a rule")
+
     def test_existing_archive_banner_is_not_the_description(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -19,9 +19,11 @@ from scripts.disruption_recovery import ROOT_DIR, atomic_write_json, file_lock
 from scripts.project_publish import (
     PUBLISH_TIMEOUT_SECONDS,
     auto_push_project,
+    blank_html_comments,
     extract_readme_description,
     get_project_repo_url,
     hide_url_credentials,
+    is_thematic_break,
 )
 from scripts.project_registry import (
     DESCRIPTION_MAX,
@@ -127,6 +129,9 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
         return False
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)
+    # Scan the file with comment text blanked so a multi-line template note is not prose,
+    # while keeping the line indexes aligned with the bytes that are written back.
+    scan_lines = blank_html_comments(text).split(newline)
 
     def _is_title(line: str) -> bool:
         stripped = line.lstrip()
@@ -134,18 +139,19 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
         # '#hashtag' without a space is paragraph text, not a heading.
         return bool(re.match(r"#{1,6}(?:\s|$)", stripped))
 
-    title = next((i for i, line in enumerate(lines) if _is_title(line)), None)
+    title = next((i for i, line in enumerate(scan_lines) if _is_title(line)), None)
     start = (title + 1) if title is not None else 0
     # Find the description block: first non-empty, non-badge block after the title.
     idx = start
-    while idx < len(lines):
-        stripped = lines[idx].strip()
+    while idx < len(scan_lines):
+        stripped = scan_lines[idx].strip()
         if (not stripped or stripped.startswith(("[![", "![", "<!--"))
-                or _is_archive_banner(stripped) or not _visible_text(stripped)):
+                or _is_archive_banner(stripped) or not _visible_text(stripped)
+                or is_thematic_break(stripped)):
             idx += 1
             continue
         break
-    if idx >= len(lines):
+    if idx >= len(scan_lines):
         # No description block: append the banner at the end.
         updated = text.rstrip("\r\n") + newline + newline + archive_notice(reason, date_str) + newline
         try:
@@ -158,9 +164,9 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
     # ('#'-'######' followed by space or EOL); '#hashtag' text is
     # paragraph content, not a heading.
     end = idx
-    while end < len(lines) and lines[end].strip() != "":
-        stripped = lines[end].strip()
-        if re.match(r"#{1,6}(?:\s|$)", stripped):
+    while end < len(scan_lines) and scan_lines[end].strip() != "":
+        stripped = scan_lines[end].strip()
+        if re.match(r"#{1,6}(?:\s|$)", stripped) or is_thematic_break(stripped):
             break
         end += 1
     banner = archive_notice(reason, date_str)

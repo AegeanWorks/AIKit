@@ -3850,3 +3850,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Keep the raw ignored-directory set separate from the negated view; intersect kept directories with the raw set, and prune only directories that are both ignored and not re-included.
 - **Consequences**: A negation under a normal package no longer hides its siblings, while a negation under a genuinely ignored directory still filters that directory's siblings. The unit tier creates `pkg/mod.py`, `pkg/keep.py` and `!/pkg/keep.py` and expects both package files.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because the map again lists tracked modules; PRINCIPLE-014: no conflict because the new discovery test fails on the previous filter and none is weakened; PRINCIPLE-003: no conflict because the walk remains bounded to the tree Git actually tracks.
+
+### ADR-380: Comments and thematic breaks are not the README description
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `extract_readme_description` and `update_readme_for_archive` selected the first visible block after the title. A multi-line `<!-- ... -->` template note or an underscore thematic break (`___`) was treated as prose, so the GitHub description became a comment fragment or `___`, and the archive banner landed before the real tagline.
+- **Decision**: Remove HTML comments before description extraction; blank comment text while preserving line breaks for banner placement; skip CommonMark thematic breaks (`---`, `***`, `___`) when selecting the description, and end the paragraph at a break.
+- **Consequences**: The description and banner position come from the actual tagline. A same-line comment with trailing prose still contributes the prose, because only comment text is removed. The unit tier covers a multi-line template note and all three rule spellings.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because the README description remains the archive record's source; PRINCIPLE-014: no conflict because the new tests fail on the previous scan and none is weakened; PRINCIPLE-003: no conflict because only text parsing changes.

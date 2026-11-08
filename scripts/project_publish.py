@@ -65,6 +65,27 @@ def _clean_markdown_line(raw: str) -> str:
     return line.lstrip(">*- \t").strip()
 
 
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_THEMATIC_BREAK_RE = re.compile(
+    r"^ {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,})$")
+
+
+def blank_html_comments(text: str) -> str:
+    """Drop HTML comment text but keep its line breaks, so line indexes stay aligned."""
+    return _HTML_COMMENT_RE.sub(
+        lambda match: re.sub(r"[^\r\n]", "", match.group(0)), text)
+
+
+def is_thematic_break(line: str) -> bool:
+    """Whether a line is a Markdown thematic break (`---`, `***`, `___`)."""
+    return bool(_THEMATIC_BREAK_RE.match(line.strip()))
+
+
+def _remove_html_comments(text: str) -> str:
+    """Drop HTML comments, including multi-line template notes."""
+    return _HTML_COMMENT_RE.sub("", text)
+
+
 def extract_readme_description(project_root: Path) -> str:
     """Extract a single-line summary from the project's README.md for GitHub (author case kept)."""
     readme = project_root / "README.md"
@@ -75,6 +96,7 @@ def extract_readme_description(project_root: Path) -> str:
         content = readme.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return ""
+    content = _remove_html_comments(content)
     desc_lines: List[str] = []
     has_header = any(line.strip().startswith("#") for line in content.splitlines())
     past_header = not has_header
@@ -93,6 +115,10 @@ def extract_readme_description(project_root: Path) -> str:
             continue
         if stripped.startswith("#"):
             break
+        if is_thematic_break(stripped):
+            if desc_lines:
+                break
+            continue
         if re.match(r">\s*\*\*archived\*\*", stripped, re.IGNORECASE):
             # The archive notice is not the project's description. A re-archive
             # must keep the original sentence, not prefix the reason to it.

@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
-- **Total Top-Level Functions**: `1010`
-- **Total Class Methods**: `1248`
-- **Total Source Lines**: `46704`
+- **Total Top-Level Functions**: `1013`
+- **Total Class Methods**: `1250`
+- **Total Source Lines**: `46775`
 
 ---
 
@@ -1078,7 +1078,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `568` lines (`29536` bytes)
+**Size**: `574` lines (`29928` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1275,12 +1275,15 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `374` lines (`18249` bytes)
+**Size**: `400` lines (`19123` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
 - `def _triad(what, why, fix)`
 - `def _clean_markdown_line(raw)` - *Strip markdown formatting, badges, and html tags from a single line.*
+- `def blank_html_comments(text)` - *Drop HTML comment text but keep its line breaks, so line indexes stay aligned.*
+- `def is_thematic_break(line)` - *Whether a line is a Markdown thematic break (`---`, `***`, `___`).*
+- `def _remove_html_comments(text)` - *Drop HTML comments, including multi-line template notes.*
 - `def extract_readme_description(project_root)` - *Extract a single-line summary from the project's README.md for GitHub (author case kept).*
 - `def _fit_description(text)` - *`text` within GitHub's 350 characters; the 200 used before cut what `new --description`*
 - `def hide_url_credentials(text)` - *`text` with the user-info of every URL in it replaced by `***` (PRINCIPLE-019 R4).*
@@ -1900,7 +1903,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15337` lines (`833893` bytes)
+**Size**: `15376` lines (`836015` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2711,6 +2714,8 @@
   - Method `.test_banner_goes_after_description_and_is_idempotent()`
   - Method `.test_banner_ignores_casual_archived_mention()`
   - Method `.test_banner_goes_after_description_when_media_block_precedes_it()`
+  - Method `.test_multiline_html_comment_is_not_the_description()`
+  - Method `.test_horizontal_rule_is_not_the_description()`
   - Method `.test_existing_archive_banner_is_not_the_description()`
   - Method `.test_archive_banner_recognition_is_case_insensitive()`
   - Method `.test_github_description_prefixes_archived_once()`
