@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1006`
-- **Total Class Methods**: `1215`
-- **Total Source Lines**: `46054`
+- **Total Class Methods**: `1217`
+- **Total Source Lines**: `46094`
 
 ---
 
@@ -1896,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14845` lines (`808722` bytes)
+**Size**: `14885` lines (`810694` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2634,10 +2634,12 @@
 - `class TestPublishGuard` - *Direct `git push` is blocked unless the process is `aikit publish` (ADR-341).*
   - Method `.test_install_writes_guard_and_preserves_an_existing_hook()`
   - Method `.test_a_failed_guard_write_keeps_the_existing_hook()`
+  - Method `.test_a_failed_guard_replace_restores_the_existing_hook()`
   - Method `.test_no_git_repository_is_a_no_op()`
   - Method `.test_core_hooks_path_is_respected()`
   - Method `.test_global_core_hooks_path_is_respected()`
   - Method `.test_windows_system_hooks_path_is_respected()`
+  - Method `.test_system_config_env_override_is_respected()`
   - Method `.test_included_config_hooks_path_is_respected()`
   - Method `.test_create_project_installs_the_guard()`
   - Method `.test_publish_environment_sets_and_restores()`

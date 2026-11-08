@@ -9183,6 +9183,31 @@ class TestPublishGuard(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), original)
             self.assertFalse((hooks / "pre-push.local").exists())
 
+    def test_a_failed_guard_replace_restores_the_existing_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hooks = root / ".git" / "hooks"
+            hooks.mkdir(parents=True)
+            target = hooks / "pre-push"
+            original = "#!/bin/sh\necho custom\n"
+            target.write_text(original, encoding="utf-8")
+            real_replace = os.replace
+            calls = []
+
+            def flaky_replace(source, destination):
+                calls.append((source, destination))
+                if len(calls) == 2:
+                    raise OSError("target busy")
+                return real_replace(source, destination)
+
+            with mock.patch("os.replace", side_effect=flaky_replace):
+                with self.assertRaises(OSError):
+                    install_pre_push_hook(root, "demo")
+            self.assertGreaterEqual(len(calls), 2)
+            self.assertTrue(target.is_file(), "the original hook must survive a failed replace")
+            self.assertEqual(target.read_text(encoding="utf-8"), original)
+            self.assertFalse((hooks / "pre-push.local").exists())
+
     def test_no_git_repository_is_a_no_op(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIsNone(install_pre_push_hook(Path(tmp), "demo"))
@@ -9234,6 +9259,25 @@ class TestPublishGuard(unittest.TestCase):
             with (mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(global_config)}),
                   mock.patch("shutil.which", return_value=str(git_exe))):
                 os.environ.pop("GIT_CONFIG_SYSTEM", None)
+                os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
+                self.assertEqual(hook_path(root), system_hooks / "pre-push")
+
+    def test_system_config_env_override_is_respected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[core]\n\trepositoryformatversion = 0\n", encoding="utf-8")
+            system_config = root / "system.gitconfig"
+            system_hooks = root / "system-hooks"
+            system_config.write_text(
+                f"[core]\n\thooksPath = {system_hooks.as_posix()}\n", encoding="utf-8")
+            global_config = root / "global.gitconfig"
+            global_config.write_text("", encoding="utf-8")
+            with mock.patch.dict(os.environ, {
+                "GIT_CONFIG_SYSTEM": str(system_config),
+                "GIT_CONFIG_GLOBAL": str(global_config),
+            }):
                 os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
                 self.assertEqual(hook_path(root), system_hooks / "pre-push")
 
@@ -14042,10 +14086,6 @@ class TestVerifyPushV4SafeFixes(unittest.TestCase):
         self.assertTrue(check_secrets._is_valid_baseline_detector("high-entropy value for API_KEY"))
         self.assertFalse(check_secrets._is_valid_baseline_detector("high-entropy value for !!!"))
         self.assertFalse(check_secrets._is_valid_baseline_detector("high-entropy-value"))
-        try:
-            check_secrets.load_baseline.__wrapped__  # type: ignore[attr-defined]
-        except AttributeError:
-            pass
 
     def test_archive_reason_validation(self) -> None:
         from scripts import project_archive
