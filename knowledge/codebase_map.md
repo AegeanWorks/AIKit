@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1218`
-- **Total Source Lines**: `46103`
+- **Total Source Lines**: `46093`
 
 ---
 
@@ -1452,7 +1452,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `887` lines (`37131` bytes)
+**Size**: `877` lines (`36743` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*

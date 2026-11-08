@@ -766,19 +766,9 @@ def write_receipt(result: Dict[str, object], dest: Path) -> Dict[str, object]:
     if dest.parent != Path(".") and str(dest.parent):
         dest.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
-    import os as _os
-    import tempfile as _tempfile
-    handle_no, temporary = _tempfile.mkstemp(
-        prefix=dest.name + ".tmp_", dir=str(dest.parent) if str(dest.parent) else ".")
-    try:
-        with _os.fdopen(handle_no, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(text)
-            stream.flush()
-            _os.fsync(stream.fileno())
-        _os.replace(temporary, dest)
-    finally:
-        if _os.path.exists(temporary):
-            _os.unlink(temporary)
+    from scripts.disruption_recovery import atomic_write_text
+
+    atomic_write_text(dest, text, backup=False)
     return receipt
 
 
