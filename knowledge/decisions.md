@@ -3826,3 +3826,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: List every tracked file and pass the paths through `project_path_violations`, so the HEAD and commit-time checks share one definition.
 - **Consequences**: Both boundaries reject any case or backslash variant; the test remains cheap and runs on the integration tier.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because each project remains its own repository; PRINCIPLE-018: no conflict because the commit boundary is unchanged; PRINCIPLE-014: no conflict because the stronger HEAD assertion uses the same helper and no assertion is weakened.
+
+### ADR-377: Catalog-cased guard names and unsafe names are pinned
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Commit `45c571a` allowed uppercase project names in the publish guard, but the tests installed only lowercase names and did not assert that a name with a space is refused before any file is written.
+- **Decision**: Add tests that install `MyApp` and that `my app` raises `ValueError` without creating a hook.
+- **Consequences**: The catalog-cased form cannot regress to a rejection, and the unsafe-name boundary stays explicit. No production code changes.
+- **Cross-principle check**: PRINCIPLE-018: no conflict because the guard's write boundary is unchanged; PRINCIPLE-014: no conflict because the new assertions tighten coverage and none is weakened.

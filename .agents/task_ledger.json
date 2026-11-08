@@ -1,156 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-54push-v2",
+    "task_id": "verify-57push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794146324.7721748,
+    "updated_at": 1794146726.6849182,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794146325.0103736
+    "completed_at": 1794146726.9389362
   },
   "checkpoints": [
-    {
-      "task_id": "verify-39push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 39 pushes: resolve a local includeIf hooksPath through git config",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144194.8714838,
-      "timestamp_str": "2026-11-08 16:23:14",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The file parser ignores [includeIf] sections, so a core.hooksPath set by a conditional include is missed and the guard installs in .git/hooks instead of where git looks.",
-        "benefits": "A local conditional include is resolved by Git's own config; the parser remains the no-subprocess default when no includeIf is present.",
-        "risks": "contract: publish guard config discovery; dependency: git for conditional configs; concurrency: none; state: git_guard.py, tests, ADR, map",
-        "mitigation": "failing-first includeIf test with a mocked config reader, targeted guard tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "febbd25e9dac7fff909df864a6d0571d13c73c11539ebbca34ea5d14d979388d"
-    },
-    {
-      "task_id": "verify-39push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Local includeIf hooksPath resolved via git config; 986 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144329.7323244,
-      "timestamp_str": "2026-11-08 16:25:29",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-39push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-39push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794144330.0540547,
-      "timestamp_str": "2026-11-08 16:25:30",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-42push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 42 pushes: recognize archive banners case-insensitively",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144521.9667256,
-      "timestamp_str": "2026-11-08 16:28:41",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "update_readme_for_archive and extract_readme_description match only the exact title-case banner; a legacy or hand-edited lowercase banner is treated as the description and a re-archive adds a second banner.",
-        "benefits": "One banner is recognized in any case, the original description survives a re-archive, and the GitHub description is not the archive reason.",
-        "risks": "contract: archive README boundary; dependency: stdlib re; concurrency: none; state: project_archive.py, project_publish.py, tests, ADR, map",
-        "mitigation": "failing-first lowercase-banner test, existing archive tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "cb918a9d509200172edb9ed936b2a5f97901df571d33e1283506cc4c9c32224d"
-    },
-    {
-      "task_id": "verify-42push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Archive banners recognized case-insensitively; 987 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144655.0967095,
-      "timestamp_str": "2026-11-08 16:30:55",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-42push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-42push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794144655.6732786,
-      "timestamp_str": "2026-11-08 16:30:55",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 44",
-      "phase_num": 3,
-      "description": "Reforge stage 44: window 132, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144799.185895,
-      "timestamp_str": "2026-11-08 16:33:19",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 44",
-      "phase_num": 3,
-      "description": "Reforge stage 44: stage 44 host review reviewed; run active; coverage 23/23",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144844.4666967,
-      "timestamp_str": "2026-11-08 16:34:04",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "verify-45push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 45 pushes: refuse any commit that changes a projects/ path",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794144904.113062,
-      "timestamp_str": "2026-11-08 16:35:04",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The foundry deletion (986f39c) and its revert (aa165a0) passed the HEAD-only pin because the net tree was clean; a future commit can add, delete or modify tracked project files until a later revert hides it.",
-        "benefits": "Every verified commit is checked for projects/ changes, closing the destructive-commit class at commit time.",
-        "risks": "contract: commit verification; dependency: git; concurrency: none; state: verify_commit.py, tests, ADR, map",
-        "mitigation": "failing-first project-path test, helper and verify_commit integration tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "21c5cdfeb5036d6a877b03497e38ab552deeb6d7d66298cbe9f6b563650642a6"
-    },
-    {
-      "task_id": "verify-45push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Commit-time projects/ boundary; 989 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145036.3561335,
-      "timestamp_str": "2026-11-08 16:37:16",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-45push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-45push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794145037.5656433,
-      "timestamp_str": "2026-11-08 16:37:17",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "verify-48push-v2",
       "phase": "in_progress",
@@ -194,7 +55,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 46",
       "phase_num": 3,
-      "description": "Reforge stage 46: window 138, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 46: window 138, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794145564.5331302,
@@ -266,7 +127,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 47",
       "phase_num": 3,
-      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794145979.3990788,
@@ -306,7 +167,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 48",
       "phase_num": 3,
-      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit (regression=1)",
+      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=1)",
       "files_affected": [
         "scripts/aikit_cli.py"
       ],
@@ -356,6 +217,45 @@
       "status": "completed",
       "timestamp": 1794146325.010377,
       "timestamp_str": "2026-11-08 16:58:45",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-57push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 57 pushes: pin catalog-cased guard names and unsafe-name refusal",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794146628.4242513,
+      "timestamp_str": "2026-11-08 17:03:48",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "Commit 45c571a allowed uppercase project names in the guard, but the tests only install lowercase names and do not assert that a spaced name is refused.",
+        "benefits": "The catalog-cased form cannot regress to a rejected name, and the unsafe-name boundary stays explicit.",
+        "risks": "contract: guard install names; dependency: stdlib; concurrency: none; state: tests, ADR, map",
+        "mitigation": "targeted guard tests, full unit tier, root scan and gates"
+      },
+      "plan_digest": "a12896717b80f520c0f918c1cea2e67a3729ccf589bd542a496658470f0d2ad5"
+    },
+    {
+      "task_id": "verify-57push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Catalog-cased and unsafe guard names pinned; 995 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794146726.6849182,
+      "timestamp_str": "2026-11-08 17:05:26",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-57push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-57push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794146726.9389377,
+      "timestamp_str": "2026-11-08 17:05:26",
       "agent": "opencode:goal"
     }
   ]

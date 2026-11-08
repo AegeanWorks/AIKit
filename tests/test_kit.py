@@ -9401,6 +9401,23 @@ class TestPublishGuard(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), original)
             self.assertFalse((hooks / "pre-push.local").exists())
 
+    def test_a_catalog_cased_name_installs_a_guarded_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            target = install_pre_push_hook(root, "MyApp")
+            text = target.read_text(encoding="utf-8")
+            self.assertIn(HOOK_MARKER, text)
+            self.assertIn("MyApp", text)
+
+    def test_an_unsafe_name_is_refused_before_writing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            with self.assertRaises(ValueError):
+                install_pre_push_hook(root, "my app")
+            self.assertFalse((root / ".git" / "hooks" / "pre-push").exists())
+
     def test_install_fsyncs_the_hook_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
