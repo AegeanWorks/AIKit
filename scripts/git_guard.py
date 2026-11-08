@@ -95,7 +95,12 @@ def _global_hooks_path() -> Optional[str]:
     if not os.environ.get("GIT_CONFIG_NOSYSTEM"):
         system = os.environ.get("GIT_CONFIG_SYSTEM")
         if system is None:
-            paths.append(Path("/etc/gitconfig"))
+            if os.name == "nt":
+                programdata = os.environ.get("PROGRAMDATA")
+                if programdata:
+                    paths.append(Path(programdata) / "Git" / "config")
+            else:
+                paths.append(Path("/etc/gitconfig"))
         elif system:
             paths.append(Path(system).expanduser())
     configured = os.environ.get("GIT_CONFIG_GLOBAL")
