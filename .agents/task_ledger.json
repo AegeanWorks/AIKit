@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 72",
-      "phase_num": 3,
-      "description": "Reforge stage 72: stage 72 host review reviewed; run active; coverage 0/0",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149772.438996,
-      "timestamp_str": "2026-11-08 17:56:12",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 73",
-      "phase_num": 3,
-      "description": "Reforge stage 73: window 219, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149776.0514843,
-      "timestamp_str": "2026-11-08 17:56:16",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 73",
       "phase_num": 3,
       "description": "Reforge stage 73: stage 73 host review reviewed; run active; coverage 0/0",
@@ -236,6 +214,28 @@
       "status": "in_progress",
       "timestamp": 1794149809.4921808,
       "timestamp_str": "2026-11-08 17:56:49",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 81",
+      "phase_num": 3,
+      "description": "Reforge stage 81: window 243, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149812.7182615,
+      "timestamp_str": "2026-11-08 17:56:52",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 81",
+      "phase_num": 3,
+      "description": "Reforge stage 81: stage 81 host review reviewed; run active; coverage 0/0",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149812.9321609,
+      "timestamp_str": "2026-11-08 17:56:52",
       "agent": "opencode"
     }
   ]
