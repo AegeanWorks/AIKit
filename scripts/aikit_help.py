@@ -7,13 +7,13 @@ changes; the test fails before the fast path can drift.
 
 TOP_LEVEL_HELP = """\
 usage: python aikit.py [-h] [--workspace DIR]
-                       {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate} ...
+                       {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,push,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate} ...
 
 Create and manage the projects AIKit builds. Each project is its own folder
 and git repository with its memory in .aikit/.
 
 positional arguments:
-  {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate}
+  {new,attach,list,status,resume,checkpoint,complete,clean,guideline,check,push,fix,publish,license,archive,topics,ui-id,media,ui,reforge,idea-catcher,delegate}
     new                 create projects/<name>/ as a new git repository
     attach              register an existing project folder and add the AIKit
                         Integrated badge to its README
@@ -27,6 +27,8 @@ positional arguments:
     guideline           add a rule to the project's guidelines (below the
                         principles)
     check               run every gate of a project (its Phase 4)
+    push                run every project gate, then push unpushed commits to
+                        origin (never forced; same as `check --push`)
     fix                 restore missing project memory and README, refresh its
                         map, then check
     publish             upload the project to its own GitHub repository, named

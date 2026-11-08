@@ -3562,3 +3562,17 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: The ADR-341 guard always installed `.git/hooks/pre-push`. A repository that sets `core.hooksPath` makes Git look elsewhere, so a raw `git push` succeeded while `is_guard_installed` still reported true. Reproduced with `core.hooksPath=.husky`: the guard landed in `.git/hooks` and the push reached the bare remote.
 - **Decision**: `hook_path` reads the repository-local `.git/config` directly, honors `core.hooksPath` (relative paths resolve against the project root), and falls back to `.git/hooks`. Worktrees keep the existing `git config`/`git rev-parse` lookup. The unit tier stays process-free for normal repositories because the common path parses config text.
 - **Consequences**: The guard installs where Git actually looks. A raw push under `core.hooksPath` now exits 1 before the remote sees a ref; the authorized `AIKIT_PUBLISH=1` path still succeeds. Unit coverage pins the path selection, and a manual bare-remote reproduction verifies both the refusal and the authorized push.
+
+### ADR-343: Archive and push use the sanctioned gated push
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `project_archive` pushed the archived README with a raw `git push` and its own duplicate range scan. Once ADR-341 installed the pre-push guard, the online archive failed with `direct git push is blocked`; `auto_push_project` (`check --push`) had the same defect because its push was not wrapped in `publish_environment`. A real Weft archive had to be split into `publish`, manual `gh repo archive` and an offline move.
+- **Decision**: Wrap the `auto_push_project` push in `publish_environment`, route `project_archive` through `auto_push_project` instead of raw `git push`/`push_range`/`scan_refusal`, and add `aikit push <project>` as a thin alias for the gated `check --push` path. Raw pushes remain blocked; no path forces a push.
+- **Consequences**: `archive`, `push` and `check --push` all pass the guard only after the same gate and secret-scan path. The archive no longer duplicates range scanning, and the new command is discoverable in `--help` and the README. Tests pin the publish environment during an archive push, the environment around `auto_push_project`, and the `push` parser/forwarding; the generated fast-path help is refreshed.
+
+### ADR-344: Re-included Python files survive ignored-directory pruning
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-333 taught the discovery walker to prune `/reports/*`, but `.gitignore` negations such as `!/reports/keep.py` were ignored. The tracked Python file then vanished from the code map and the structure gate, even though Git would track it.
+- **Decision**: `gitignored_kept_python` collects exact `.py` negations. A directory holding one stays walkable, and `find_python_files` includes only the named re-included files, so ignored siblings remain out of the map. Glob and directory negations remain outside the supported plain forms and are left to Git.
+- **Consequences**: A tracked re-included Python file is catalogued while its ignored neighbours stay out. The unit tier pins both the pruning and the narrow negation exception; no production process is spawned.

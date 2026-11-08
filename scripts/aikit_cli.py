@@ -668,6 +668,17 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 
 
+def cmd_push(args: argparse.Namespace) -> int:
+    """Gated push: a discoverable alias for `check --push`."""
+    return cmd_check(argparse.Namespace(
+        name=args.name,
+        workspace=args.workspace,
+        push=True,
+        strict=False,
+        no_push=False,
+    ))
+
+
 def cmd_fix(args: argparse.Namespace) -> int:
     """
     Repair what AIKit can repair mechanically, then run the gates: everything left is the
@@ -1524,6 +1535,7 @@ HANDLERS = {
     "clean": cmd_clean,
     "guideline": cmd_guideline,
     "check": cmd_check,
+    "push": cmd_push,
     "fix": cmd_fix,
     "publish": cmd_publish,
     "archive": cmd_archive,

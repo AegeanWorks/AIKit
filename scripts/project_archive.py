@@ -18,11 +18,10 @@ from typing import Callable, Dict, List, Optional, Tuple
 from scripts.disruption_recovery import ROOT_DIR, atomic_write_json, file_lock
 from scripts.project_publish import (
     PUBLISH_TIMEOUT_SECONDS,
+    auto_push_project,
     extract_readme_description,
     get_project_repo_url,
     hide_url_credentials,
-    push_range,
-    scan_refusal,
 )
 from scripts.project_registry import (
     DESCRIPTION_MAX,
@@ -462,20 +461,18 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                               "AIKit archives the repository with `gh`.",
                               "install GitHub CLI, run `gh auth login`, then archive again; "
                               "or pass `--offline` for a local-only move (nothing was moved).")
-        rev_range = push_range(src, run)
-        refusal = scan_refusal(src, rev_range, run)
-        if refusal:
-            return 1, refusal
-        # Push the committed history (including the banner commit when present).
-        # A dirty tree here implies --allow-dirty, and `git push` only publishes
-        # commits, so uncommitted changes still move along uncommitted.
-        code, out = run(["git", "push", "-u", "origin", "HEAD"], src)
-        if code != 0:
-            return 1, _triad(f"pushing the archive commit for '{name}' failed.\n{out[-800:]}",
-                              "the remote refused the push; the repository must hold the "
-                              "archived README before it goes read-only.",
-                              "pull or fix the cause shown, then archive again; nothing was moved.")
-        notes.append(f"Pushed the archived tree to {hide_url_credentials(repo_url or slug)}.")
+        # Push the committed history (including the banner commit when present)
+        # through the sanctioned helper: it scans the uploaded range, marks the
+        # push as an authorized AIKit publish and respects the pre-push guard
+        # (ADR-341, ADR-343). A dirty tree here implies --allow-dirty, and a
+        # push only publishes commits; uncommitted changes still move along.
+        push_code, push_report = auto_push_project(src, name, runner=run)
+        if push_code != 0:
+            return 1, push_report
+        notes.append(
+            push_report
+            or f"The archived tree is already on {hide_url_credentials(repo_url or slug)}."
+        )
         code, out = run(["gh", "repo", "edit", slug, "--description", new_desc], src)
         if code != 0:
             notes.append(f"Note: the GitHub description was not set ({out.strip()[-200:]}); run "

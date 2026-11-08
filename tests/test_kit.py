@@ -1378,6 +1378,18 @@ class TestPythonFileDiscovery(unittest.TestCase):
         self.assertEqual(found, ["keep/reports/x.py", "pkg/mod.py"],
                          "a top-level `/name/*` entry prunes that directory, nowhere else")
 
+    def test_negated_python_file_under_ignored_dir_is_kept(self):
+        root = Path(tempfile.mkdtemp(prefix="test_discovery_negation_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for rel in ("reports/keep.py", "reports/drop.py", "pkg/mod.py"):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text("x = 1\n", encoding="utf-8")
+        (root / ".gitignore").write_text(
+            "reports/*\n!/reports/keep.py\n", encoding="utf-8")
+        found = [p.relative_to(root).as_posix() for p in find_python_files(root)]
+        self.assertEqual(found, ["pkg/mod.py", "reports/keep.py"],
+                         "a re-included tracked file must not be pruned with its directory")
+
     def test_this_repository_ignores_references(self):
         self.assertIn("references/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
 
@@ -7686,6 +7698,23 @@ class TestAikitHelpFastPath(unittest.TestCase):
         self.assertIs(cli.TriadArgumentParser, grammar.TriadArgumentParser)
 
 
+class TestPushCommand(unittest.TestCase):
+    """`aikit push` is a thin, discoverable alias for the gated `check --push`."""
+
+    def test_push_parses_and_routes_to_gated_check(self):
+        import scripts.aikit_cli as cli
+        from scripts.aikit_parser import build_parser
+
+        args = build_parser().parse_args(["push", "app"])
+        self.assertEqual((args.command, args.name), ("push", "app"))
+        with mock.patch.object(cli, "cmd_check", return_value=0) as check:
+            self.assertEqual(cli.cmd_push(args), 0)
+        forwarded = check.call_args.args[0]
+        self.assertEqual(forwarded.name, "app")
+        self.assertTrue(forwarded.push)
+        self.assertFalse(forwarded.strict)
+
+
 class FakeGit:
     """A tiny git_io stand-in for the UI guard's unit tests; no subprocess is spawned."""
 
@@ -9541,6 +9570,27 @@ class TestProjectPublish(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("Why:", msg)
 
+    def test_auto_push_is_authorized_for_the_publish_guard(self):
+        # ADR-343: check --push and archive are sanctioned pushes, so the guard
+        # must see AIKIT_PUBLISH=1 during the push subprocess.
+        seen = []
+
+        def run(argv, cwd):
+            if "push" in argv:
+                seen.append(os.environ.get("AIKIT_PUBLISH"))
+            if "get-url" in argv:
+                return 0, "https://github.com/me/app.git"
+            if "@{u}" in argv:
+                return 0, "origin/main"
+            if "@{u}..HEAD" in argv:
+                return 0, "abc1234 feat: new feature\n"
+            return 0, ""
+
+        code, msg = auto_push_project(Path("/p/app"), "app", runner=run)
+        self.assertEqual(code, 0, msg)
+        self.assertEqual(seen, ["1"])
+        self.assertIsNone(os.environ.get("AIKIT_PUBLISH"))
+
 
 
 class TestProjectArchive(unittest.TestCase):
@@ -9560,16 +9610,20 @@ class TestProjectArchive(unittest.TestCase):
 
     def runner(self, **replies):
         self.calls = []
+        self.push_envs = []
         defaults = {"status": (0, ""), "get-url": (1, ""), "auth": (0, "ok"),
                     "add": (0, ""), "commit": (0, "ok"), "push": (0, "ok"),
-                    "rev-parse": (0, "abc"), "check_secrets.py": (0, "[OK]"),
+                    "rev-parse": (0, "abc"), "log": (0, "abc123 docs(demo): mark as archived"),
+                    "check_secrets.py": (0, "[OK]"),
                     "edit": (0, ""), "archive": (0, "")}
         defaults.update(replies)
         order = ("check_secrets.py", "auth", "archive", "edit", "get-url",
-                 "rev-parse", "status", "add", "commit", "push")
+                 "rev-parse", "log", "status", "add", "commit", "push")
 
         def run(argv, cwd):
             self.calls.append(argv)
+            if "push" in argv:
+                self.push_envs.append(os.environ.get("AIKIT_PUBLISH"))
             for key in order:
                 if key in argv or any(key in str(a) for a in argv):
                     return defaults[key]
@@ -9687,6 +9741,9 @@ class TestProjectArchive(unittest.TestCase):
                                            workspace=ws, runner=run)
             self.assertEqual(code, 0, report)
             kinds = [" ".join(str(a) for a in call) for call in self.calls]
+            self.assertIn("Pushed 'demo'", report)
+            self.assertEqual(self.push_envs, ["1"],
+                             "the archive push must carry the publish authorization")
             self.assertTrue(any("push" in kind for kind in kinds), kinds)
             edits = [kind for kind in kinds if "repo edit" in kind and "description" in kind]
             self.assertTrue(edits, kinds)

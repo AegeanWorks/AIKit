@@ -240,18 +240,39 @@ def _extract_symbols_uncached(file_path: Path, content: str, strict: bool) -> Di
 GITIGNORED_DIR_RE = re.compile(r"^/?([^\s/*?\[\]!#]+)/(?:\*)?$")
 
 
+def gitignored_kept_python(root: Path) -> Set[str]:
+    """Python files explicitly re-included by a root `.gitignore` negation."""
+    try:
+        lines = (root / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return set()
+    kept: Set[str] = set()
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith("!"):
+            continue
+        pattern = line[1:].lstrip("/")
+        if pattern.endswith(".py") and not any(char in pattern for char in "*?["):
+            kept.add(pattern)
+    return kept
+
+
 def gitignored_top_dirs(root: Path) -> Set[str]:
     """
     The top-level directories `root/.gitignore` excludes by name. Git never tracks them, so their
     code is no part of the repository and must not enter its map or structure checks (ADR-201).
     Only the plain directory form and the all-contents form (`/reports/*`) are recognised; other
-    glob and nested patterns are left to git.
+    glob and nested patterns are left to git. A directory holding an exactly re-included `.py`
+    file stays walkable so that tracked file can enter the map; its siblings are filtered later.
     """
     try:
         lines = (root / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return set()
-    return {m.group(1) for m in map(GITIGNORED_DIR_RE.match, (line.strip() for line in lines)) if m}
+    ignored = {m.group(1) for m in map(GITIGNORED_DIR_RE.match,
+                                       (line.strip() for line in lines)) if m}
+    kept_dirs = {path.split("/", 1)[0] for path in gitignored_kept_python(root)}
+    return ignored - kept_dirs
 
 
 def find_python_files(root: Path) -> List[Path]:
@@ -263,14 +284,20 @@ def find_python_files(root: Path) -> List[Path]:
     """
     py_files: List[Path] = []
     skipped_at_top = IGNORE_DIRS | gitignored_top_dirs(root)
+    kept_python = gitignored_kept_python(root)
+    kept_dirs = {path.split("/", 1)[0] for path in kept_python}
     for dirpath, dirnames, filenames in os.walk(root):
         skipped = skipped_at_top if Path(dirpath) == root else IGNORE_DIRS
         dirnames[:] = [d for d in dirnames if d not in skipped]
-        py_files += [
-            Path(dirpath) / name
-            for name in filenames
-            if name.endswith(".py") and not name.startswith(".tmp_")
-        ]
+        for name in filenames:
+            if not name.endswith(".py") or name.startswith(".tmp_"):
+                continue
+            path = Path(dirpath) / name
+            rel = path.relative_to(root).as_posix()
+            if (any(part in kept_dirs for part in Path(rel).parts[:-1])
+                    and rel not in kept_python):
+                continue
+            py_files.append(path)
     return sorted(py_files)
 
 

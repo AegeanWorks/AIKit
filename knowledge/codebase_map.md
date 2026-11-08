@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
-- **Total Classes**: `159`
-- **Total Top-Level Functions**: `1001`
-- **Total Class Methods**: `1199`
-- **Total Source Lines**: `45631`
+- **Total Classes**: `160`
+- **Total Top-Level Functions**: `1003`
+- **Total Class Methods**: `1202`
+- **Total Source Lines**: `45733`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1556` lines (`78611` bytes)
+**Size**: `1568` lines (`78915` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -682,6 +682,7 @@
 - `def ui_review_waiver(project_root)` - *The project rule that waives the person in a UI review, or None (ADR-310).*
 - `def _named_guideline(line)`
 - `def cmd_check(args)`
+- `def cmd_push(args)` - *Gated push: a discoverable alias for `check --push`.*
 - `def cmd_fix(args)` - *Repair what AIKit can repair mechanically, then run the gates: everything left is the*
 - `def cmd_publish(args)`
 - `def cmd_archive(args)` - *Move a project to `projects/archive/` and archive its GitHub repository.*
@@ -702,14 +703,14 @@
 ### [`scripts/aikit_help.py`](scripts/aikit_help.py)
 > *Generated top-level CLI help for the `--help` fast path (ADR-180).*
 
-**Size**: `55` lines (`3126` bytes)
+**Size**: `57` lines (`3284` bytes)
 
 ---
 
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `310` lines (`21536` bytes)
+**Size**: `313` lines (`21778` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -1074,7 +1075,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `568` lines (`29431` bytes)
+**Size**: `565` lines (`29169` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1271,7 +1272,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `341` lines (`16672` bytes)
+**Size**: `345` lines (`16904` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1619,7 +1620,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1214` lines (`57447` bytes)
+**Size**: `1241` lines (`58669` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1628,6 +1629,7 @@
 - `def parse_source(content, filename)` - *`ast.parse` at the minimum supported grammar (PRINCIPLE-003 R7), cached by content.*
 - `def extract_python_symbols(file_path, strict)` - *Parse a python file with AST and extract docstrings, classes, and functions (PRINCIPLE-003).*
 - `def _extract_symbols_uncached(file_path, content, strict)` - *AST extraction proper; see extract_python_symbols().*
+- `def gitignored_kept_python(root)` - *Python files explicitly re-included by a root `.gitignore` negation.*
 - `def gitignored_top_dirs(root)` - *The top-level directories `root/.gitignore` excludes by name. Git never tracks them, so their*
 - `def find_python_files(root)` - *Every Python file under `root`, skipping `IGNORE_DIRS`. Ignored directories are pruned while*
 - `def build_digest(rows, max_lines, max_chars, map_name)` - *`path  <lines>L <classes>C <functions>F  purpose` per module, within both budgets, shared-code*
@@ -1889,7 +1891,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14599` lines (`795789` bytes)
+**Size**: `14656` lines (`798494` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1996,6 +1998,7 @@
   - Method `.test_a_repository_under_an_ignored_name_is_still_scanned()`
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`
   - Method `.test_top_level_wildcard_gitignore_prunes_the_directory()`
+  - Method `.test_negated_python_file_under_ignored_dir_is_kept()`
   - Method `.test_this_repository_ignores_references()`
   - Method `.test_this_repository_ignores_kilo_state()`
   - Method `.test_temporary_python_buffers_are_not_catalogued()`
@@ -2486,6 +2489,8 @@
   - Method `.test_sync_licenses_generated_help_matches_its_parser()`
   - Method `.test_disruption_help_matches_the_module()`
   - Method `.test_cli_reexports_the_parser_so_existing_callers_keep_working()`
+- `class TestPushCommand` - *`aikit push` is a thin, discoverable alias for the gated `check --push`.*
+  - Method `.test_push_parses_and_routes_to_gated_check()`
 - `class FakeGit` - *A tiny git_io stand-in for the UI guard's unit tests; no subprocess is spawned.*
   - Method `.__init__(status, head, tracked, diff)`
   - Method `.__call__(root, args)`
@@ -2646,6 +2651,7 @@
   - Method `.test_a_topic_failure_after_upload_is_a_note()`
   - Method `.test_publish_passes_extracted_description()`
   - Method `.test_auto_push_project()`
+  - Method `.test_auto_push_is_authorized_for_the_publish_guard()`
 - `class TestProjectArchive` - *`aikit archive`: retire a project locally and on GitHub with an archived README.*
   - Method `.make_project(tmp, name, description)`
   - Method `.runner(**replies)`

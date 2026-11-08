@@ -246,7 +246,11 @@ def auto_push_project(project_root: Path, name: str, runner: Optional[Runner] = 
     refusal = scan_refusal(project_root, rev_range, run)
     if refusal:
         return 1, refusal
-    code_push, push_out = run(push_cmd, project_root)
+    # The project may carry AIKit's pre-push guard. `publish` and `check --push`
+    # are the sanctioned paths, so mark this push as authorized; raw pushes stay
+    # blocked (ADR-341, ADR-343).
+    with publish_environment():
+        code_push, push_out = run(push_cmd, project_root)
     if code_push != 0:
         return 1, _triad(
             f"auto-pushing '{name}' to {url} failed.\n{push_out[-400:]}",

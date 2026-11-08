@@ -194,6 +194,7 @@ python aikit.py attach ../existing  # register an existing folder; adds .aikit/,
 python aikit.py list                # every project, its stack and test command
 python aikit.py status my-app       # task, changes, decision; --exit-code fails when dirty, --json for CI
 python aikit.py check my-app        # tests, checks, hygiene, guidelines, secrets; --push pushes (exit 1 if blocked)
+python aikit.py push my-app          # every gate, then push to origin (alias for check --push; never forced)
 python aikit.py check my-app --strict  # delivery gate: clean tree, map, no conflicts, no open UI task
 python aikit.py ui init my-app        # React/Vite pilot: write a conservative .aikit/ui.json
 python aikit.py ui init my-app --fast "npm run test" --paths "src/**"  # other stacks
@@ -207,7 +208,7 @@ python aikit.py publish my-app [--owner ORG] [--license auto]  # pre-push guard,
 python aikit.py archive my-app --reason "superseded by X" [--offline]  # move to projects/archive/, archive GitHub repo
 python aikit.py license my-app [--suggest|--set game|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science)
 ```
-A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` installs a pre-push guard at `.git/hooks` or the repository's `core.hooksPath`: a raw `git push` is refused until the project is uploaded through AIKit (ADR-341, ADR-342), then needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
+A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` installs a pre-push guard at `.git/hooks` or the repository's `core.hooksPath`: a raw `git push` is refused until the project is uploaded through AIKit (ADR-341, ADR-342); `push`, `check --push` and the online `archive` path use the same authorized push (ADR-343). Publishing also needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
 
 ## 🔁 Aegean Reforge: Host Review & Safe Repair
 

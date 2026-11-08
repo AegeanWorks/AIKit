@@ -136,6 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
                           help="the default; kept so existing scripts still run")
     check.add_argument("--strict", action="store_true",
                        help="require a clean non-bookkeeping tree and a codebase map before passing")
+    # A discoverable, thin alias for `check --push`: the gates still run first.
+    project_command("push", "run every project gate, then push unpushed commits to origin "
+                            "(never forced; same as `check --push`)")
     project_command("fix", "restore missing project memory and README, refresh its map, then check")
     publish = project_command("publish", "upload the project to its own GitHub repository, named in "
                                          "catalog title case (private by default)")
