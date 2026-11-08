@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
-- **Total Top-Level Functions**: `1004`
-- **Total Class Methods**: `1210`
-- **Total Source Lines**: `45880`
+- **Total Top-Level Functions**: `1006`
+- **Total Class Methods**: `1212`
+- **Total Source Lines**: `45960`
 
 ---
 
@@ -772,7 +772,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `379` lines (`16842` bytes)
+**Size**: `382` lines (`17106` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -1044,11 +1044,13 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `195` lines (`6435` bytes)
+**Size**: `247` lines (`8393` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
+- `def _config_hooks_path(config, seen)` - *core.hooksPath from one git config file, following include.path files.*
 - `def _local_hooks_path(project_root)` - *core.hooksPath from the repository-local .git/config, without spawning git.*
+- `def _global_hooks_path()` - *core.hooksPath from the global and system config files, without spawning git.*
 - `def _git_config_value(project_root, key)` - *Read one git config value, or None when it is unset or git cannot run.*
 - `def hook_path(project_root)` - *The repository's pre-push hook path, or None when the folder is not a git repo.*
 - `def install_pre_push_hook(project_root, project_name)` - *Install the guard and return its path, or None when there is no git repository.*
@@ -1894,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14758` lines (`804096` bytes)
+**Size**: `14783` lines (`805514` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2633,6 +2635,8 @@
   - Method `.test_install_writes_guard_and_preserves_an_existing_hook()`
   - Method `.test_no_git_repository_is_a_no_op()`
   - Method `.test_core_hooks_path_is_respected()`
+  - Method `.test_global_core_hooks_path_is_respected()`
+  - Method `.test_included_config_hooks_path_is_respected()`
   - Method `.test_create_project_installs_the_guard()`
   - Method `.test_publish_environment_sets_and_restores()`
   - Method `.test_publish_project_installs_the_guard_before_pushing()`

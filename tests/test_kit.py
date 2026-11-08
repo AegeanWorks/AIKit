@@ -9184,6 +9184,31 @@ class TestPublishGuard(unittest.TestCase):
             self.assertTrue(is_guard_installed(root))
             self.assertTrue(target.is_file())
 
+    def test_global_core_hooks_path_is_respected(self):
+        # Git also honors core.hooksPath from global/system config and includes;
+        # a repo-local reader alone would install the guard where git never looks.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[core]\n\trepositoryformatversion = 0\n", encoding="utf-8")
+            global_config = root / "global.gitconfig"
+            global_hooks = root / "global-hooks"
+            global_config.write_text(
+                f"[core]\n\thooksPath = {global_hooks.as_posix()}\n", encoding="utf-8")
+            with mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(global_config)}):
+                self.assertEqual(hook_path(root), global_hooks / "pre-push")
+
+    def test_included_config_hooks_path_is_respected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[include]\n\tpath = extra.conf\n", encoding="utf-8")
+            (root / ".git" / "extra.conf").write_text(
+                "[core]\n\thooksPath = .husky\n", encoding="utf-8")
+            self.assertEqual(hook_path(root), root / ".husky" / "pre-push")
+
     def test_create_project_installs_the_guard(self):
         with tempfile.TemporaryDirectory() as tmp:
             def git_start(project_root):

@@ -15,7 +15,7 @@ import stat
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterator, List, Optional
 
 HOOK_MARKER = "# AIKit publish guard"
 LOCAL_HOOK_NAME = "pre-push.local"
@@ -42,28 +42,76 @@ def _config_value(raw: str) -> str:
     return "".join(value).strip()
 
 
-def _local_hooks_path(project_root: Path) -> Optional[str]:
-    """core.hooksPath from the repository-local .git/config, without spawning git."""
-    config = Path(project_root) / ".git" / "config"
-    if not config.is_file():
+def _config_hooks_path(config: Path, seen: Optional[set[Path]] = None) -> Optional[str]:
+    """core.hooksPath from one git config file, following include.path files."""
+    if seen is None:
+        seen = set()
+    try:
+        resolved = config.resolve()
+    except OSError:
+        resolved = config
+    if resolved in seen:
         return None
+    seen.add(resolved)
     try:
         lines = config.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return None
-    in_core = False
+    section = ""
+    value: Optional[str] = None
     for raw_line in lines:
         line = raw_line.strip()
         if not line or line.startswith(("#", ";")):
             continue
         if line.startswith("[") and line.endswith("]"):
-            in_core = line[1:-1].strip().lower() == "core"
+            section = line[1:-1].strip().lower()
             continue
-        if in_core and "=" in line:
-            key, value = line.split("=", 1)
-            if key.strip().lower() == "hookspath":
-                return _config_value(value) or None
-    return None
+        if "=" not in line:
+            continue
+        key, raw = line.split("=", 1)
+        key = key.strip().lower()
+        if section == "core" and key == "hookspath":
+            value = _config_value(raw) or None
+        elif section == "include" and key == "path":
+            include = _config_value(raw)
+            if include:
+                path = Path(include).expanduser()
+                if not path.is_absolute():
+                    path = config.parent / path
+                included = _config_hooks_path(path, seen)
+                if included:
+                    value = included
+    return value
+
+
+def _local_hooks_path(project_root: Path) -> Optional[str]:
+    """core.hooksPath from the repository-local .git/config, without spawning git."""
+    return _config_hooks_path(Path(project_root) / ".git" / "config")
+
+
+def _global_hooks_path() -> Optional[str]:
+    """core.hooksPath from the global and system config files, without spawning git."""
+    paths: List[Path] = []
+    if not os.environ.get("GIT_CONFIG_NOSYSTEM"):
+        system = os.environ.get("GIT_CONFIG_SYSTEM")
+        if system is None:
+            paths.append(Path("/etc/gitconfig"))
+        elif system:
+            paths.append(Path(system).expanduser())
+    configured = os.environ.get("GIT_CONFIG_GLOBAL")
+    if configured is None:
+        home = Path.home()
+        paths.append(Path(os.environ.get("XDG_CONFIG_HOME", home / ".config")) / "git" / "config")
+        paths.append(home / ".gitconfig")
+    elif configured:
+        paths.append(Path(configured).expanduser())
+    value: Optional[str] = None
+    for path in paths:
+        if path.is_file():
+            found = _config_hooks_path(path)
+            if found:
+                value = found
+    return value
 
 
 def _git_config_value(project_root: Path, key: str) -> Optional[str]:
@@ -93,6 +141,10 @@ def hook_path(project_root: Path) -> Optional[Path]:
     if dot_git.is_dir():
         # core.hooksPath redirects Git away from .git/hooks; install where Git looks.
         configured = _local_hooks_path(project_root)
+        if configured is None:
+            # The local file does not set it, but global/system config or an
+            # include may; read those files directly so the unit tier spawns nothing.
+            configured = _global_hooks_path()
         if configured:
             path = Path(configured).expanduser()
             if not path.is_absolute():
