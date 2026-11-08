@@ -193,13 +193,30 @@ def install_pre_push_hook(project_root: Path, project_name: str) -> Optional[Pat
     if not _SAFE_NAME.fullmatch(project_name):
         raise ValueError(f"project name is not safe for a hook: {project_name!r}")
     target.parent.mkdir(parents=True, exist_ok=True)
-    if target.is_file():
-        existing = _read_text(target)
-        if HOOK_MARKER not in existing:
-            local = target.with_name(LOCAL_HOOK_NAME)
-            if not local.exists():
-                target.replace(local)
-    target.write_text(_hook_script(project_name), encoding="utf-8", newline="\n")
+    script = _hook_script(project_name)
+    temp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    moved: Optional[Path] = None
+    try:
+        # Write and fsync the guard before touching the existing hook, so a
+        # failed write leaves the project's push path exactly as it was.
+        temp.write_text(script, encoding="utf-8", newline="\n")
+        with temp.open("r+b") as stream:
+            os.fsync(stream.fileno())
+        if target.is_file():
+            existing = _read_text(target)
+            if HOOK_MARKER not in existing:
+                local = target.with_name(LOCAL_HOOK_NAME)
+                if not local.exists():
+                    target.replace(local)
+                    moved = local
+        try:
+            os.replace(temp, target)
+        except OSError:
+            if moved is not None and not target.exists():
+                moved.replace(target)
+            raise
+    finally:
+        temp.unlink(missing_ok=True)
     try:
         target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     except OSError:

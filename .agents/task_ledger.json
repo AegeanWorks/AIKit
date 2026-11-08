@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-15push-v3",
+    "task_id": "verify-18push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794130896.5283363,
+    "updated_at": 1794132627.477323,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794130897.260857
+    "completed_at": 1794132627.8541305
   },
   "checkpoints": [
-    {
-      "task_id": "verify-18push",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/3] CI identity pin; unit test and map check passed; skipped timing budgets (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794112959.9133184,
-      "timestamp_str": "2026-11-08 07:42:39",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-18push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-18push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794113555.5043614,
-      "timestamp_str": "2026-11-08 07:52:35",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-19push",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Review the final 19-push window and judge cross-principle reasoning per clause",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794113555.8433273,
-      "timestamp_str": "2026-11-08 07:52:35",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The 300-character window let a later clause's evidence satisfy an earlier bare (no conflict), defeating the per-ID reasoning check.",
-        "benefits": "Each required principle now carries its own reason and evidence; a bare clause cannot borrow the next clause's justification.",
-        "risks": "contract: cross-check parser; dependency: stdlib; concurrency: none; state: sync_principles, tests, decisions, map",
-        "mitigation": "failing-first per-ID test, live sync check, read-only gates, dogfood, verify_commit before push"
-      },
-      "plan_digest": "4d284dc24caed681e591a37f1694403a463900e88b1db7bced154c08c154826d"
-    },
     {
       "task_id": "verify-19push",
       "phase": "implementation",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794130897.2608595,
       "timestamp_str": "2026-11-08 12:41:37",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-18push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 18 pushes: keep the existing hook when a guard install fails",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794131114.078897,
+      "timestamp_str": "2026-11-08 12:45:14",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "install_pre_push_hook moves the original hook to pre-push.local and then writes the guard with Path.write_text; a disk error or crash between the two leaves no active pre-push hook, silently reopening raw pushes.",
+        "benefits": "The guard is written to a same-directory temp file first and atomically replaces the target, so a failed install preserves the original hook and never leaves a partial script.",
+        "risks": "contract: publish guard install; dependency: stdlib; concurrency: same-name temp per process; state: git_guard.py, tests, ADR, codebase map",
+        "mitigation": "failing-first failed-write test, targeted guard tests, full suite, read-only gates, verify_commit before push"
+      },
+      "plan_digest": "212158f3d17a238f946a6c23487979ef33a8594076e2ef7e439f4c357e5d219f"
+    },
+    {
+      "task_id": "verify-18push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Atomic guard install; unit 963 + integration 88 pass; sync/kb/license/secrets/reachability pass directly; dogfood 4/5 (kb/secrets subprocesses rc=124 under host load, both green directly); timing budgets skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794132627.477323,
+      "timestamp_str": "2026-11-08 13:10:27",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-18push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-18push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794132627.8541338,
+      "timestamp_str": "2026-11-08 13:10:27",
       "agent": "opencode:goal"
     }
   ]

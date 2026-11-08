@@ -3658,3 +3658,19 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Install or repair the guard at the start of `auto_push_project`, before the origin check, so every sanctioned push path leaves the project guarded.
 - **Consequences**: `check --push`, `push` and archive cannot upload without first installing the guard; even a no-origin attempt repairs it. The unit tier creates a temporary `.git` repository and asserts `is_guard_installed` after a fake push, without spawning.
 - **Cross-principle check**: PRINCIPLE-000: no conflict because the guard strengthens the existing delivery boundary; PRINCIPLE-014: no conflict because the new test fails first and no assertion is weakened; PRINCIPLE-018: no conflict because the push remains unforced and the guard only admits the marked AIKit subprocess; PRINCIPLE-019: no conflict because the secret scan still precedes the push.
+
+### ADR-356: A failed guard install preserves the existing hook
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `install_pre_push_hook` moved the original hook to `pre-push.local` and then wrote the guard with `Path.write_text`. A disk error or crash after the move left no active `pre-push` hook, silently reopening raw pushes; a partial write could also block every push.
+- **Decision**: Write and fsync the guard to a same-directory temporary file first, then preserve the original hook and atomically `os.replace` the temporary file into place. Restore the original if the final replace fails, and always remove the temporary file.
+- **Consequences**: A failed install leaves the project's push path exactly as it was; a successful install never exposes a partial script. The unit tier patches `Path.write_text` to fail and asserts the original hook survives with no `pre-push.local`.
+- **Cross-principle check**: PRINCIPLE-013: no conflict because the guard now follows temp, fsync and replace; PRINCIPLE-014: no conflict because the new test fails first and no assertion is weakened; PRINCIPLE-018: no conflict because a failed install can no longer unguard the project.
+
+### ADR-357: Windows system Git config is part of the guard search
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-354 read `/etc/gitconfig` as the system config on every platform. Windows Git stores its system config under `%PROGRAMDATA%\Git\config`; the stage-14 reforge fix added that path and a test, but the new `PROGRAMDATA` read was missing from the reachability allowlist.
+- **Decision**: Read `%PROGRAMDATA%\Git\config` on Windows and keep `/etc/gitconfig` elsewhere, then record `PROGRAMDATA` as a host-set key in `scripts/check_reachability.py`.
+- **Consequences**: The guard follows the same system config Git does on Windows, and the reachability shield keeps a producer for every environment key. The Windows-only test exercises the path.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because the path is platform-guarded and uses `pathlib`; PRINCIPLE-009: no conflict because no subprocess is added; PRINCIPLE-014: no conflict because the reachability gate stays green and the Windows test is retained.

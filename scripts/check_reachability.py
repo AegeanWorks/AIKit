@@ -107,9 +107,9 @@ EXTERNAL_SCHEMA_KEYS: Set[str] = {"scripts", "test", "build", "ui:snapshot", "pr
                                   "max_files", "max_lines",
                                   # Environment variables `resolve_agent` reads; hosts set them (ADR-209).
                                   "AIKIT_AGENT", "AI_AGENT", "CLAUDE_CODE_SESSION_ID",
-                                  # Git config locations the publish guard reads; git/hosts set them (ADR-354).
+                                  # Git config locations the publish guard reads; git/hosts set them (ADR-354, ADR-357).
                                   "GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "GIT_CONFIG_SYSTEM",
-                                  "XDG_CONFIG_HOME",
+                                  "XDG_CONFIG_HOME", "PROGRAMDATA",
                                   # GitHub's topics response names (project_topics, ADR-234).
                                   "names",
                                   # GitHub REST repository fields read by dossier_sync (ADR-308):

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1006`
-- **Total Class Methods**: `1213`
-- **Total Source Lines**: `45987`
+- **Total Class Methods**: `1215`
+- **Total Source Lines**: `46046`
 
 ---
 
@@ -772,7 +772,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `382` lines (`17106` bytes)
+**Size**: `382` lines (`17130` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -1044,7 +1044,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `247` lines (`8393` bytes)
+**Size**: `269` lines (`9263` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
@@ -1896,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14807` lines (`806642` bytes)
+**Size**: `14844` lines (`808603` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2633,9 +2633,11 @@
   - Method `.test_scanner_catches_a_bare_gemini_key()`
 - `class TestPublishGuard` - *Direct `git push` is blocked unless the process is `aikit publish` (ADR-341).*
   - Method `.test_install_writes_guard_and_preserves_an_existing_hook()`
+  - Method `.test_a_failed_guard_write_keeps_the_existing_hook()`
   - Method `.test_no_git_repository_is_a_no_op()`
   - Method `.test_core_hooks_path_is_respected()`
   - Method `.test_global_core_hooks_path_is_respected()`
+  - Method `.test_windows_system_hooks_path_is_respected()`
   - Method `.test_included_config_hooks_path_is_respected()`
   - Method `.test_create_project_installs_the_guard()`
   - Method `.test_publish_environment_sets_and_restores()`

@@ -9168,6 +9168,21 @@ class TestPublishGuard(unittest.TestCase):
             self.assertEqual((hooks / "pre-push.local").read_text(encoding="utf-8"),
                              "#!/bin/sh\nexit 0\n")
 
+    def test_a_failed_guard_write_keeps_the_existing_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hooks = root / ".git" / "hooks"
+            hooks.mkdir(parents=True)
+            target = hooks / "pre-push"
+            original = "#!/bin/sh\necho custom\n"
+            target.write_text(original, encoding="utf-8")
+            with mock.patch.object(Path, "write_text", side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    install_pre_push_hook(root, "demo")
+            self.assertTrue(target.is_file(), "the original hook must survive a failed install")
+            self.assertEqual(target.read_text(encoding="utf-8"), original)
+            self.assertFalse((hooks / "pre-push.local").exists())
+
     def test_no_git_repository_is_a_no_op(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIsNone(install_pre_push_hook(Path(tmp), "demo"))
