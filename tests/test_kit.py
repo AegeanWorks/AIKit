@@ -7571,6 +7571,9 @@ class TestProjectHygieneScan(unittest.TestCase):
         # A reason on the handler's own line is the documented exception; it needs real words.
         self.assertEqual(self.rules("try:\n    pass\nexcept OSError:  # hygiene: allow best effort\n    pass\n"),
                          set())
+        self.assertEqual(self.rules(
+            "try:\n    pass\nexcept OSError:  # hygiene: allow an unreadable file falls through\n"
+            "    pass\n"), set())
         self.assertEqual(self.rules("try:\n    pass\nexcept OSError:  # hygiene: allow no\n    pass\n"),
                          {"silent-except"})
         # A handler that acts is never silent, however broad it is.
@@ -7646,6 +7649,18 @@ class TestProjectHygieneScan(unittest.TestCase):
         self.assertEqual([(finding.path, finding.rule) for finding in scan_tree(root)],
                          [("app.py", "os-system"), ("bin.py", "unreadable"),
                           ("broken.py", "unparseable")])
+
+    def test_scan_tree_prunes_root_gitignored_dirs(self):
+        root = Path(tempfile.mkdtemp(prefix="test_hygiene_ignored_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        (root / ".gitignore").write_text("scratch/\nshots/\n", encoding="utf-8")
+        (root / "app.py").write_text("x = 1\n", encoding="utf-8")
+        (root / "scratch").mkdir()
+        (root / "scratch" / "bad.py").write_text("import os\nos.system('x')\n", encoding="utf-8")
+        (root / "shots").mkdir()
+        (root / "shots" / "bad.js").write_text(
+            "fetch('https://cdn.example/x.js')\n", encoding="utf-8")
+        self.assertEqual(scan_tree(root), [])
 
     def test_artifact_classifier_flags_root_tests_outputs_and_source(self):
         findings = classify_artifacts(

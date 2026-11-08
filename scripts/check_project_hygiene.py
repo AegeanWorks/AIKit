@@ -18,6 +18,7 @@ Exit codes:
 """
 
 import ast
+import os
 import re
 import subprocess
 import sys
@@ -67,9 +68,9 @@ ARTIFACT_SUFFIXES = (".pyc", ".pyo", ".log", ".tmp", ".bak", ".orig", ".rej")
 ROOT_OUTPUT_SUFFIXES = frozenset({".txt", ".log", ".tmp", ".bak", ".orig", ".rej", ".out"})
 GIT_TIMEOUT_SECONDS = 30
 
-ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+\S{3,}")
+ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+(.+)$")
 # A scoped marker names the one registered rule it excuses: `hygiene: allow [rule] reason`.
-TYPED_ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+\[([a-z0-9-]+)\]\s+\S{3,}")
+TYPED_ALLOW_MARKER = re.compile(r"hygiene:\s*allow\s+\[([a-z0-9-]+)\]\s+(.+)$")
 TYPED_ALLOW_ATTEMPT = re.compile(r"hygiene:\s*allow\s*\[")
 SUBPROCESS_FUNCS = frozenset({"run", "call", "check_call", "check_output", "Popen"})
 # Popen does not accept `timeout=`; its caller bounds the wait with communicate(timeout=...) or
@@ -479,10 +480,13 @@ def _marked(lines: Sequence[str], line: int, rule: str) -> bool:
         if TYPED_ALLOW_ATTEMPT.search(candidate):
             typed = TYPED_ALLOW_MARKER.search(candidate)
             if typed is not None and typed.group(1) == rule \
-                    and typed.group(1) in RULE_CODES:
+                    and typed.group(1) in RULE_CODES \
+                    and len(typed.group(2).strip()) >= 3:
                 return True
-        elif ALLOW_MARKER.search(candidate):
-            return True
+        else:
+            bare = ALLOW_MARKER.search(candidate)
+            if bare is not None and len(bare.group(1).strip()) >= 3:
+                return True
     return False
 
 
@@ -652,21 +656,31 @@ def scan_tree(root: Path, artifacts: bool = False) -> List[Finding]:
     """
     findings: List[Finding] = []
     scanned = 0
-    for path in sorted(root.rglob("*")):
-        parts = path.relative_to(root).parts
-        if not path.is_file() or any(part in SKIP_DIRS for part in parts[:-1]):
-            continue
-        rel = path.relative_to(root).as_posix()
-        if path.suffix == PY_SUFFIX or path.suffix in ASSET_SUFFIXES:
-            scanned += 1
-            source, gaps = _read_source(rel, path)
-            findings.extend(gaps)
-            if source is None:
-                continue
-            if path.suffix == PY_SUFFIX:
-                findings.extend(check_python_source(rel, source))
-            else:
-                findings.extend(check_asset_source(rel, source))
+    try:
+        from scripts.update_knowledge_base import gitignored_top_dirs
+    except ImportError:
+        from update_knowledge_base import gitignored_top_dirs
+    ignored_top = gitignored_top_dirs(root)
+    for dirpath, dirnames, filenames in os.walk(root):
+        current = Path(dirpath)
+        # Prune before descending: rglob still walked ignored scratch/shots trees.
+        dirnames[:] = sorted(
+            name for name in dirnames
+            if name not in SKIP_DIRS and not (current == root and name in ignored_top)
+        )
+        for name in sorted(filenames):
+            path = current / name
+            rel = path.relative_to(root).as_posix()
+            if path.suffix == PY_SUFFIX or path.suffix in ASSET_SUFFIXES:
+                scanned += 1
+                source, gaps = _read_source(rel, path)
+                findings.extend(gaps)
+                if source is None:
+                    continue
+                if path.suffix == PY_SUFFIX:
+                    findings.extend(check_python_source(rel, source))
+                else:
+                    findings.extend(check_asset_source(rel, source))
     if artifacts:
         findings.extend(scan_artifacts(root))
     # IDEA-1118: zero scannable files is inconclusive, never clean.

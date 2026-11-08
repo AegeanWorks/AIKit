@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1222`
-- **Total Source Lines**: `46151`
+- **Total Class Methods**: `1223`
+- **Total Source Lines**: `46180`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `800` lines (`38913` bytes)
+**Size**: `814` lines (`39546` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14933` lines (`813128` bytes)
+**Size**: `14948` lines (`813968` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2490,6 +2490,7 @@
   - Method `.test_every_emitted_rule_code_is_registered()`
   - Method `.test_asset_urls_skip_loopback_namespaces_and_marked_lines()`
   - Method `.test_scan_tree_skips_vendored_dirs_and_reports_unreadable_files()`
+  - Method `.test_scan_tree_prunes_root_gitignored_dirs()`
   - Method `.test_artifact_classifier_flags_root_tests_outputs_and_source()`
   - Method `.test_artifact_scan_reports_missing_git_without_a_traceback()`
   - Method `.test_artifact_classifier_flags_tracked_caches_and_temporary_state()`

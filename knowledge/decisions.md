@@ -3698,3 +3698,19 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Pass `LOCK_TIMEOUT_SECONDS` to `file_lock`, check `acquired`, and raise `TimeoutError` before reading or appending when it is false.
 - **Consequences**: No event is written without the lock; callers see a clear timeout instead of a silently corrupt transcript. The unit tier mocks `file_lock` yielding `False` and asserts no file is created.
 - **Cross-principle check**: PRINCIPLE-013: no conflict because the advisory lock now gates the whole read-append cycle; PRINCIPLE-014: no conflict because the new test fails on the previous behavior and no assertion is weakened; PRINCIPLE-018: no conflict because transcript writes are not a delivery path.
+
+### ADR-361: The hygiene scan prunes ignored root directories before walking
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `scan_tree` used `rglob("*")` and skipped `SKIP_DIRS` only after traversal. The ignored `scratch/` and `shots/` trees were therefore walked in full, making the root hygiene scan time out; a file-level filter cannot prevent the walk.
+- **Decision**: Walk with `os.walk`, prune every `SKIP_DIRS` name and every root `.gitignore` directory from `gitignored_top_dirs(root)` before descending. Keep the direct-run import fallback.
+- **Consequences**: Ignored evidence never enters the scan, so the root scan is bounded and cannot report findings from generated copies. Project roots without `.gitignore` scan as before. The unit tier creates ignored `scratch/` and `shots/` trees with violations and expects no findings.
+- **Cross-principle check**: PRINCIPLE-010: no conflict because the walk is now bounded by the tree the repository actually tracks; PRINCIPLE-014: no conflict because the new test fails on the previous traversal and no assertion is weakened; PRINCIPLE-016: no conflict because local-only evidence stays out of generated knowledge.
+
+### ADR-362: Allow markers require a reason, not a long first word
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `ALLOW_MARKER` required the first reason token to be three or more characters. A valid multi-word reason beginning `an unreadable file...` was ignored, so a documented exception could silently stay flagged.
+- **Decision**: Capture the whole reason and require at least three total non-space characters; typed markers keep their rule scoping and still fail closed.
+- **Consequences**: Reasons beginning with a short article work, while empty, `no` and `x` markers still suppress nothing. The unit tier pins both the accepted and rejected forms.
+- **Cross-principle check**: PRINCIPLE-000: no conflict because the documented-exception path becomes usable instead of silently failing; PRINCIPLE-014: no conflict because the new assertions fail on the previous regex and none is weakened; PRINCIPLE-003: no conflict because the marker remains a local, line-bounded exception.
