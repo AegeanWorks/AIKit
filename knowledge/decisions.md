@@ -3730,3 +3730,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Check `%PROGRAMDATA%\Git\config` first, then the install-relative `etc/gitconfig`, which wins when both exist. Record `PROGRAMDATA` in the reachability allowlist.
 - **Consequences**: Both standard Windows system-config locations are honored without a subprocess. The Windows-only test covers a portable executable with only the machine config.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because the path work is platform-guarded and uses `pathlib`; PRINCIPLE-013: no conflict because no persisted state changes; PRINCIPLE-014: no conflict because the new Windows test fails without the fallback and no assertion is weakened.
+
+### ADR-365: Windows system-config precedence is pinned
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-364 added the `%PROGRAMDATA%` fallback and the install-relative `etc/gitconfig`, but no test covered the case where both files exist or where the install file exists without a `hooksPath`.
+- **Decision**: Add Windows-only tests asserting that the install-relative `hooksPath` wins when both define one, and that `%PROGRAMDATA%` supplies the value when the install file lacks the key.
+- **Consequences**: The precedence and fallback cannot silently reverse when the config reader changes. The tests run on the Windows CI leg and skip elsewhere.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because the tests use the same platform-guarded path model; PRINCIPLE-014: no conflict because the new assertions tighten coverage and none is weakened.

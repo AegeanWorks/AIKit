@@ -1,50 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-21push-v3",
+    "task_id": "verify-24push-v3",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794141488.4892344,
+    "updated_at": 1794142015.3770325,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794141489.4416494
+    "completed_at": 1794142015.6752691
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 27",
-      "phase_num": 3,
-      "description": "Reforge stage 27: window 81, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794137732.600827,
-      "timestamp_str": "2026-11-08 14:35:32",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 27",
-      "phase_num": 3,
-      "description": "Reforge stage 27: stage 27 host review reviewed; run active; coverage 36/36",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794137803.5977197,
-      "timestamp_str": "2026-11-08 14:36:43",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 28",
-      "phase_num": 3,
-      "description": "Reforge stage 28: window 84, 3 commit(s), 10 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794137926.9396641,
-      "timestamp_str": "2026-11-08 14:38:46",
-      "agent": "opencode"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 28",
@@ -248,6 +215,45 @@
       "status": "completed",
       "timestamp": 1794141489.4416513,
       "timestamp_str": "2026-11-08 15:38:09",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-24push-v3",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 24 pushes: pin Windows system-config precedence and fallback",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794141878.2866068,
+      "timestamp_str": "2026-11-08 15:44:38",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The window adds both %PROGRAMDATA% and install-relative system configs, but no test proves which wins when both exist or that PROGRAMDATA fills a missing key in the install file.",
+        "benefits": "The precedence is pinned before a future config-reader change can silently reverse it.",
+        "risks": "contract: Windows publish-guard config search; dependency: stdlib; concurrency: none; state: tests, ADR, map",
+        "mitigation": "Windows-only precedence tests, targeted guard tests, full unit tier, root scan"
+      },
+      "plan_digest": "a392cc74bcc3b603483cccb6eb07f217eac95b4b28814446ca26ebea6a254052"
+    },
+    {
+      "task_id": "verify-24push-v3",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Windows system-config precedence/fallback tests; 977 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794142015.3770325,
+      "timestamp_str": "2026-11-08 15:46:55",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-24push-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-24push-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794142015.6752713,
+      "timestamp_str": "2026-11-08 15:46:55",
       "agent": "opencode:goal"
     }
   ]

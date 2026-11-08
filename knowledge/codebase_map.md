@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1226`
-- **Total Source Lines**: `46253`
+- **Total Class Methods**: `1228`
+- **Total Source Lines**: `46314`
 
 ---
 
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15008` lines (`817300` bytes)
+**Size**: `15069` lines (`820599` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2649,6 +2649,8 @@
   - Method `.test_global_core_hooks_path_is_respected()`
   - Method `.test_windows_system_hooks_path_is_respected()`
   - Method `.test_programdata_system_hooks_path_is_a_fallback()`
+  - Method `.test_install_system_config_wins_over_programdata()`
+  - Method `.test_programdata_fills_a_missing_install_config_key()`
   - Method `.test_system_config_env_override_is_respected()`
   - Method `.test_included_config_hooks_path_is_respected()`
   - Method `.test_create_project_installs_the_guard()`

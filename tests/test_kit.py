@@ -9381,6 +9381,67 @@ class TestPublishGuard(unittest.TestCase):
                 os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
                 self.assertEqual(hook_path(root), system_hooks / "pre-push")
 
+    @unittest.skipUnless(os.name == "nt", "Windows system config precedence")
+    def test_install_system_config_wins_over_programdata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[core]\n\trepositoryformatversion = 0\n", encoding="utf-8")
+            install = root / "Git"
+            (install / "cmd").mkdir(parents=True)
+            git_exe = install / "cmd" / "git.exe"
+            git_exe.write_text("", encoding="utf-8")
+            (install / "etc").mkdir()
+            install_hooks = root / "install-hooks"
+            (install / "etc" / "gitconfig").write_text(
+                f"[core]\n\thooksPath = {install_hooks.as_posix()}\n", encoding="utf-8")
+            programdata = root / "programdata"
+            programdata_hooks = root / "programdata-hooks"
+            (programdata / "Git").mkdir(parents=True)
+            (programdata / "Git" / "config").write_text(
+                f"[core]\n\thooksPath = {programdata_hooks.as_posix()}\n", encoding="utf-8")
+            global_config = root / "global.gitconfig"
+            global_config.write_text("", encoding="utf-8")
+            with (mock.patch.dict(os.environ, {
+                    "PROGRAMDATA": str(programdata),
+                    "GIT_CONFIG_GLOBAL": str(global_config),
+                  }),
+                  mock.patch("shutil.which", return_value=str(git_exe))):
+                os.environ.pop("GIT_CONFIG_SYSTEM", None)
+                os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
+                self.assertEqual(hook_path(root), install_hooks / "pre-push")
+
+    @unittest.skipUnless(os.name == "nt", "Windows system config fallback")
+    def test_programdata_fills_a_missing_install_config_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[core]\n\trepositoryformatversion = 0\n", encoding="utf-8")
+            install = root / "Git"
+            (install / "cmd").mkdir(parents=True)
+            git_exe = install / "cmd" / "git.exe"
+            git_exe.write_text("", encoding="utf-8")
+            (install / "etc").mkdir()
+            (install / "etc" / "gitconfig").write_text(
+                "[core]\n\teditor = vim\n", encoding="utf-8")
+            programdata = root / "programdata"
+            programdata_hooks = root / "programdata-hooks"
+            (programdata / "Git").mkdir(parents=True)
+            (programdata / "Git" / "config").write_text(
+                f"[core]\n\thooksPath = {programdata_hooks.as_posix()}\n", encoding="utf-8")
+            global_config = root / "global.gitconfig"
+            global_config.write_text("", encoding="utf-8")
+            with (mock.patch.dict(os.environ, {
+                    "PROGRAMDATA": str(programdata),
+                    "GIT_CONFIG_GLOBAL": str(global_config),
+                  }),
+                  mock.patch("shutil.which", return_value=str(git_exe))):
+                os.environ.pop("GIT_CONFIG_SYSTEM", None)
+                os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
+                self.assertEqual(hook_path(root), programdata_hooks / "pre-push")
+
     def test_system_config_env_override_is_respected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
