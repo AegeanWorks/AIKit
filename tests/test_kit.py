@@ -9490,6 +9490,17 @@ class TestPublishGuard(unittest.TestCase):
                 "[core]\n\thooksPath = .husky\n", encoding="utf-8")
             self.assertEqual(hook_path(root), root / ".husky" / "pre-push")
 
+    def test_local_conditional_include_is_resolved_by_git(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                '[includeIf "gitdir:..."]\n\tpath = extra.conf\n', encoding="utf-8")
+            with mock.patch("scripts.git_guard._git_config_value",
+                            return_value=".husky") as effective:
+                self.assertEqual(hook_path(root), root / ".husky" / "pre-push")
+            effective.assert_called_once()
+
     def test_create_project_installs_the_guard(self):
         with tempfile.TemporaryDirectory() as tmp:
             def git_start(project_root):

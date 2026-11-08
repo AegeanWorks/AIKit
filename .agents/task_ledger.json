@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-36push-v2",
+    "task_id": "verify-39push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794144023.993774,
+    "updated_at": 1794144329.7323244,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794144024.1989112
+    "completed_at": 1794144330.0540526
   },
   "checkpoints": [
-    {
-      "task_id": "verify-36push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Tighten the hygiene false-positive fix: flag env deletes and read io.open modes correctly",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794140942.0512972,
-      "timestamp_str": "2026-11-08 15:29:02",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The last fix skipped every non-Load environ subscript, hiding a hard del that raises; it also read io.open(path, 'rb') as a Path method, taking the path as the mode and flagging a binary open as text.",
-        "benefits": "Environment deletes are flagged like reads, while io.open binary and text modes are classified by the builtin signature.",
-        "risks": "contract: hygiene AST rules; dependency: stdlib ast; concurrency: none; state: check_project_hygiene.py, tests, ADR, map",
-        "mitigation": "failing-first probe tests, targeted hygiene tests, root scan, unit tier, reachability and secrets"
-      },
-      "plan_digest": "0687959a076a8d02c9f95c5283a3917af4f74db980b08bc4c05346b02ead923a"
-    },
-    {
-      "task_id": "verify-36push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Env deletes flagged and io.open modes classified; 973 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794141083.191333,
-      "timestamp_str": "2026-11-08 15:31:23",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-36push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-36push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794141083.637854,
-      "timestamp_str": "2026-11-08 15:31:23",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "verify-27push-v2",
       "phase": "in_progress",
@@ -257,6 +218,45 @@
       "status": "completed",
       "timestamp": 1794144024.1989133,
       "timestamp_str": "2026-11-08 16:20:24",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 39 pushes: resolve a local includeIf hooksPath through git config",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144194.8714838,
+      "timestamp_str": "2026-11-08 16:23:14",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The file parser ignores [includeIf] sections, so a core.hooksPath set by a conditional include is missed and the guard installs in .git/hooks instead of where git looks.",
+        "benefits": "A local conditional include is resolved by Git's own config; the parser remains the no-subprocess default when no includeIf is present.",
+        "risks": "contract: publish guard config discovery; dependency: git for conditional configs; concurrency: none; state: git_guard.py, tests, ADR, map",
+        "mitigation": "failing-first includeIf test with a mocked config reader, targeted guard tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "febbd25e9dac7fff909df864a6d0571d13c73c11539ebbca34ea5d14d979388d"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Local includeIf hooksPath resolved via git config; 986 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144329.7323244,
+      "timestamp_str": "2026-11-08 16:25:29",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-39push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144330.0540547,
+      "timestamp_str": "2026-11-08 16:25:30",
       "agent": "opencode:goal"
     }
   ]

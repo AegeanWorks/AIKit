@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
-- **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1236`
-- **Total Source Lines**: `46470`
+- **Total Top-Level Functions**: `1008`
+- **Total Class Methods**: `1237`
+- **Total Source Lines**: `46496`
 
 ---
 
@@ -1044,12 +1044,13 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `288` lines (`10282` bytes)
+**Size**: `303` lines (`10818` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
 - `def _config_hooks_path(config, seen)` - *core.hooksPath from one git config file, following include.path files.*
-- `def _local_hooks_path(project_root)` - *core.hooksPath from the repository-local .git/config, without spawning git.*
+- `def _has_conditional_include(config)` - *Whether a config uses an includeIf section the simple parser skips.*
+- `def _local_hooks_path(project_root)` - *core.hooksPath from .git/config; conditional includes use git's own resolver.*
 - `def _global_hooks_path()` - *core.hooksPath from the global and system config files, without spawning git.*
 - `def _git_config_value(project_root, key)` - *Read one git config value, or None when it is unset or git cannot run.*
 - `def hook_path(project_root)` - *The repository's pre-push hook path, or None when the folder is not a git repo.*
@@ -1897,7 +1898,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15168` lines (`825795` bytes)
+**Size**: `15179` lines (`826368` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2654,6 +2655,7 @@
   - Method `.test_programdata_fills_a_missing_install_config_key()`
   - Method `.test_system_config_env_override_is_respected()`
   - Method `.test_included_config_hooks_path_is_respected()`
+  - Method `.test_local_conditional_include_is_resolved_by_git()`
   - Method `.test_create_project_installs_the_guard()`
   - Method `.test_publish_environment_sets_and_restores()`
   - Method `.test_publish_project_installs_the_guard_before_pushing()`

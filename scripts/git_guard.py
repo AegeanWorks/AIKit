@@ -85,9 +85,24 @@ def _config_hooks_path(config: Path, seen: Optional[set[Path]] = None) -> Option
     return value
 
 
+def _has_conditional_include(config: Path) -> bool:
+    """Whether a config uses an includeIf section the simple parser skips."""
+    try:
+        text = config.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return re.search(r"(?im)^\s*\[includeIf\b", text) is not None
+
+
 def _local_hooks_path(project_root: Path) -> Optional[str]:
-    """core.hooksPath from the repository-local .git/config, without spawning git."""
-    return _config_hooks_path(Path(project_root) / ".git" / "config")
+    """core.hooksPath from .git/config; conditional includes use git's own resolver."""
+    config = Path(project_root) / ".git" / "config"
+    value = _config_hooks_path(config)
+    if _has_conditional_include(config):
+        effective = _git_config_value(Path(project_root), "core.hooksPath")
+        if effective is not None:
+            return effective
+    return value
 
 
 def _global_hooks_path() -> Optional[str]:

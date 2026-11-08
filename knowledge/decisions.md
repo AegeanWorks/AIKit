@@ -3778,3 +3778,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Call `fsync_dir(target.parent)` after the successful replace and after restoring the original hook on failure. `fsync_dir` is a no-op on Windows and reports network-mount failures without undoing the install.
 - **Consequences**: The hook rename follows the same durability barrier as other state writes; the unit tier mocks `fsync_dir` and asserts it receives the hook directory.
 - **Cross-principle check**: PRINCIPLE-013: no conflict because the guard now completes the state-write barrier; PRINCIPLE-014: no conflict because the new test fails without the call and no assertion is weakened; PRINCIPLE-018: no conflict because the raw-push guard is more durable, not weaker.
+
+### ADR-371: Local conditional includes use git's resolver
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The file parser skips `[includeIf ...]` sections, so a `core.hooksPath` set through a repository-local conditional include was missed and the guard installed in `.git/hooks` instead of the path Git uses.
+- **Decision**: When `.git/config` contains an `includeIf` section, ask Git for the effective `core.hooksPath`; otherwise keep the no-subprocess file parser. Fall back to the parsed value if Git returns none. System/global files keep the parser.
+- **Consequences**: Repository-local conditional includes are honored without making the common path spawn. The unit tier mocks the config reader for the conditional case.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because the platform path handling is unchanged; PRINCIPLE-014: no conflict because the new test fails on the parser-only path and no assertion is weakened; PRINCIPLE-018: no conflict because the guard installs where Git actually looks.
