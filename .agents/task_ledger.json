@@ -1,21 +1,15 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-33push-v2",
+    "task_id": "verify-45push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794143692.886543,
+    "updated_at": 1794145036.3561335,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "impact_assessment": {
-      "why": "_restore wrote snapshot bytes directly; a disk error or crash could leave a partially restored file.",
-      "benefits": "Restore uses temp+fsync+replace and reports a failed restore without leaving partial bytes.",
-      "risks": "contract: reforge rollback; dependency: scripts.disruption_recovery; concurrency: none; state: reforge/pipeline.py, tests, ADR, map",
-      "mitigation": "failing-first mocked-writer test, existing failure test, unit tier, root scan and gates"
-    },
-    "completed_at": 1794143693.1945465
+    "completed_at": 1794145037.5656412
   },
   "checkpoints": [
     {
@@ -82,7 +76,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 40",
       "phase_num": 3,
-      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143016.4698665,
@@ -104,7 +98,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 41",
       "phase_num": 3,
-      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143251.773606,
@@ -137,7 +131,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 42",
       "phase_num": 3,
-      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit, 2 binary not analysed (regression=1)",
+      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit, 2 binary not analysed (regression=1)",
       "files_affected": [
         "scripts/project_artwork.py",
         "assets/logo.png",
@@ -212,7 +206,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 43",
       "phase_num": 3,
-      "description": "Reforge stage 43: window 129, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 43: window 129, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143847.6350808,
@@ -231,10 +225,127 @@
       "agent": "opencode"
     },
     {
+      "task_id": "verify-36push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 36 pushes: fsync the hook directory after the atomic replace",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794143919.5203557,
+      "timestamp_str": "2026-11-08 16:18:39",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "install_pre_push_hook fsyncs the temp file and replaces it but never fsyncs the containing directory, so on POSIX a power loss can revert the rename and leave the project unguarded.",
+        "benefits": "The hook rename is durable like every other PRINCIPLE-013 state write; Windows stays a no-op.",
+        "risks": "contract: publish guard durability; dependency: disruption_recovery.fsync_dir; concurrency: none; state: git_guard.py, tests, ADR, map",
+        "mitigation": "failing-first mocked fsync test, targeted guard tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "8bd1ac47e30ea1db6f3a95ec5d170582ba10ccba2106f2fa80b685d9698ef039"
+    },
+    {
+      "task_id": "verify-36push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Guard directory fsync; 985 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144023.993774,
+      "timestamp_str": "2026-11-08 16:20:23",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-36push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-36push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144024.1989133,
+      "timestamp_str": "2026-11-08 16:20:24",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 39 pushes: resolve a local includeIf hooksPath through git config",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144194.8714838,
+      "timestamp_str": "2026-11-08 16:23:14",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The file parser ignores [includeIf] sections, so a core.hooksPath set by a conditional include is missed and the guard installs in .git/hooks instead of where git looks.",
+        "benefits": "A local conditional include is resolved by Git's own config; the parser remains the no-subprocess default when no includeIf is present.",
+        "risks": "contract: publish guard config discovery; dependency: git for conditional configs; concurrency: none; state: git_guard.py, tests, ADR, map",
+        "mitigation": "failing-first includeIf test with a mocked config reader, targeted guard tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "febbd25e9dac7fff909df864a6d0571d13c73c11539ebbca34ea5d14d979388d"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Local includeIf hooksPath resolved via git config; 986 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144329.7323244,
+      "timestamp_str": "2026-11-08 16:25:29",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-39push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-39push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144330.0540547,
+      "timestamp_str": "2026-11-08 16:25:30",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 42 pushes: recognize archive banners case-insensitively",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144521.9667256,
+      "timestamp_str": "2026-11-08 16:28:41",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "update_readme_for_archive and extract_readme_description match only the exact title-case banner; a legacy or hand-edited lowercase banner is treated as the description and a re-archive adds a second banner.",
+        "benefits": "One banner is recognized in any case, the original description survives a re-archive, and the GitHub description is not the archive reason.",
+        "risks": "contract: archive README boundary; dependency: stdlib re; concurrency: none; state: project_archive.py, project_publish.py, tests, ADR, map",
+        "mitigation": "failing-first lowercase-banner test, existing archive tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "cb918a9d509200172edb9ed936b2a5f97901df571d33e1283506cc4c9c32224d"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Archive banners recognized case-insensitively; 987 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144655.0967095,
+      "timestamp_str": "2026-11-08 16:30:55",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-42push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144655.6732786,
+      "timestamp_str": "2026-11-08 16:30:55",
+      "agent": "opencode:goal"
+    },
+    {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 44",
       "phase_num": 3,
-      "description": "Reforge stage 44: window 132, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 44: window 132, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794144799.185895,
@@ -251,6 +362,45 @@
       "timestamp": 1794144844.4666967,
       "timestamp_str": "2026-11-08 16:34:04",
       "agent": "opencode"
+    },
+    {
+      "task_id": "verify-45push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 45 pushes: refuse any commit that changes a projects/ path",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144904.113062,
+      "timestamp_str": "2026-11-08 16:35:04",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The foundry deletion (986f39c) and its revert (aa165a0) passed the HEAD-only pin because the net tree was clean; a future commit can add, delete or modify tracked project files until a later revert hides it.",
+        "benefits": "Every verified commit is checked for projects/ changes, closing the destructive-commit class at commit time.",
+        "risks": "contract: commit verification; dependency: git; concurrency: none; state: verify_commit.py, tests, ADR, map",
+        "mitigation": "failing-first project-path test, helper and verify_commit integration tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "21c5cdfeb5036d6a877b03497e38ab552deeb6d7d66298cbe9f6b563650642a6"
+    },
+    {
+      "task_id": "verify-45push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Commit-time projects/ boundary; 989 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794145036.3561335,
+      "timestamp_str": "2026-11-08 16:37:16",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-45push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-45push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794145037.5656433,
+      "timestamp_str": "2026-11-08 16:37:17",
+      "agent": "opencode:goal"
     }
   ]
 }

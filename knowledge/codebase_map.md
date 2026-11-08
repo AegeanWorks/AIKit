@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
-- **Total Classes**: `163`
-- **Total Top-Level Functions**: `1008`
-- **Total Class Methods**: `1241`
-- **Total Source Lines**: `46555`
+- **Total Classes**: `164`
+- **Total Top-Level Functions**: `1009`
+- **Total Class Methods**: `1243`
+- **Total Source Lines**: `46603`
 
 ---
 
@@ -1672,7 +1672,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `732` lines (`35256` bytes)
+**Size**: `748` lines (`36119` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1687,6 +1687,7 @@
 - `def scope_errors(declaration, files, added_lines)` - *Scope failures for one declaration against changed files and diff size.*
 - `def _numstat_total(output)` - *Added plus deleted lines across a `git diff --numstat` output.*
 - `def commit_files_and_lines(ref, repo, run)` - *Changed files and changed lines for one commit.*
+- `def project_path_violations(paths)` - *Changed paths AIKit must never track: a project owns its own repository.*
 - `def proof_command_from_declaration(declaration, *, worktree, parent, script)` - *Build the proof-gate command from a parsed `.aikit/proof.json` object.*
 - `def scope_step(worktree, ref, repo, run)` - *Scope verdict for a commit carrying `.aikit/proof.json`; None when absent.*
 - `def proof_gate_command(worktree, ref, run)` - *The declared proof command for a commit, or None when no declaration exists.*
@@ -1898,7 +1899,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15225` lines (`828651` bytes)
+**Size**: `15257` lines (`830039` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2594,6 +2595,9 @@
   - Method `.test_quorum_counts_passes_but_never_outvotes_a_fail()`
   - Method `.test_sealed_attestation_is_decided_by_envelope_verification()`
   - Method `.test_verify_commit_accepts_a_policy_and_keeps_default_verdicts()`
+- `class TestVerifyCommitProjectBoundary`
+  - Method `.test_project_path_violations_cover_add_delete_and_modify()`
+  - Method `.test_verify_commit_fails_for_a_project_path_change()`
 - `class TestProofCorpus` - *IDEA-1156: receipts file under content witness keys; replay compares verdicts.*
   - Method `._receipt(**overrides)`
   - Method `.test_witness_key_is_stable_and_content_bound()`

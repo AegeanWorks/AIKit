@@ -8793,6 +8793,38 @@ class TestEvidencePolicy(unittest.TestCase):
         self.assertIn("unknown policy", "\n".join(report))
 
 
+class TestVerifyCommitProjectBoundary(unittest.TestCase):
+    def test_project_path_violations_cover_add_delete_and_modify(self):
+        from scripts.verify_commit import project_path_violations
+
+        self.assertEqual(
+            project_path_violations(["README.md", "projects/foundry/a.py", "projects"]),
+            ["projects/foundry/a.py", "projects"],
+        )
+
+    def test_verify_commit_fails_for_a_project_path_change(self):
+        from scripts import verify_commit as verify
+
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "rev-parse --short" in joined:
+                return 0, "abc1234"
+            if "rev-parse" in joined:
+                return 0, "9999head"
+            return 0, "ok"
+
+        with mock.patch.object(
+                verify, "commit_files_and_lines",
+                return_value=(["projects/foundry/a.py"], 1)), \
+             mock.patch.object(verify, "gate_commands", return_value=[]), \
+             mock.patch.object(verify, "proof_gate_command", return_value=None), \
+             mock.patch.object(verify, "scope_step", return_value=None), \
+             mock.patch.object(verify, "shrink_warnings", return_value=[]):
+            code, report = verify.verify_commit(repo=Path("/repo"), runner=run)
+        self.assertEqual(code, 1)
+        self.assertIn("project-files", "\n".join(report))
+
+
 class TestProofCorpus(unittest.TestCase):
     """IDEA-1156: receipts file under content witness keys; replay compares verdicts."""
 

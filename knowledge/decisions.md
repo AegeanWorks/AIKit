@@ -3794,3 +3794,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Match the banner case-insensitively in both places, and treat any recognized banner line as proof that the README is already archived.
 - **Consequences**: A re-archive leaves one banner and the original description intact; the GitHub description is not the archive reason. The unit tier pins a lower-case banner.
 - **Cross-principle check**: PRINCIPLE-000: no conflict because the documented archive marker becomes robust rather than ambiguous; PRINCIPLE-014: no conflict because the new test fails on the previous case-sensitive checks and none is weakened.
+
+### ADR-373: A commit may not change projects/ paths
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Commit `986f39c` deleted the tracked `projects/foundry` tree under a mislabeled UI fix, and `aa165a0` reverted it. The existing HEAD-only pin passed because the net tree was clean; a future commit could add, delete or modify tracked project files until a later revert hid it.
+- **Decision**: `verify_commit` lists the commit's changed files and fails any path equal to `projects` or under `projects/` before running the gates. The check covers both committed and staged verification.
+- **Consequences**: A project file cannot enter, leave or change through a verified AIKit commit; legitimate project history lives in its own repository. The helper is unit-tested and the boundary has a dedicated verify_commit failure test.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because each project keeps its own repository and knowledge; PRINCIPLE-018: no conflict because the commit gate only adds a pre-upload boundary; PRINCIPLE-014: no conflict because the helper and integration tests fail without the check and none is weakened.

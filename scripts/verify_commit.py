@@ -290,6 +290,11 @@ def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str]
     return ([line for line in names.splitlines() if line.strip()] if code == 0 else [], 0)
 
 
+def project_path_violations(paths: List[str]) -> List[str]:
+    """Changed paths AIKit must never track: a project owns its own repository."""
+    return [path for path in paths if path == "projects" or path.startswith("projects/")]
+
+
 def proof_command_from_declaration(
     declaration: object, *, worktree: Path, parent: str, script: Path
 ) -> List[str]:
@@ -570,6 +575,17 @@ def verify_commit(ref: str = "HEAD", repo: Path = ROOT_DIR,
         worktree_added = True
         failures = []
         steps: List[Tuple[str, bool, str]] = []
+        changed, _ = commit_files_and_lines(ref, repo, run)
+        project_paths = project_path_violations(changed)
+        if project_paths:
+            report.append("[FAIL] project-files")
+            report += [f"       {path}" for path in project_paths[:FAILURE_TAIL_LINES]]
+            report.append("       AIKit tracks no project files; each project is its own repository.")
+            failures.append("project-files")
+            steps.append(("project-files", False, ", ".join(project_paths[:5])))
+        else:
+            report.append("[PASS] project-files")
+            steps.append(("project-files", True, ""))
         for name, argv, timeout in gate_commands(secret_range):
             # An injected runner declares two arguments, so only the real one receives the bound.
             code, output = (run_command(argv, worktree, timeout) if runner is None
