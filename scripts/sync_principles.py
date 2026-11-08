@@ -686,22 +686,45 @@ def changed_principles(old_text: str, new_text: str) -> List[str]:
     return changed
 
 
+def _is_clause_boundary(combined: str, index: int) -> bool:
+    """Whether a labeled principle at ``index`` starts a new reasoned clause.
+
+    A comma-separated list of bare IDs shares the verdict that follows its last
+    ID, so a comma alone does not cut. A comma after a completed clause
+    (``...), PRINCIPLE-...``) does.
+    """
+    prefix = combined[:index].rstrip()
+    if not prefix:
+        return True
+    if prefix[-1] in ".;)":
+        return True
+    if prefix[-1] == ",":
+        before_comma = prefix[:-1].rstrip()
+        return bool(before_comma) and before_comma[-1] in ".;)"
+    return False
+
+
 def _clause_after(combined: str, pid: str, window: int = 300) -> str:
     """One cited ID's clause, cut before the next labeled principle.
 
     A fixed window let a later clause's evidence satisfy an earlier bare
-    ``(no conflict)``. The boundary is the next ``PRINCIPLE-NNN:`` label, so
-    each ID is judged on its own text.
+    ``(no conflict)``. The boundary is the next label, whether it uses ``:``
+    or ``(`` and whether or not it carries an ``R<n>`` reference, so each ID
+    is judged on its own text. A bare comma list keeps its shared verdict.
     """
-    match = re.search(rf"{re.escape(pid)}(?=\s*[:(])", combined)
+    label = r"PRINCIPLE-\d{3}(?:\s+R\d+)?\s*[:(]"
+    match = re.search(rf"{re.escape(pid)}(?:\s+R\d+)?\s*[:(]", combined)
     if match is None:
         match = re.search(re.escape(pid), combined)
     if match is None:
         return ""
-    rest = combined[match.end():]
-    boundary = re.search(r"PRINCIPLE-\d{3}\s*:", rest)
-    end = match.end() + (boundary.start() if boundary else window)
-    return combined[match.start():min(end, match.start() + window)]
+    end = match.start() + window
+    for boundary in re.finditer(label, combined[match.end():]):
+        index = match.end() + boundary.start()
+        if _is_clause_boundary(combined, index):
+            end = min(end, index)
+            break
+    return combined[match.start():end]
 
 
 def _needs_reasoning(clause: str) -> bool:

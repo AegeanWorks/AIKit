@@ -2097,6 +2097,30 @@ class TestPrinciple000Unambiguity(unittest.TestCase):
         self.assertEqual(clause.strip(), "PRINCIPLE-002 (no conflict).")
         self.assertFalse(_needs_reasoning(clause))
 
+    def test_cross_check_reason_cuts_every_labeled_clause(self):
+        # The accepted label forms include `PRINCIPLE-NNN (` and an R-number
+        # before it; neither may let a bare clause borrow the next verdict.
+        evidence = "no conflict because gate `scripts/sync_principles.py --check` passes R3."
+        for next_clause in (f"PRINCIPLE-003 ({evidence})",
+                            f"PRINCIPLE-003 R3 ({evidence})"):
+            with self.subTest(next_clause=next_clause):
+                combined = f"PRINCIPLE-002 (no conflict). {next_clause}"
+                clause = _clause_after(combined, "PRINCIPLE-002")
+                self.assertEqual(clause.strip(), "PRINCIPLE-002 (no conflict).")
+                self.assertFalse(_needs_reasoning(clause))
+        # Comma-separated clauses with their own parentheses are separate too.
+        combined = ("PRINCIPLE-002 (no conflict), "
+                    f"PRINCIPLE-003 ({evidence})")
+        self.assertFalse(_needs_reasoning(_clause_after(combined, "PRINCIPLE-002")))
+
+    def test_cross_check_group_verdict_covers_a_bare_id_list(self):
+        # A shared verdict after a bare list belongs to every listed ID.
+        combined = ("PRINCIPLE-009, PRINCIPLE-012, PRINCIPLE-013, PRINCIPLE-019 "
+                    "(tier membership unchanged; no conflict because gate "
+                    "`scripts/sync_principles.py --check` passes R3).")
+        clause = _clause_after(combined, "PRINCIPLE-009")
+        self.assertTrue(_needs_reasoning(clause), clause)
+
     def test_capsule_does_not_license_skipping_procedure(self):
         # Red-green pin: "code quality primacy over procedural formalism" read, alone in Tier 1,
         # as permission to skip checkpoints and gates (contradicting PRINCIPLE-002 R5).
@@ -9215,7 +9239,13 @@ class TestProjectPublish(unittest.TestCase):
         def run(argv, cwd):
             self.calls.append(argv)
             for key in order:
-                if key in argv or any(key in str(a) for a in argv):
+                if key == "check_secrets.py":
+                    if any(Path(str(arg)).name == key for arg in argv):
+                        return defaults[key]
+                elif key == "push":
+                    if "push" in argv or "--push" in argv:
+                        return defaults[key]
+                elif key in argv:
                     return defaults[key]
             return 0, ""
         return run
@@ -9292,6 +9322,16 @@ class TestProjectPublish(unittest.TestCase):
                 self.assertEqual(code, 1, report)
                 self.assertIn("Fix:", report)
                 self.assertEqual(self.made("create") + self.made("push"), [])
+
+    def test_secret_refusal_is_not_masked_by_a_push_named_workspace(self):
+        # The fake must match the secret-scan command, not the workspace path:
+        # a path containing "push" must not answer the scan with the push reply.
+        code, report = publish_project(
+            Path("/p/push-app"), "app",
+            runner=self.runner(**{"check_secrets.py": (1, "[FAIL] 1 potential secret")}))
+        self.assertEqual(code, 1, report)
+        self.assertIn("secret scan", report)
+        self.assertEqual(self.made("create") + self.made("push"), [])
 
     def test_uncommitted_work_is_named_in_the_report(self):
         code, report = publish_project(Path("/p/app"), "app", runner=self.runner(status=(0, " M app.py")))

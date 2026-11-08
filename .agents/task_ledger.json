@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-19push-followup",
-    "last_phase": "implementation",
+    "task_id": "verify-6push-v2",
+    "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794114479.190646,
+    "updated_at": 1794127964.9865716,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794114995.5176485
+    "completed_at": 1794127965.4288862
   },
   "checkpoints": [
-    {
-      "task_id": "verify-6push",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/3] Gated archive/push and negation-aware discovery; targeted tests, read-only gates and dogfood passed; skipped timing budgets (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794109960.3852828,
-      "timestamp_str": "2026-11-08 06:52:40",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-6push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-6push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794110831.338295,
-      "timestamp_str": "2026-11-08 07:07:11",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-9push",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Review the last 9 pushes: pin the no-project-files boundary after the no-op destructive revert",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794110831.5731544,
-      "timestamp_str": "2026-11-08 07:07:11",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The 9-push window contains a mislabeled commit that deleted tracked projects/foundry and its full revert; .gitignore alone cannot untrack files already in the index.",
-        "benefits": "A commit that tracks or deletes project content now fails the integration tier; independent project repositories stay independent.",
-        "risks": "contract: integration boundary test; dependency: git; concurrency: none; state: tests, decisions, code map",
-        "mitigation": "failing-first-style boundary test, read-only gates, verify_commit before push"
-      },
-      "plan_digest": "d502ff6b350f81f9d89ab9b4ac1d537348452ba48fba252e26f5b0c5bfcd622d"
-    },
     {
       "task_id": "verify-9push",
       "phase": "implementation",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794114995.5176504,
       "timestamp_str": "2026-11-08 08:16:35",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/3] Review the last 6 pushes: cut every labeled principle clause, not only colon labels",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794126185.5536425,
+      "timestamp_str": "2026-11-08 11:23:05",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The per-clause fix still only cuts at PRINCIPLE-NNN: labels, while the same validator accepts and the ADR documents PRINCIPLE-NNN (...); a bare clause can borrow the next parenthesized clause's evidence.",
+        "benefits": "A bare first clause fails even when the next clause is parenthesized or carries an R-number label; grouped bare-ID verdicts keep working.",
+        "risks": "contract: cross-principle reasoning check; dependency: stdlib re; concurrency: none; state: sync_principles.py, tests, ADR, codebase map",
+        "mitigation": "failing-first boundary tests, targeted unit run, knowledge and read-only gates, verify_commit before push"
+      },
+      "plan_digest": "6c51e3dfe31762f004ca7a376d2ef31aef0534c3f2bb23636df81bf962db6277"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/3] Clause boundary + publish-fake hardening; full 1047-test suite, read-only gates and dogfood 5/5 passed; timing budgets skipped (host load, 39ms/2129ms)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794127964.9865716,
+      "timestamp_str": "2026-11-08 11:52:44",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-6push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-6push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794127965.4288886,
+      "timestamp_str": "2026-11-08 11:52:45",
       "agent": "opencode:goal"
     }
   ]

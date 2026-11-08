@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
-- **Total Top-Level Functions**: `1003`
-- **Total Class Methods**: `1207`
-- **Total Source Lines**: `45805`
+- **Total Top-Level Functions**: `1004`
+- **Total Class Methods**: `1210`
+- **Total Source Lines**: `45868`
 
 ---
 
@@ -1524,7 +1524,7 @@
 ### [`scripts/sync_principles.py`](scripts/sync_principles.py)
 > *Principles Auto-Sync Tool (PRINCIPLE-017)*
 
-**Size**: `870` lines (`43611` bytes)
+**Size**: `893` lines (`44456` bytes)
 
 **Functions:**
 - `def is_generated_target(text)` - *True when `text` carries this tool's generated-file header (current or legacy).*
@@ -1548,6 +1548,7 @@
 - `def _adr_blocks(decisions)` - *ADR ID -> its text, for every `### ADR-NNN:` heading.*
 - `def checklist_sections(ssot_text)` - *Extract Pre-Flight and Post-Flight checklist text if present.*
 - `def changed_principles(old_text, new_text)` - *Principles whose `### PRINCIPLE-NNN:` section or governed checklists differ (PRINCIPLE-000 R3).*
+- `def _is_clause_boundary(combined, index)` - *Whether a labeled principle at ``index`` starts a new reasoned clause.*
 - `def _clause_after(combined, pid, window)` - *One cited ID's clause, cut before the next labeled principle.*
 - `def _needs_reasoning(clause)` - *Whether one cited-ID clause states a falsifiable reason, not just a name.*
 - `def cross_check_errors(old_text, new_text, old_decisions, new_decisions)` - *PRINCIPLE-000 R3 made decidable: every principle whose section changed since the last commit*
@@ -1893,7 +1894,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14706` lines (`800944` bytes)
+**Size**: `14746` lines (`803301` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2065,6 +2066,8 @@
   - Method `.test_citing_set_is_computed_from_sections_only()`
   - Method `.test_r3_completeness_is_decided_by_the_gate()`
   - Method `.test_cross_check_reason_is_per_id()`
+  - Method `.test_cross_check_reason_cuts_every_labeled_clause()`
+  - Method `.test_cross_check_group_verdict_covers_a_bare_id_list()`
   - Method `.test_capsule_does_not_license_skipping_procedure()`
   - Method `.test_rule_changes_carry_a_cross_principle_check()`
 - `class TestPrinciple006Unambiguity` - *PRINCIPLE-006 must say the same thing to every model: when to commit, what to do with failing work.*
@@ -2642,6 +2645,7 @@
   - Method `.test_an_existing_upstream_scans_only_the_commits_it_pushes()`
   - Method `.test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding()`
   - Method `.test_refusals_upload_nothing()`
+  - Method `.test_secret_refusal_is_not_masked_by_a_push_named_workspace()`
   - Method `.test_uncommitted_work_is_named_in_the_report()`
   - Method `.test_extract_readme_description_finds_first_paragraph_and_truncates()`
   - Method `.test_extract_readme_description_survives_a_byte_order_mark()`
