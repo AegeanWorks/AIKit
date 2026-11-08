@@ -9628,6 +9628,14 @@ class TestProjectPublish(unittest.TestCase):
         self.assertIn("publish guard", report)
         self.assertEqual(self.made("create") + self.made("push"), [])
 
+    def test_publish_reports_an_unsafe_project_name(self):
+        with mock.patch("scripts.project_publish.install_pre_push_hook",
+                        side_effect=ValueError("project name is not safe for a hook")):
+            code, report = publish_project(Path("/p/app"), "bad/name", runner=self.runner())
+        self.assertEqual(code, 1, report)
+        self.assertIn("Fix: use a name without path separators", report)
+        self.assertEqual(self.made("create") + self.made("push"), [])
+
     def test_cmd_publish_reports_a_guard_install_failure(self):
         import argparse
         import io
@@ -9640,6 +9648,22 @@ class TestProjectPublish(unittest.TestCase):
              contextlib.redirect_stderr(io.StringIO()):
             code = aikit_cli.cmd_publish(args)
         self.assertEqual(code, 1)
+
+    def test_cmd_publish_reports_an_unsafe_project_name(self):
+        import argparse
+        import io
+        from scripts import aikit_cli
+        project = mock.Mock(path=Path("/p/app"), name="bad/name")
+        args = argparse.Namespace(name="bad/name", workspace=Path("."), public=False,
+                                  license="keep")
+        stderr = io.StringIO()
+        with mock.patch.object(aikit_cli, "present_project", return_value=project), \
+             mock.patch.object(aikit_cli, "install_pre_push_hook",
+                               side_effect=ValueError("project name is not safe for a hook")), \
+             contextlib.redirect_stderr(stderr):
+            code = aikit_cli.cmd_publish(args)
+        self.assertEqual(code, 1)
+        self.assertIn("use a name without path separators", stderr.getvalue())
 
     def test_auto_push_reports_a_guard_install_failure(self):
         with mock.patch("scripts.project_publish.install_pre_push_hook",

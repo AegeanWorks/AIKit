@@ -14,35 +14,6 @@
   "checkpoints": [
     {
       "task_id": "verify-32push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Keep the unique hygiene fixes: prune ignored roots and accept multi-word allow reasons",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794139446.3244774,
-      "timestamp_str": "2026-11-08 15:04:06",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The other agent already fixed the binary-open and env-store false positives; the remaining unique gaps are that rglob walks ignored scratch/shots trees and the allow grammar rejects a reason beginning with a short article.",
-        "benefits": "The root scan is bounded, and deliberate exceptions with ordinary prose reasons are honored.",
-        "risks": "contract: hygiene walk and allow grammar; dependency: update_knowledge_base helper; concurrency: none; state: check_project_hygiene.py, tests, ADRs, map",
-        "mitigation": "failing-first tests, root scan, unit tier, reachability and secret gates"
-      },
-      "plan_digest": "2b8add83f658616976cc5e7b1a33a07826d6672bdd988dd8a7a12f62554d66a7"
-    },
-    {
-      "task_id": "verify-32push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Ignored-root pruning + allow grammar; 972 unit tests, clean root scan, reachability, secrets and map pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794139566.716661,
-      "timestamp_str": "2026-11-08 15:06:06",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-32push-v2",
       "phase": "completed",
       "phase_num": 5,
       "description": "Task 'verify-32push-v2' completed successfully.",
@@ -260,6 +231,32 @@
       "status": "in_progress",
       "timestamp": 1794143327.2508304,
       "timestamp_str": "2026-11-08 16:08:47",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 42",
+      "phase_num": 3,
+      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit, 2 binary not analysed (regression=1)",
+      "files_affected": [
+        "scripts/project_artwork.py",
+        "assets/logo.png",
+        "assets/social-preview.png"
+      ],
+      "status": "in_progress",
+      "timestamp": 1794143552.2325287,
+      "timestamp_str": "2026-11-08 16:12:32",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 42",
+      "phase_num": 3,
+      "description": "Reforge stage 42: stage 42 host review reviewed; run active; coverage 88/88",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794143610.349334,
+      "timestamp_str": "2026-11-08 16:13:30",
       "agent": "opencode"
     }
   ]
