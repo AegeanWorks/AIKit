@@ -282,12 +282,14 @@ def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str]
     if code == 0 and parent.strip():
         base = parent.strip().splitlines()[0].strip()
         code, names = run(["git", "diff-tree", "--no-commit-id", "--name-only",
-                           "-r", ref], repo)
-        files = [line for line in names.splitlines() if line.strip()] if code == 0 else []
+                           "-r", "-m", ref], repo)
+        files = (sorted({line for line in names.splitlines() if line.strip()})
+                 if code == 0 else [])
         code, stat = run(["git", "diff", "--numstat", f"{base}", ref], repo)
         return files, _numstat_total(stat) if code == 0 else 0
     code, names = run(["git", "ls-tree", "-r", "--name-only", ref], repo)
-    return ([line for line in names.splitlines() if line.strip()] if code == 0 else [], 0)
+    return (sorted({line for line in names.splitlines() if line.strip()})
+            if code == 0 else [], 0)
 
 
 def project_path_violations(paths: List[str]) -> List[str]:

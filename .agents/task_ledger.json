@@ -1,197 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-45push-v2",
+    "task_id": "verify-48push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794145036.3561335,
+    "updated_at": 1794145470.361175,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794145037.5656412
+    "completed_at": 1794145470.765279
   },
   "checkpoints": [
-    {
-      "task_id": "verify-24push-v3",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Windows system-config precedence/fallback tests; 977 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142015.3770325,
-      "timestamp_str": "2026-11-08 15:46:55",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-24push-v3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-24push-v3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794142015.6752713,
-      "timestamp_str": "2026-11-08 15:46:55",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 27 pushes: report a publish-guard install failure instead of raising",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142365.2544463,
-      "timestamp_str": "2026-11-08 15:52:45",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "auto_push_project calls install_pre_push_hook without a handler; a hook-path permission or disk error raises OSError out of check --push/push/archive, breaking the Why/Fix contract and hiding the cause.",
-        "benefits": "A failed guard install returns a clear delivery triad and nothing is pushed.",
-        "risks": "contract: sanctioned push error path; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, map",
-        "mitigation": "failing-first patched-install test, targeted publish tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "cff1cc606e692de646ede3939473e51779321e597e16dc0176d72dbff439c712"
-    },
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Guard-install failures return a delivery triad; 978 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142547.828488,
-      "timestamp_str": "2026-11-08 15:55:47",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-27push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794142548.1374557,
-      "timestamp_str": "2026-11-08 15:55:48",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 40",
-      "phase_num": 3,
-      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143016.4698665,
-      "timestamp_str": "2026-11-08 16:03:36",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 40",
-      "phase_num": 3,
-      "description": "Reforge stage 40: stage 40 host review reviewed; run active; coverage 22/22",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143045.4243999,
-      "timestamp_str": "2026-11-08 16:04:05",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 41",
-      "phase_num": 3,
-      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143251.773606,
-      "timestamp_str": "2026-11-08 16:07:31",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 41",
-      "phase_num": 3,
-      "description": "Reforge stage 41: stage 41 host review reviewed; run active; coverage 6/6",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143298.9964995,
-      "timestamp_str": "2026-11-08 16:08:18",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 40",
-      "phase_num": 3,
-      "description": "Reforge stage 40: stage 40 host review reviewed; run active; coverage 22/22",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143327.2508304,
-      "timestamp_str": "2026-11-08 16:08:47",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 42",
-      "phase_num": 3,
-      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit, 2 binary not analysed (regression=1)",
-      "files_affected": [
-        "scripts/project_artwork.py",
-        "assets/logo.png",
-        "assets/social-preview.png"
-      ],
-      "status": "in_progress",
-      "timestamp": 1794143552.2325287,
-      "timestamp_str": "2026-11-08 16:12:32",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 42",
-      "phase_num": 3,
-      "description": "Reforge stage 42: stage 42 host review reviewed; run active; coverage 88/88",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143610.349334,
-      "timestamp_str": "2026-11-08 16:13:30",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "verify-33push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Reforge restore atomic; 982 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143671.2866435,
-      "timestamp_str": "2026-11-08 16:14:31",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-33push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-33push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794143671.633393,
-      "timestamp_str": "2026-11-08 16:14:31",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-33push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 33 pushes: make reforge restore atomic",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143692.886543,
-      "timestamp_str": "2026-11-08 16:14:52",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "_restore wrote snapshot bytes directly; a disk error or crash could leave a partially restored file.",
-        "benefits": "Restore uses temp+fsync+replace and reports a failed restore without leaving partial bytes.",
-        "risks": "contract: reforge rollback; dependency: scripts.disruption_recovery; concurrency: none; state: reforge/pipeline.py, tests, ADR, map",
-        "mitigation": "failing-first mocked-writer test, existing failure test, unit tier, root scan and gates"
-      },
-      "plan_digest": "4bd8ecebf35b2ffd8322137a560f500f044894d263c66b3c2d9e7dbf65dd7d64"
-    },
     {
       "task_id": "verify-33push-v2",
       "phase": "completed",
@@ -206,7 +26,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 43",
       "phase_num": 3,
-      "description": "Reforge stage 43: window 129, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 43: window 129, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143847.6350808,
@@ -345,7 +165,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 44",
       "phase_num": 3,
-      "description": "Reforge stage 44: window 132, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 44: window 132, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794144799.185895,
@@ -400,6 +220,45 @@
       "status": "completed",
       "timestamp": 1794145037.5656433,
       "timestamp_str": "2026-11-08 16:37:17",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-48push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 48 pushes: include merge diffs and dedupe commit file paths",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794145319.3430016,
+      "timestamp_str": "2026-11-08 16:41:59",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "verify_commit's project boundary uses diff-tree without -m, so a merge that introduces projects/ files can evade it; duplicate paths also inflate the file/line scope.",
+        "benefits": "Changed-file collection sees every parent's merge diff and returns unique sorted paths, so the projects/ boundary and scope budgets are accurate.",
+        "risks": "contract: commit verification and scope; dependency: git; concurrency: none; state: verify_commit.py, tests, ADR, map",
+        "mitigation": "failing-first merge/dedup test, existing verify_commit tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "8532e8234b4e1a7f492495e0d171eb5b87f2d122ad8d9d6f7a4101a32b2f4dc4"
+    },
+    {
+      "task_id": "verify-48push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Merge diffs included and commit paths deduped; 993 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794145470.361175,
+      "timestamp_str": "2026-11-08 16:44:30",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-48push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-48push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794145470.7652812,
+      "timestamp_str": "2026-11-08 16:44:30",
       "agent": "opencode:goal"
     }
   ]

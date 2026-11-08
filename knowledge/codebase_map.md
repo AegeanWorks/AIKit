@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1009`
-- **Total Class Methods**: `1243`
-- **Total Source Lines**: `46603`
+- **Total Class Methods**: `1244`
+- **Total Source Lines**: `46626`
 
 ---
 
@@ -1672,7 +1672,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `748` lines (`36119` bytes)
+**Size**: `750` lines (`36172` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1899,7 +1899,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15257` lines (`830039` bytes)
+**Size**: `15278` lines (`830816` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2597,6 +2597,7 @@
   - Method `.test_verify_commit_accepts_a_policy_and_keeps_default_verdicts()`
 - `class TestVerifyCommitProjectBoundary`
   - Method `.test_project_path_violations_cover_add_delete_and_modify()`
+  - Method `.test_commit_files_include_merge_diffs_and_dedupe()`
   - Method `.test_verify_commit_fails_for_a_project_path_change()`
 - `class TestProofCorpus` - *IDEA-1156: receipts file under content witness keys; replay compares verdicts.*
   - Method `._receipt(**overrides)`

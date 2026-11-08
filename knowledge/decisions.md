@@ -3802,3 +3802,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: `verify_commit` lists the commit's changed files and fails any path equal to `projects` or under `projects/` before running the gates. The check covers both committed and staged verification.
 - **Consequences**: A project file cannot enter, leave or change through a verified AIKit commit; legitimate project history lives in its own repository. The helper is unit-tested and the boundary has a dedicated verify_commit failure test.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because each project keeps its own repository and knowledge; PRINCIPLE-018: no conflict because the commit gate only adds a pre-upload boundary; PRINCIPLE-014: no conflict because the helper and integration tests fail without the check and none is weakened.
+
+### ADR-374: Commit file collection includes merge diffs and dedupes
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `commit_files_and_lines` used `diff-tree` without `-m`, so a merge introducing `projects/` files could evade the ADR-373 boundary; duplicate paths could also inflate the file and line scope.
+- **Decision**: Ask `diff-tree` for merge diffs and return sorted unique paths for both parent and root commits.
+- **Consequences**: Every parent's merge diff is inspected by the project boundary and scope budget; duplicate path entries no longer count twice. The unit tier pins `-m` and deduplication.
+- **Cross-principle check**: PRINCIPLE-018: no conflict because commit verification becomes stricter; PRINCIPLE-014: no conflict because the new test fails on the previous collection and none is weakened.

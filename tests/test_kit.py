@@ -8802,6 +8802,27 @@ class TestVerifyCommitProjectBoundary(unittest.TestCase):
             ["projects/foundry/a.py", "projects"],
         )
 
+    def test_commit_files_include_merge_diffs_and_dedupe(self):
+        from scripts.verify_commit import commit_files_and_lines
+
+        calls = []
+
+        def run(argv, cwd):
+            joined = " ".join(str(a) for a in argv)
+            if "rev-parse" in joined:
+                return 0, "parent"
+            if "diff-tree" in joined:
+                calls.append(argv)
+                return 0, "projects/a.py\nprojects/a.py\nREADME.md\n"
+            if "diff --numstat" in joined:
+                return 0, "1\t1\tprojects/a.py\n"
+            return 0, ""
+
+        files, lines = commit_files_and_lines("HEAD", Path("/repo"), run)
+        self.assertIn("-m", calls[0])
+        self.assertEqual(files, ["README.md", "projects/a.py"])
+        self.assertEqual(lines, 2)
+
     def test_verify_commit_fails_for_a_project_path_change(self):
         from scripts import verify_commit as verify
 
