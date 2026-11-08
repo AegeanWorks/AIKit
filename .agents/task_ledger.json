@@ -14,46 +14,6 @@
   "checkpoints": [
     {
       "task_id": "verify-63push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 63 pushes: keep siblings when a negation points at an unignored directory",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794148099.5882065,
-      "timestamp_str": "2026-11-08 17:28:19",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "find_python_files treats every top-level directory named by a negation as a kept directory, so '!/pkg/keep.py' under the normal pkg/ drops pkg/mod.py from the code map even though git tracks it.",
-        "benefits": "The sibling filter applies only to directories the root .gitignore actually excludes; a normal directory keeps all of its Python files.",
-        "risks": "contract: Python discovery walk; dependency: stdlib; concurrency: none; state: update_knowledge_base.py, tests, ADR, map",
-        "mitigation": "failing-first discovery test, existing negation and wildcard tests, unit tier, root scan, reachability and secret gates"
-      },
-      "plan_digest": "67a8fc34e38b7f789d5fc16b5ae8b4a795b1c66e1b8b415f02d49ea473cec8ee"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 52",
-      "phase_num": 3,
-      "description": "Reforge stage 52: stage 52 host review reviewed; run active; coverage 9/9",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794148132.742572,
-      "timestamp_str": "2026-11-08 17:28:52",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "verify-63push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Negation scope fixed; 997 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794148264.6695652,
-      "timestamp_str": "2026-11-08 17:31:04",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-63push-v2",
       "phase": "completed",
       "phase_num": 5,
       "description": "Task 'verify-63push-v2' completed successfully.",
@@ -242,6 +202,39 @@
       "status": "in_progress",
       "timestamp": 1794149573.70567,
       "timestamp_str": "2026-11-08 17:52:53",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 59",
+      "phase_num": 3,
+      "description": "Reforge stage 59: window 177, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149580.8669214,
+      "timestamp_str": "2026-11-08 17:53:00",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 59",
+      "phase_num": 3,
+      "description": "Reforge stage 59: stage 59 host review reviewed; run active; coverage 19/19",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149635.7806196,
+      "timestamp_str": "2026-11-08 17:53:55",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 59",
+      "phase_num": 3,
+      "description": "Reforge stage 59: stage 59 host review reviewed; run active; coverage 19/19",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149658.0088902,
+      "timestamp_str": "2026-11-08 17:54:18",
       "agent": "opencode"
     }
   ]
