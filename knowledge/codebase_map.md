@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
-- **Total Top-Level Functions**: `1006`
+- **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1218`
-- **Total Source Lines**: `46099`
+- **Total Source Lines**: `46108`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1568` lines (`78915` bytes)
+**Size**: `1565` lines (`78803` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1077,7 +1077,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `565` lines (`29169` bytes)
+**Size**: `566` lines (`29226` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1384,13 +1384,14 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `389` lines (`16046` bytes)
+**Size**: `400` lines (`16161` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
 - `def _read_small(path, limit)`
 - `def _is_small(path, limit)` - *Size guard that survives a file vanishing between scan and check.*
 - `def _safe_rel(root, rel)` - *A compat screenshot path confined to the project tree, else None.*
+- `def _compat_ui_kind(root, kind, evidence)` - *Merge a compat UI contract into the detected kind, best effort.*
 - `def _package_dependencies(root)`
 - `def _python_dependency_text(root)`
 - `def _evidence(paths, root, limit)`

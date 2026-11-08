@@ -373,10 +373,11 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
             if ":" in cleaned and "/" not in cleaned.rsplit(":", 1)[-1]:
                 cleaned = cleaned.rsplit(":", 1)[-1]
             tail = cleaned.rsplit("/", 2)
-            if len(tail) >= 2 and tail[-1] and tail[-2]:
-                slug = f"{tail[-2]}/{tail[-1]}"
+            qualified = f"{tail[-2]}/{tail[-1]}" if len(tail) >= 2 and tail[-1] and tail[-2] else ""
         except (AttributeError, ValueError):
-            pass
+            qualified = ""
+        if qualified:
+            slug = qualified
     needs_github = bool(repo_url) and not offline
     if dirty and allow_dirty and needs_github:
         return 1, _triad(f"'{name}' has uncommitted changes; nothing was archived online.",

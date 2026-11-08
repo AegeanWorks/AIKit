@@ -915,17 +915,14 @@ def cmd_archive(args: argparse.Namespace) -> int:
             print(error_envelope(exc))
             return exc.exit_code
         raise
-    try:
-        if is_archived(project.path):
-            message = f"project '{project.name}' is already archived at {project.path}."
-            if getattr(args, "json", False):
-                print(json.dumps({"ok": True, "archived": True, "project": project.name,
-                                  "path": str(project.path), "note": message}, indent=2))
-                return 0
-            print(message)
+    if is_archived(project.path):
+        message = f"project '{project.name}' is already archived at {project.path}."
+        if getattr(args, "json", False):
+            print(json.dumps({"ok": True, "archived": True, "project": project.name,
+                              "path": str(project.path), "note": message}, indent=2))
             return 0
-    except (OSError, ValueError, KeyError, ProjectError):
-        pass
+        print(message)
+        return 0
     code, report = archive_project(
         project.path, project.name, reason=getattr(args, "reason", ""),
         workspace=args.workspace, to=getattr(args, "to", None),

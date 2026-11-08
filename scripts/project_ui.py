@@ -92,6 +92,43 @@ def _safe_rel(root: Path, rel: str) -> Optional[Path]:
     return root / candidate
 
 
+def _compat_ui_kind(root: Path, kind: str, evidence: List[Path]) -> Optional[str]:
+    """Merge a compat UI contract into the detected kind, best effort.
+
+    A compat.json with kind=ui proves a screenshotable surface even when the
+    project has no web markers. CLI/SERVICE are included because a sample with
+    main.py/app.py would otherwise settle as a service before the explicit
+    compat proof is consulted. Explicit compat screenshots merge even when the
+    kind already proves screenshots, so they are never dropped. A corrupt or
+    unreadable contract returns None and leaves the detected identity intact.
+    """
+    try:
+        compat_path = root / ".aikit" / "compat.json"
+        if not (compat_path.is_file() and _is_small(compat_path, 1_000_000)):
+            return None
+        compat = json.loads(compat_path.read_text(encoding="utf-8"))
+        if not (isinstance(compat, dict) and compat.get("kind") == "ui"
+                and compat.get("has_ui") is True):
+            return None
+        shots: Dict[str, object] = {}
+        raw_shots = compat.get("screenshots")
+        if isinstance(raw_shots, dict):
+            shots = raw_shots
+        shot_paths: List[Path] = []
+        for key in ("before", "after"):
+            rel = shots.get(key) if isinstance(shots, dict) else ""
+            safe = _safe_rel(root, rel) if isinstance(rel, str) else None
+            if safe is not None and safe.is_file():
+                shot_paths.append(safe)
+        if shot_paths or kind in (UI_LIBRARY, UI_CLI, UI_SERVICE):
+            evidence.append(compat_path)
+            evidence.extend(shot_paths)
+            return UI_WEB
+    except (OSError, ValueError):
+        return None
+    return None
+
+
 def _package_dependencies(root: Path) -> Dict[str, str]:
     package = root / "package.json"
     try:
@@ -207,35 +244,9 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         kind = UI_WEB if kind == UI_LIBRARY else kind
         if not evidence:
             evidence.append(config_path(root))
-    try:
-        compat_path = root / ".aikit" / "compat.json"
-        if compat_path.is_file() and _is_small(compat_path, 1_000_000):
-            compat = json.loads(compat_path.read_text(encoding="utf-8"))
-            if isinstance(compat, dict) and compat.get("kind") == "ui" and compat.get("has_ui") is True:
-                shots: Dict[str, object] = {}
-                raw_shots = compat.get("screenshots")
-                if isinstance(raw_shots, dict):
-                    shots = raw_shots
-                shot_paths: List[Path] = []
-                for key in ("before", "after"):
-                    rel = shots.get(key) if isinstance(shots, dict) else ""
-                    safe = _safe_rel(root, rel) if isinstance(rel, str) else None
-                    if safe is not None and safe.is_file():
-                        shot_paths.append(safe)
-                if shot_paths or kind in (UI_LIBRARY, UI_CLI, UI_SERVICE):
-                    # Compat UI samples (ADR-315) are Python with screenshots,
-                    # not web markers: a compat.json kind=ui contract proves a
-                    # screenshotable surface exists, so classify it as web.
-                    # CLI/SERVICE are included because a sample with
-                    # main.py/app.py would otherwise settle as a service
-                    # before the explicit compat proof is consulted. Explicit
-                    # compat screenshots merge even when the kind already
-                    # proves screenshots, so they are never dropped.
-                    kind = UI_WEB
-                    evidence.append(compat_path)
-                    evidence.extend(shot_paths)
-    except (OSError, ValueError):
-        pass
+    compat_kind = _compat_ui_kind(root, kind, evidence)
+    if compat_kind:
+        kind = compat_kind
     return {
         "has_ui": kind in UI_KINDS_WITH_SCREENSHOTS,
         "kind": kind,
