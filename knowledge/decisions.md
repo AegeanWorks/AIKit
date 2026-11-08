@@ -3738,3 +3738,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Add Windows-only tests asserting that the install-relative `hooksPath` wins when both define one, and that `%PROGRAMDATA%` supplies the value when the install file lacks the key.
 - **Consequences**: The precedence and fallback cannot silently reverse when the config reader changes. The tests run on the Windows CI leg and skip elsewhere.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because the tests use the same platform-guarded path model; PRINCIPLE-014: no conflict because the new assertions tighten coverage and none is weakened.
+
+### ADR-366: A guard-install failure returns the delivery triad
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `auto_push_project` called `install_pre_push_hook` without a handler. A hook-path permission or disk error raised `OSError` out of `check --push`, `push` and archive before any push, hiding the cause in a traceback instead of the required Why/Fix refusal.
+- **Decision**: Catch `OSError` and `ValueError` from the guard install and return a triad with the cause and a permission fix; nothing is pushed.
+- **Consequences**: A guard-install failure is a normal delivery refusal, and the raw-push block is never silently left uninstalled. The unit tier patches the installer to raise and asserts no push call.
+- **Cross-principle check**: PRINCIPLE-011: no conflict because the failure keeps the Why/Fix shape; PRINCIPLE-018: no conflict because the push is still never forced and no upload occurs; PRINCIPLE-014: no conflict because the new test fails on the previous uncaught path and no assertion is weakened.

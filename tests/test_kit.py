@@ -9610,6 +9610,17 @@ class TestProjectPublish(unittest.TestCase):
             self.assertEqual(code, 0, report)
             self.assertTrue(is_guard_installed(root))
 
+    def test_auto_push_reports_a_guard_install_failure(self):
+        with mock.patch("scripts.project_publish.install_pre_push_hook",
+                        side_effect=OSError("permission denied")):
+            code, report = auto_push_project(
+                Path("/p/app"), "app",
+                runner=self.runner(**{"get-url": (0, "https://github.com/me/app.git")}))
+        self.assertEqual(code, 1, report)
+        self.assertIn("Fix:", report)
+        self.assertIn("publish guard", report)
+        self.assertEqual(self.made("push"), [])
+
     def test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding(self):
         def runner(scan_code):
             def run(argv, cwd):

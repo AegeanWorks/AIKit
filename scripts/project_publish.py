@@ -222,7 +222,14 @@ def auto_push_project(project_root: Path, name: str, runner: Optional[Runner] = 
     run = runner or run_command
     # Every sanctioned push installs the guard first: a project attached before
     # the guard existed must not keep a raw-push path just because AIKit pushed it.
-    install_pre_push_hook(project_root, name)
+    try:
+        install_pre_push_hook(project_root, name)
+    except (OSError, ValueError) as exc:
+        return 1, _triad(
+            f"the publish guard could not be installed in '{name}': {exc}",
+            "a raw push would bypass AIKit's gates.",
+            "fix the hook path permissions, then retry.",
+        )
     url = get_project_repo_url(project_root, runner=run)
     if not url:
         # The push is asked for (`check --push`), so no remote is a failure, not "nothing to do":

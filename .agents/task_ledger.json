@@ -1,50 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-24push-v3",
+    "task_id": "verify-27push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794142015.3770325,
+    "updated_at": 1794142547.828488,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794142015.6752691
+    "completed_at": 1794142548.1374533
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 28",
-      "phase_num": 3,
-      "description": "Reforge stage 28: stage 28 host review reviewed; run active; coverage 53/53",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794137988.7539723,
-      "timestamp_str": "2026-11-08 14:39:48",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 29",
-      "phase_num": 3,
-      "description": "Reforge stage 29: window 87, 3 commit(s), 11 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138104.0250375,
-      "timestamp_str": "2026-11-08 14:41:44",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 29",
-      "phase_num": 3,
-      "description": "Reforge stage 29: stage 29 host review reviewed; run active; coverage 34/34",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138151.9318342,
-      "timestamp_str": "2026-11-08 14:42:31",
-      "agent": "opencode"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 30",
@@ -254,6 +221,45 @@
       "status": "completed",
       "timestamp": 1794142015.6752713,
       "timestamp_str": "2026-11-08 15:46:55",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-27push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 27 pushes: report a publish-guard install failure instead of raising",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794142365.2544463,
+      "timestamp_str": "2026-11-08 15:52:45",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "auto_push_project calls install_pre_push_hook without a handler; a hook-path permission or disk error raises OSError out of check --push/push/archive, breaking the Why/Fix contract and hiding the cause.",
+        "benefits": "A failed guard install returns a clear delivery triad and nothing is pushed.",
+        "risks": "contract: sanctioned push error path; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, map",
+        "mitigation": "failing-first patched-install test, targeted publish tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "cff1cc606e692de646ede3939473e51779321e597e16dc0176d72dbff439c712"
+    },
+    {
+      "task_id": "verify-27push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Guard-install failures return a delivery triad; 978 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794142547.828488,
+      "timestamp_str": "2026-11-08 15:55:47",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-27push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-27push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794142548.1374557,
+      "timestamp_str": "2026-11-08 15:55:48",
       "agent": "opencode:goal"
     }
   ]
