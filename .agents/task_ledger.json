@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 89",
-      "phase_num": 3,
-      "description": "Reforge stage 89: stage 89 host review reviewed; run active; coverage 13/13",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149900.994458,
-      "timestamp_str": "2026-11-08 17:58:20",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 90",
-      "phase_num": 3,
-      "description": "Reforge stage 90: window 270, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149905.511791,
-      "timestamp_str": "2026-11-08 17:58:25",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 90",
       "phase_num": 3,
       "description": "Reforge stage 90: stage 90 host review reviewed; run active; coverage 5/5",
@@ -236,6 +214,31 @@
       "status": "in_progress",
       "timestamp": 1794150098.270152,
       "timestamp_str": "2026-11-08 18:01:38",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 98",
+      "phase_num": 3,
+      "description": "Reforge stage 98: window 294, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit, 2 binary not analysed",
+      "files_affected": [
+        "assets/logo.jpg",
+        "assets/social-preview.png"
+      ],
+      "status": "in_progress",
+      "timestamp": 1794150103.2663002,
+      "timestamp_str": "2026-11-08 18:01:43",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 98",
+      "phase_num": 3,
+      "description": "Reforge stage 98: stage 98 host review reviewed; run active; coverage 13/13",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150106.3800588,
+      "timestamp_str": "2026-11-08 18:01:46",
       "agent": "opencode"
     }
   ]
