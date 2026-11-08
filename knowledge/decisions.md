@@ -3834,3 +3834,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Add tests that install `MyApp` and that `my app` raises `ValueError` without creating a hook.
 - **Consequences**: The catalog-cased form cannot regress to a rejection, and the unsafe-name boundary stays explicit. No production code changes.
 - **Cross-principle check**: PRINCIPLE-018: no conflict because the guard's write boundary is unchanged; PRINCIPLE-014: no conflict because the new assertions tighten coverage and none is weakened.
+
+### ADR-378: A blank archive override yields the bare marker
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `archive_github_description(original, override="")` produced `"[ARCHIVED] "` with a trailing space, while an empty original produced the bare `"[ARCHIVED]"`.
+- **Decision**: Give the override branch the same bare-marker case as the original branch.
+- **Consequences**: A blank description is exactly the marker, with no trailing whitespace. The unit tier pins the empty override and a lower-case existing prefix.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because the description remains bounded and portable; PRINCIPLE-014: no conflict because the new assertion fails on the previous branch and none is weakened.

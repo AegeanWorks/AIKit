@@ -10318,6 +10318,10 @@ class TestProjectArchive(unittest.TestCase):
                          "[ARCHIVED] A tool that does X.")
         self.assertEqual(archive_github_description("[ARCHIVED] old"),
                          "[ARCHIVED] old")
+        self.assertEqual(archive_github_description("[archived] old"),
+                         "[archived] old")
+        self.assertEqual(archive_github_description("A tool.", override=""),
+                         "[ARCHIVED]")
         long_desc = "[ARCHIVED] " + "x" * 400
         self.assertLessEqual(len(archive_github_description("x" * 400)), 350)
 

@@ -184,7 +184,7 @@ def archive_github_description(original: str, override: Optional[str] = None) ->
     if override is not None:
         text = override.strip()
         if not text.lower().startswith("[archived]"):
-            text = f"[ARCHIVED] {text}"
+            text = f"[ARCHIVED] {text}" if text else "[ARCHIVED]"
     else:
         text = original.strip()
         if not text.lower().startswith("[archived]"):

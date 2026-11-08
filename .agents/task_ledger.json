@@ -1,15 +1,15 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-57push-v2",
+    "task_id": "verify-60push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794146726.6849182,
+    "updated_at": 1794147634.9053478,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794146726.9389362
+    "completed_at": 1794147635.0855465
   },
   "checkpoints": [
     {
@@ -26,7 +26,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 46",
       "phase_num": 3,
-      "description": "Reforge stage 46: window 138, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 46: window 138, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794145564.5331302,
@@ -98,7 +98,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 47",
       "phase_num": 3,
-      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 47: window 141, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794145979.3990788,
@@ -138,7 +138,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 48",
       "phase_num": 3,
-      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit (regression=1)",
+      "description": "Reforge stage 48: window 144, 3 commit(s), 7 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit (regression=1)",
       "files_affected": [
         "scripts/aikit_cli.py"
       ],
@@ -250,6 +250,45 @@
       "timestamp": 1794146878.5968196,
       "timestamp_str": "2026-11-08 17:07:58",
       "agent": "opencode"
+    },
+    {
+      "task_id": "verify-60push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 60 pushes: recognize the archive prefix in any case",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794146976.8439841,
+      "timestamp_str": "2026-11-08 17:09:36",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "archive_github_description tests only uppercase [ARCHIVED]; a legacy or hand-edited [archived] description gets a second prefix on re-archive.",
+        "benefits": "The prefix is idempotent in any case and the original casing is preserved.",
+        "risks": "contract: GitHub description prefix; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, map",
+        "mitigation": "failing-first lower/mixed-case test, existing archive tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "6818a148c79404c00c1950436ade7f893b5cf9677203ddf5f1acb4804d4fc39b"
+    },
+    {
+      "task_id": "verify-60push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Blank archive override stays bare; 996 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794147634.9053478,
+      "timestamp_str": "2026-11-08 17:20:34",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-60push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-60push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794147635.0855484,
+      "timestamp_str": "2026-11-08 17:20:35",
+      "agent": "opencode:goal"
     }
   ]
 }
