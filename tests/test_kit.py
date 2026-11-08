@@ -1352,6 +1352,11 @@ class TestRuntimeFloorConsistency(unittest.TestCase):
         self.assertIn("Python 3.13+", guidelines)
         ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
         self.assertIn("python-version: ['3.13']", ci)
+        audit = (root / "knowledge" / "principles_audit_ledger.md").read_text(encoding="utf-8")
+        self.assertIn("`MIN_PYTHON` (Python 3.13)", audit)
+        self.assertIn("`MIN_PYTHON` (3.13)", audit)
+        self.assertNotIn("`MIN_PYTHON` (Python 3.10)", audit)
+        self.assertNotIn("`MIN_PYTHON` (3.10)", audit)
 
 
 class TestCiContractGuards(unittest.TestCase):

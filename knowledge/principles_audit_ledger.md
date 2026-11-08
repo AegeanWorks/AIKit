@@ -125,7 +125,7 @@
 - **Semantic Risks**: R4 requires using the launcher and shell reported by the active environment. On Windows environments with multiple Python installations (`py` vs `python`), models can occasionally trigger process execution errors if they copy Linux `python3` invocations.
 
 #### Pass 2: Strengths & Mechanical Invariants
-- **Strict AST Syntax Gate (R7)**: `python scripts/update_knowledge_base.py` parses all Python files with the grammar of `MIN_PYTHON` (Python 3.10), blocking syntax introduced in newer runtimes.
+- **Strict AST Syntax Gate (R7)**: `python scripts/update_knowledge_base.py` parses all Python files with the grammar of `MIN_PYTHON` (Python 3.13), blocking syntax introduced in newer runtimes.
 - **Whole-Word Grep Anchor (R2)**: Mandates `git grep -n -w -e <name>` (requiring `-e` to avoid option confusion) across all tracked files before renaming or deleting symbols.
 - **Invariant Reachability Shield**: Checked by `python scripts/check_reachability.py` to prevent orphaned dead code or hallucinated function signatures.
 
@@ -577,7 +577,7 @@
 
 #### Pass 2: Strengths & Mechanical Invariants
 - **Monotonic Append-Only ADR Register (R3)**: Past architectural decision records (ADRs) are strictly immutable once committed. Modifying past decisions is forbidden; superseding decisions require appending a new ADR that explicitly references the predecessor.
-- **Strict AST Syntax Validation & Freshness Gate (R4)**: `python scripts/update_knowledge_base.py` parses all Python files with the grammar of `MIN_PYTHON` (3.10) and regenerates `codebase_map.md`. Commits are blocked if the committed map differs from a fresh AST generation.
+- **Strict AST Syntax Validation & Freshness Gate (R4)**: `python scripts/update_knowledge_base.py` parses all Python files with the grammar of `MIN_PYTHON` (3.13) and regenerates `codebase_map.md`. Commits are blocked if the committed map differs from a fresh AST generation.
 - **Link Integrity Shield (R6)**: `update_knowledge_base.py` mechanically checks that all relative links in `INDEX.md` resolve to existing files.
 
 #### Pass 3: Weaknesses, Loopholes & Edge Cases

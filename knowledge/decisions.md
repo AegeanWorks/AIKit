@@ -3810,3 +3810,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Ask `diff-tree` for merge diffs and return sorted unique paths for both parent and root commits.
 - **Consequences**: Every parent's merge diff is inspected by the project boundary and scope budget; duplicate path entries no longer count twice. The unit tier pins `-m` and deduplication.
 - **Cross-principle check**: PRINCIPLE-018: no conflict because commit verification becomes stricter; PRINCIPLE-014: no conflict because the new test fails on the previous collection and none is weakened.
+
+### ADR-375: The audit ledger follows the 3.13 runtime floor
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Commit `7a13761` raised `MIN_PYTHON` to 3.13 across code, README, GUIDELINES and CI, but `knowledge/principles_audit_ledger.md` still described the strict AST gate as Python 3.10 in two current-rule entries. The floor test did not cover that document.
+- **Decision**: Update both audit-ledger statements to 3.13 and extend `TestRuntimeFloorConsistency` to assert the ledger's two floor descriptions.
+- **Consequences**: A cold-start reader sees the actual floor, and future drift in that document fails the unit tier.
+- **Cross-principle check**: PRINCIPLE-005: no conflict because the living documentation now matches the declared runtime; PRINCIPLE-014: no conflict because the new assertions fail on the stale ledger and none is weakened; PRINCIPLE-017: no conflict because the audit ledger remains a knowledge document, not a generated rule target.

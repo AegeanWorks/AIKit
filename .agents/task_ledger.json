@@ -1,49 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-48push-v2",
+    "task_id": "verify-51push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794145470.361175,
+    "updated_at": 1794145862.4972608,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794145470.765279
+    "completed_at": 1794145862.844929
   },
   "checkpoints": [
-    {
-      "task_id": "verify-33push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-33push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794143693.1945481,
-      "timestamp_str": "2026-11-08 16:14:53",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 43",
-      "phase_num": 3,
-      "description": "Reforge stage 43: window 129, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143847.6350808,
-      "timestamp_str": "2026-11-08 16:17:27",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 43",
-      "phase_num": 3,
-      "description": "Reforge stage 43: stage 43 host review reviewed; run active; coverage 24/24",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794143888.4609966,
-      "timestamp_str": "2026-11-08 16:18:08",
-      "agent": "opencode"
-    },
     {
       "task_id": "verify-36push-v2",
       "phase": "in_progress",
@@ -259,6 +227,45 @@
       "status": "completed",
       "timestamp": 1794145470.7652812,
       "timestamp_str": "2026-11-08 16:44:30",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-51push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 51 pushes: finish the Python 3.13 floor in the audit ledger",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794145682.6863081,
+      "timestamp_str": "2026-11-08 16:48:02",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "Commit 7a13761 raised MIN_PYTHON to 3.13 across code, README, GUIDELINES and CI, but knowledge/principles_audit_ledger.md still describes the strict AST gate as Python 3.10 in two current-rule entries.",
+        "benefits": "The audit ledger agrees with the floor everywhere, and the floor test now covers it.",
+        "risks": "contract: knowledge floor statements; dependency: none; concurrency: none; state: audit ledger, tests, ADR, map",
+        "mitigation": "failing-first ledger assertions, full unit tier, root scan and gates"
+      },
+      "plan_digest": "0b9ff939e237f426b255eb6e13cd45413d90a3e03f26f2784beac721c626723d"
+    },
+    {
+      "task_id": "verify-51push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Audit ledger follows Python 3.13; 993 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794145862.4972608,
+      "timestamp_str": "2026-11-08 16:51:02",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-51push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-51push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794145862.8449311,
+      "timestamp_str": "2026-11-08 16:51:02",
       "agent": "opencode:goal"
     }
   ]
