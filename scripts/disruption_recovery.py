@@ -1513,7 +1513,7 @@ def validate_conventional_commit(message: str) -> Tuple[bool, str]:
         for line in lines:
             if line.strip():
                 last = line.strip()
-        if not _re.match(r"^Unverified:[ \t]*\S.{5,}\s*$", last):
+        if not _re.match(r"^Unverified:[ \t]*\S{2,}.*\s*$", last):
             return (False, "Malformed Unverified override: the message must end with the line "
                     "'Unverified: <the gates named>' naming each unrun or failing gate "
                     "(PRINCIPLE-002 R5).")

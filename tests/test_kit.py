@@ -4908,6 +4908,10 @@ class TestDisruptionRecovery(unittest.TestCase):
         # marker anywhere but last hid which gates were skipped (PRINCIPLE-002 R5).
         good = "fix(gates): repair map\n\nUnverified: tiers, dogfood (host load, rerun next)"
         self.assertTrue(validate_conventional_commit(good)[0])
+        # `tiers` is five characters and a real gate name; the gate list must
+        # not impose a six-character minimum that rejects it.
+        self.assertTrue(validate_conventional_commit(
+            "fix(gates): repair map\n\nUnverified: tiers")[0])
         # Prose merely mentioning the word stays innocent: only a line-initial
         # marker counts as an override attempt.
         for msg in ("fix(x): parse unverified: flag",

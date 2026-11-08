@@ -3611,3 +3611,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: The 19-push review found that `_clause_after` returned a fixed 300-character window. A later clause's `because ... scripts/...` evidence could therefore satisfy an earlier bare `(no conflict)`, defeating the per-ID reasoning check added in this range.
 - **Decision**: Cut a cited ID's clause at the next `PRINCIPLE-NNN:` label before judging it. A label is the ID followed by `:` or `(`; prose mentions do not start a clause. The unit tier pins a bare clause followed by a reasoned one.
 - **Consequences**: Each required principle must carry its own reason and evidence. A bare clause can no longer borrow the next clause's justification.
+
+### ADR-350: Unverified accepts every real gate name
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The 19-push follow-up found the format check required six characters after `Unverified:`, so the real five-character gate name `tiers` was rejected even when it was the only skipped gate.
+- **Decision**: Require at least two non-space characters in the gate list, so `Unverified: tiers` passes while a bare `Unverified:` or `Unverified: x` still fails. The marker remains line-initial and last.
+- **Consequences**: Short gate names are usable; the override still names what was skipped. The unit tier pins `tiers`.

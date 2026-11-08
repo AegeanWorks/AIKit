@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-19push",
+    "task_id": "verify-19push-followup",
     "last_phase": "implementation",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794113556.1766837,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794114479.190646,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
-    "continuations": [],
-    "completed_at": 1794114030.155591
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-3push",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/3] Publish guard honors core.hooksPath; functional tests, reforge regression, read-only gates and dogfood passed; skipped test timing budgets (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794108494.5852087,
-      "timestamp_str": "2026-11-08 06:28:14",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-3push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-3push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794109959.4657116,
-      "timestamp_str": "2026-11-08 06:52:39",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "verify-6push",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794114030.1555939,
       "timestamp_str": "2026-11-08 08:00:30",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-19push-followup",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Accept short gate names in the Unverified override",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794114478.4999063,
+      "timestamp_str": "2026-11-08 08:07:58",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The format required six characters after Unverified:, so the real five-character gate name tiers was rejected.",
+        "benefits": "Unverified: tiers is valid; bare and one-character lists still fail.",
+        "risks": "contract: commit-message validator; dependency: stdlib; concurrency: none; state: validator, tests, decisions, map",
+        "mitigation": "unit pin for tiers, direct knowledge gate, verify_commit before push"
+      },
+      "plan_digest": "73b378635e37c437ad2a000409a6fa1b849083dd20938b7a3d40393a085d930a"
+    },
+    {
+      "task_id": "verify-19push-followup",
+      "phase": "implementation",
+      "phase_num": 4,
+      "description": "[2/2] Short gate names accepted; unit test and direct read-only gates pass; dogfood timed out under host load",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794114479.190646,
+      "timestamp_str": "2026-11-08 08:07:59",
       "agent": "opencode:goal"
     }
   ]
