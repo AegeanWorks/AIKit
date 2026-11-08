@@ -47,29 +47,32 @@ def append_event(path: Path, kind: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Append one scrubbed event; returns the stored event (with `seq`/`ts`)."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    seq = 1
-    try:
-        with open(target, "r", encoding="utf-8") as handle:
-            for line in handle:
-                if line.strip():
-                    seq += 1
-    except FileNotFoundError:
+    from scripts.disruption_recovery import file_lock
+
+    with file_lock(target):
         seq = 1
-    event = {
-        "schema": TRANSCRIPT_SCHEMA,
-        "seq": seq,
-        "ts": time.time(),
-        "kind": kind,
-        "data": _scrub_data(data),
-    }
-    with open(target, "a", encoding="utf-8") as handle:  # hygiene: allow single append stream per event
-        handle.write(json.dumps(event) + "\n")
-        handle.flush()
         try:
-            import os as _os
-            _os.fsync(handle.fileno())
-        except OSError:  # hygiene: allow degraded durability; the line is already written
-            pass
+            with open(target, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    if line.strip():
+                        seq += 1
+        except FileNotFoundError:
+            seq = 1
+        event = {
+            "schema": TRANSCRIPT_SCHEMA,
+            "seq": seq,
+            "ts": time.time(),
+            "kind": kind,
+            "data": _scrub_data(data),
+        }
+        with open(target, "a", encoding="utf-8") as handle:  # hygiene: allow single append stream per event
+            handle.write(json.dumps(event) + "\n")
+            handle.flush()
+            try:
+                import os as _os
+                _os.fsync(handle.fileno())
+            except OSError:  # hygiene: allow degraded durability; the line is already written
+                pass
     return event
 
 

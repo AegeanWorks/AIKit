@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1218`
-- **Total Source Lines**: `46100`
+- **Total Source Lines**: `46103`
 
 ---
 
@@ -853,7 +853,7 @@
 ### [`scripts/delegate_transcript.py`](scripts/delegate_transcript.py)
 > *Append-only JSONL transcript for sub-agent delegation (S-E).*
 
-**Size**: `200` lines (`8896` bytes)
+**Size**: `203` lines (`9071` bytes)
 
 **Functions:**
 - `def _scrub_data(obj)` - *Scrub every string inside `obj` (keys are ours, values may be theirs).*
