@@ -39,10 +39,13 @@ A proposal passes only when **all** hold:
 
 ### P1 — explicit registry (read-only)
 
-`scripts/state_machines.py` declares 12 machines as data: states, allowed
+`scripts/state_machines.py` declares 19 machines as data: states, allowed
 transitions, the live source, and the known gap. The CLI is
 `--list`, `--json`, `--machine <name>`, `--from/--to`, `--check-status`; it
-never writes and `--help` exits 0 in ~134 ms.
+never writes and `--help` exits 0 in ~134 ms. The 12 core machines were
+extended with delegate-run, delegate-transcript, ui-task, compat-proof,
+proof-verdict, proof-corpus and dossier-catalogue after the supporting
+subsystem map completed.
 
 Why it passes: it is additive, it gives AX a machine-readable contract and DX a
 single place to change a vocabulary, and it makes UX failures explainable ("this

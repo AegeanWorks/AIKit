@@ -10,7 +10,7 @@
 - **Total Classes**: `169`
 - **Total Top-Level Functions**: `1018`
 - **Total Class Methods**: `1271`
-- **Total Source Lines**: `47477`
+- **Total Source Lines**: `47596`
 
 ---
 
@@ -1495,7 +1495,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `341` lines (`15447` bytes)
+**Size**: `460` lines (`21191` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*

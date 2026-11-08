@@ -18,7 +18,9 @@ comments.
 | Reforge | 9 | 4 (run, review, delivery, lock note) |
 | Idea Catcher | 10 | 2 (`idea-status`, `idea-repo-review`) |
 | Project lifecycle | 10 | 4 (project, license, UI, media; gate result included) |
-| Total discovered | 40 | 12 |
+| Proof / evidence / verification | 7 | 1 (`proof-verdict`) |
+| Delegation / UI task / publication | 8 | 7 (delegate run, transcript, UI task, compat, corpus, dossier; gate result shares) |
+| Total discovered | ~55 | 19 |
 
 The registry is the **explicit contract**, not a claim that every transition is
 enforced. Each machine records its source and a known gap.
@@ -84,6 +86,48 @@ enforced. Each machine records its source and a known gap.
 | **Media asset** | absent, pending, approved, rejected | `.aikit/media.json` | Only logo and social preview block publish; an unreviewed screenshot publishes. |
 | **Gate result** | not_run, pass, fail, refused, rewrite | `project_gates.py` | Timeout and start failure both report `-1`; `new --publish` skips all gates. |
 
+## 5. Proof, evidence and verification
+
+| Machine | States | Source | Enforcement / gap |
+|---|---|---|---|
+| **Shared outcome** | not_run, pass, fail, inconclusive | `evidence_outcome.py` | Zero observations -> inconclusive; an unknown string is a refusal but is never validated. |
+| **Proof verdict** | unproven, holds, refused | `proof_gate.prove()` | Base must be an `assertion` failure and current `passed`; mock-echo tests veto; timeout is a hard failure. |
+| Mutation scoring | killed, survived, timeout, error, waived, not-generated | `proof_gate.py` | Only `assertion` kills; the threshold shrinks to the number generated; an empty mutation set fails even when optional. |
+| Receipt / corpus | not-persisted, stored, replay-pass/fail/inconclusive, pruned, corrupt | `proof_gate.write_receipt`, `proof_corpus.py` | A failing re-run of the same witness key overwrites a stored pass; corrupt entries are skipped and never pruned. |
+| Sealed envelope | unsealed, sealed, expired, tampered, unknown-key | `proof_envelope.py` | Check order masks tamper behind unknown-key/expiry; `--keyid` is effectively single-entry. |
+| Evidence policy | pass, fail, inconclusive | `evidence_policy.py` | A `fail` is never outvoted; a quorum shortfall is inconclusive; the sealed branch is unreachable from `verify_commit`. |
+| Commit verification | pass, fail, inconclusive, skipped | `verify_commit.py` | Missing `.aikit/proof.json` silently skips the proof step; `inconclusive` and `fail` share exit 1; `quorum:N` counts `project-files`. |
+
+## 6. Delegation, UI task and publication
+
+| Machine | States | Source | Enforcement / gap |
+|---|---|---|---|
+| **Delegate run** | ready, refused, blocked, ran-ok, ran-failed, timed-out, spawn-failed, ledger-violation | `subagent_delegate.py` | Refusals are pre-spawn; the sub-agent's exit 2 collides with AIKit's refusal; a refused run writes no transcript. |
+| **Delegate transcript** | absent, in-flight, complete, invalid, replay-pass/fail/inconclusive | `delegate_transcript.py` | `verify_transcript` never recomputes the output digest, so replay does not prove identical text; no CLI path selects a transcript. |
+| **UI task** | none, open, verified, stale, finished, aborted | `ui_contract.py` | A corrupt task advises `ui abort`, which needs the same unreadable file; abort drops allowed removals and records no history. |
+| UI finding codes | 11 codes + `ui.other` escape | `ui_contract.py`, `ui_proof.py` | Prefix matching, no enum at the raise site; `ui.error` is outside the vocabulary. |
+| UI inventory / style proof | baselined, allowed, lost, empty, lint-off | `ui_proof.py` | A renamed locator reports a loss; a missing snapshot command disables the layer; only added lines are linted. |
+| UI surface evidence | evidenced, unevidenced, legacy, unreadable | `ui_contract.py` | Any edit invalidates evidence; an untracked file can block it permanently. |
+| Dossier catalogue | no-dossier, skipped, synced, partial, media-stale | `dossier_sync.py` | Seven upserts conflate "unchanged" with "anchor missing"; an empty metadata list truncates the atlas; category can freeze while JSON-LD moves. |
+| Compat proof | absent, headless, ui, pass, findings | `project_compat.py` | Optional seed/bench/evidence sections disable checks; `ui -> headless` retires screenshots; 124/127 sentinels collide. |
+
+## 7. Supporting cross-cutting findings
+
+1. **Derived-but-unread state.** `ui_task.verified_at`, its `strikes` counter,
+   transcript `status`/`*_len`, `ledger_shield: "unmutated"` and the scaffold
+   benchmark baseline are written but never consumed.
+2. **Silent partial success.** Dossier upserts and the compat runner return the
+   same observable state for "unchanged" and "not checked".
+3. **Exit-code overloading.** Delegate exit 2 is both a refusal and a worker
+   failure; compat 124/127 are both sentinels and real codes; `verify_commit`
+   maps fail and inconclusive to the same exit 1.
+4. **Fabricated integrity claims.** The transcript docstring claims replay proves
+   the identical verdict while the digest is never recomputed; the corpus
+   docstring claims a changed tree files elsewhere while the witness omits the
+   verdict and the pass can be overwritten.
+5. **Dead-end recovery.** A corrupt `ui_task.json` tells the operator to abort,
+   but abort reads the same file; a renamed surface makes abort raise `KeyError`.
+
 ## Cross-cutting findings (verified)
 
 1. **Duplicate state without reconciliation.** Run status exists in
@@ -112,7 +156,7 @@ enforced. Each machine records its source and a known gap.
   transition table, archived publish gap, manual UI overwrite + pinned test.
 - After edits: `python -m unittest discover tests` -> **1118 tests, OK** (one
   skipped); `python scripts/update_knowledge_base.py --check` passes.
-- Registry CLI: `--list` 12 machines; `--json` parses; `completed -> in_progress`
+- Registry CLI: `--list` 19 machines; `--json` parses; `completed -> in_progress`
   refused with exit 1; `--help` 134 ms.
 
 ## Evidence anchors

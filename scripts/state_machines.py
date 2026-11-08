@@ -232,6 +232,125 @@ MACHINES: Tuple[Machine, ...] = (
         source="scripts/project_media.py: _asset, review_asset, apply_assets; .aikit/media.json",
         gap="Only logo and social preview block publish; an unreviewed screenshot publishes.",
     ),
+    Machine(
+        name="delegate-run",
+        purpose="One supervised OpenCode sub-agent invocation and its verdict.",
+        states=("ready", "refused", "blocked", "ran-ok", "ran-failed",
+                "timed-out", "spawn-failed", "ledger-violation"),
+        transitions={
+            "ready": ("refused", "blocked", "ran-ok", "ran-failed",
+                      "timed-out", "spawn-failed", "ledger-violation"),
+            "refused": (),
+            "blocked": (),
+            "ran-ok": (),
+            "ran-failed": (),
+            "timed-out": (),
+            "spawn-failed": (),
+            "ledger-violation": (),
+        },
+        source="scripts/subagent_delegate.py: delegate_subagent; exit code + report text, "
+               "no persisted run record",
+        gap="The sub-agent's own exit 2 is indistinguishable from AIKit's refusal; a refused "
+            "brief writes no transcript event, and ledger mutation is detected but never undone.",
+    ),
+    Machine(
+        name="delegate-transcript",
+        purpose="Append-only request/result log used to replay a delegation verdict.",
+        states=("absent", "in-flight", "complete", "invalid",
+                "replay-pass", "replay-fail", "replay-inconclusive"),
+        transitions={
+            "absent": ("in-flight",),
+            "in-flight": ("complete", "invalid"),
+            "complete": ("replay-pass", "replay-fail", "replay-inconclusive"),
+            "invalid": ("invalid",),
+            "replay-pass": (),
+            "replay-fail": (),
+            "replay-inconclusive": (),
+        },
+        source="scripts/delegate_transcript.py: append_event, verify_transcript, "
+               "replay_transcript",
+        gap="verify_transcript never recomputes output_sha, so replay does not prove the "
+            "identical text; no shipped CLI passes transcript_path.",
+    ),
+    Machine(
+        name="ui-task",
+        purpose="One bounded UI-surface edit from a green baseline to a reviewed finish.",
+        states=("none", "open", "verified", "stale", "finished", "aborted"),
+        transitions={
+            "none": ("open",),
+            "open": ("open", "verified", "stale", "aborted"),
+            "verified": ("verified", "finished", "aborted"),
+            "stale": ("stale", "aborted"),
+            "finished": (),
+            "aborted": (),
+        },
+        source="scripts/ui_contract.py: begin, verify, allow, finish, abort; "
+               ".aikit/ui_task.json, .aikit/ui.json, .aikit/ui_history.json",
+        gap="A corrupt task file advises `ui abort`, which needs the same unreadable file; "
+            "abort drops allowed removals and leaves no history record.",
+    ),
+    Machine(
+        name="compat-proof",
+        purpose="Whether a generated project proves it is drivable without project tooling.",
+        states=("absent", "headless", "ui", "pass", "findings"),
+        transitions={
+            "absent": ("headless", "ui"),
+            "headless": ("headless", "ui", "pass", "findings"),
+            "ui": ("ui", "headless", "pass", "findings"),
+            "pass": ("pass", "findings"),
+            "findings": ("findings", "pass"),
+        },
+        source="scripts/project_compat.py: scaffold_compat, verify_compat; .aikit/compat.json "
+               "and evidence files",
+        gap="Omitting seed/bench/evidence or re-scaffolding ui -> headless disables checks "
+            "with no finding; exit 124/127 sentinels collide with real command codes.",
+    ),
+    Machine(
+        name="proof-verdict",
+        purpose="The shared fail-closed outcome vocabulary of proofs and gates.",
+        states=("not_run", "pass", "fail", "inconclusive"),
+        transitions={
+            "not_run": ("pass", "fail", "inconclusive"),
+            "pass": ("pass",),
+            "fail": ("fail", "pass"),
+            "inconclusive": ("inconclusive", "pass", "fail"),
+        },
+        source="scripts/evidence_outcome.py: outcome_for_counts, is_refusal; "
+               "scripts/proof_gate.py; scripts/verify_commit.py",
+        gap="Unknown outcome strings degrade to inconclusive; verify_commit maps fail and "
+            "inconclusive to the same exit 1 and the same sentence.",
+    ),
+    Machine(
+        name="proof-corpus",
+        purpose="Content-addressed receipts that can be replayed and pruned.",
+        states=("absent", "stored", "replayed", "pruned", "corrupt"),
+        transitions={
+            "absent": ("stored",),
+            "stored": ("stored", "replayed", "pruned"),
+            "replayed": ("replayed", "pruned"),
+            "pruned": (),
+            "corrupt": ("corrupt",),
+        },
+        source="scripts/proof_corpus.py: store, replay, prune; scripts/proof_envelope.py: "
+               "seal, verify; .aikit/proof_corpus/witness_<sha>.json",
+        gap="A failing re-run of the same tree overwrites the stored pass (the witness omits "
+            "the verdict); corrupt entries are invisible and never pruned.",
+    ),
+    Machine(
+        name="dossier-catalogue",
+        purpose="The seven AegeanWorks dossier artifacts updated by one publish.",
+        states=("no-dossier", "skipped", "synced", "partial", "media-stale"),
+        transitions={
+            "no-dossier": ("skipped", "synced"),
+            "skipped": (),
+            "synced": ("synced", "partial", "media-stale"),
+            "partial": ("partial", "synced"),
+            "media-stale": ("media-stale", "synced"),
+        },
+        source="scripts/dossier_sync.py: sync_published, sync_entry; dossier repo files",
+        gap="'unchanged' and 'anchor missing' both return False, so a partial sync reports "
+            "success; an empty metadata list truncates the public atlas to one repository.",
+    ),
 )
 
 BY_NAME: Dict[str, Machine] = {machine.name: machine for machine in MACHINES}
