@@ -3875,11 +3875,21 @@ class TestSecretHygieneScanner(unittest.TestCase):
             'hard_coded = "short"',
             'const key = callKey(input.sessionID, input.callID)',
             'const key = makeKey()',
+            'token = derive_token("aB3(dE6)gH9(jK2)mN5(pQ8)rS1")',
         ]
         for line in safe:
             with self.subTest(line=line):
                 self.assertEqual(scan_text("fixture.py", line), [],
                                  f"false positive on safe line: {line}")
+
+    def test_high_entropy_quoted_literal_with_brackets_is_still_a_secret(self):
+        # Brackets inside a quoted literal are part of the value; only an unquoted
+        # call/index result may skip the entropy fallback.
+        value = "aB3(dE6)gH9(jK2)mN5(pQ8)rS1"
+        findings = scan_text("fixture.py", f'API_TOKEN = "{value}"')
+        self.assertEqual([item[2] for item in findings],
+                         ["high-entropy value for API_TOKEN"])
+        self.assertNotIn(value, findings[0][3], "the excerpt must stay redacted")
 
     def test_weak_allowlist_cannot_veto_a_pattern_match(self):
         # Red-green pin: the scanner first MISSED "AKIAIOSFODNN7EXAMPLE" purely because the line  # aikit:allow-secret

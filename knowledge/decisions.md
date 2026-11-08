@@ -3898,3 +3898,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Let `_numstat_total` and `commit_files_and_lines` accept an optional exclude predicate; `scope_step` passes `_scope_exempt`, so exempt files contribute no lines while remaining in the changed-file list.
 - **Consequences**: `max_lines` counts only the files the declaration governs, matching `paths` and `max_files`. The unit tier pins a 105-line total that becomes 5 scoped lines when the map and a binary are excluded.
 - **Cross-principle check**: PRINCIPLE-018: no conflict because the scope gate now matches its documented exemptions; PRINCIPLE-014: no conflict because the new test fails on the previous signature and none is weakened; PRINCIPLE-016: no conflict because the map keeps its own freshness gate.
+
+### ADR-386: Quoted brackets do not excuse an entropy finding
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The entropy fallback skipped any assignment value containing `()[]` so a call such as `get_token()` would not look like a literal. The same check also skipped a quoted secret whose value happened to contain parentheses or brackets, leaving a 27-character high-entropy token undetected.
+- **Decision**: Read the value's quote boundaries from the assignment match and treat brackets as an expression marker only when the value is unquoted. A quoted literal stays eligible for the entropy fallback; an unquoted call/index result still bypasses it.
+- **Consequences**: A bracketed quoted credential is reported as `high-entropy value for <NAME>`, while `derive_token("...")`, `values[0]` and other indirections remain clean. The unit tier pins both the red finding and the safe call form.
+- **Cross-principle check**: PRINCIPLE-019: no conflict because detection only widens while the pragma and allowlist escape hatches remain intact; PRINCIPLE-014: no conflict because the new test fails before the quote-aware branch and no existing test is weakened; PRINCIPLE-003: no conflict because the fix reads the exact source span already matched by the scanner.

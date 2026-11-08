@@ -267,7 +267,12 @@ def scan_text(label: str, text: str) -> List[Tuple[str, int, str, str]]:
         match = ASSIGNMENT_RE.search(line)
         if match:
             name, value = match.group(1), match.group(2)
-            expression = any(char in value for char in "()[]")
+            # A quoted literal is data even when its secret contains brackets. Only an
+            # unquoted call/index result is an expression safe to skip (ADR-386).
+            start, end = match.start(2), match.end(2)
+            quoted = (start > 0 and end < len(line)
+                      and line[start - 1] in "\"'" and line[end] in "\"'")
+            expression = not quoted and any(char in value for char in "()[]")
             if value.startswith(("$", "{", "%", "<")) or expression \
                     or "os.getenv" in line or "os.environ" in line:
                 pass  # an indirection or call result, not a literal; still check bare literals

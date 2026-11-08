@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1014`
-- **Total Class Methods**: `1254`
-- **Total Source Lines**: `46864`
+- **Total Class Methods**: `1255`
+- **Total Source Lines**: `46879`
 
 ---
 
@@ -790,7 +790,7 @@
 ### [`scripts/check_secrets.py`](scripts/check_secrets.py)
 > *Secret & Sensitive Data Hygiene Scanner (PRINCIPLE-019)*
 
-**Size**: `913` lines (`43908` bytes)
+**Size**: `918` lines (`44273` bytes)
 
 **Classes:**
 - `class BaselineError` - *The baseline file is missing or refuses its own schema (IDEA-1132).*
@@ -1904,7 +1904,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15431` lines (`839145` bytes)
+**Size**: `15441` lines (`839752` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2219,6 +2219,7 @@
   - Method `.test_a_scan_that_skipped_a_surface_never_reports_clean()`
   - Method `.test_detects_known_credential_shapes()`
   - Method `.test_does_not_flag_indirection_or_placeholders()`
+  - Method `.test_high_entropy_quoted_literal_with_brackets_is_still_a_secret()`
   - Method `.test_weak_allowlist_cannot_veto_a_pattern_match()`
   - Method `.test_weak_allowlist_still_suppresses_entropy_fallback()`
   - Method `.test_encoded_pass_detects_base64_and_hex_payloads_bounded()`
