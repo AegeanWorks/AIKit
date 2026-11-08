@@ -74,8 +74,13 @@ def _print_failure_tail(tail: str) -> None:
     """Print a bounded failure slice between rules, or nothing when the tail is empty."""
     if not tail:
         return
+    try:
+        from scripts.check_secrets import scrub_text
+    except ImportError:
+        from check_secrets import scrub_text
+    redacted, _ = scrub_text(tail)
     print("-" * 58)
-    print(tail)
+    print(redacted)
     print("-" * 58)
 
 

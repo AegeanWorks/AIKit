@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1009`
-- **Total Class Methods**: `1244`
-- **Total Source Lines**: `46647`
+- **Total Class Methods**: `1245`
+- **Total Source Lines**: `46662`
 
 ---
 
@@ -830,7 +830,7 @@
 ### [`scripts/check_test_budgets.py`](scripts/check_test_budgets.py)
 > *Test Tier Budget Gate (PRINCIPLE-010 Rule 6, PRINCIPLE-014 Rule 3)*
 
-**Size**: `306` lines (`13383` bytes)
+**Size**: `311` lines (`13553` bytes)
 
 **Classes:**
 - `class TierResult` - *One tier's measured outcome; frozen so a report cannot edit what was measured.*
@@ -1899,7 +1899,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15293` lines (`831607` bytes)
+**Size**: `15303` lines (`832005` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2740,6 +2740,7 @@
   - Method `.test_budget_errors_is_silent_when_every_tier_fits()`
   - Method `.test_a_tier_that_overruns_its_bound_fails_cleanly_instead_of_raising()`
   - Method `.test_a_timed_out_tier_prints_the_test_that_stalled()`
+  - Method `.test_timeout_tail_redacts_credentials()`
   - Method `.test_the_real_runner_reports_a_timeout_as_output()`
   - Method `.test_timeout_runner_normalizes_mixed_partial_stream_types()`
 - `class TestChecklistWording` - *PRINCIPLE-000 R7 bans hedge words in "every rule added or changed", but the slices the*

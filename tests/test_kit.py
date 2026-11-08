@@ -10615,6 +10615,16 @@ class TestTestTierBudgetGate(unittest.TestCase):
         self.assertIn("test_hangs", out)
         self.assertIn("did not finish within", out)
 
+    def test_timeout_tail_redacts_credentials(self):
+        from scripts.check_test_budgets import TIMEOUT_EXIT
+
+        secret = "ghp_" + "A" * 36
+        code, out = self.gate({self.UNIT: (TIMEOUT_EXIT, secret + "\n"),
+                               self.INTEG: self.ok(45, 1.0)})
+        self.assertEqual(code, 1)
+        self.assertNotIn(secret, out)
+        self.assertIn("[REDACTED]", out)
+
     def test_the_real_runner_reports_a_timeout_as_output(self):
         from scripts import check_test_budgets as budgets
 
