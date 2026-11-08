@@ -294,7 +294,12 @@ def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str]
 
 def project_path_violations(paths: List[str]) -> List[str]:
     """Changed paths AIKit must never track: a project owns its own repository."""
-    return [path for path in paths if path == "projects" or path.startswith("projects/")]
+    violations: List[str] = []
+    for path in paths:
+        normalized = str(path).replace("\\", "/").strip("/").lower()
+        if normalized == "projects" or normalized.startswith("projects/"):
+            violations.append(path)
+    return violations
 
 
 def proof_command_from_declaration(

@@ -8801,6 +8801,11 @@ class TestVerifyCommitProjectBoundary(unittest.TestCase):
             project_path_violations(["README.md", "projects/foundry/a.py", "projects"]),
             ["projects/foundry/a.py", "projects"],
         )
+        self.assertEqual(
+            project_path_violations(["Projects\\Foundry\\a.py", "PROJECTS"]),
+            ["Projects\\Foundry\\a.py", "PROJECTS"],
+            "Windows path case and separators must not bypass the boundary",
+        )
 
     def test_commit_files_include_merge_diffs_and_dedupe(self):
         from scripts.verify_commit import commit_files_and_lines
