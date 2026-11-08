@@ -9324,6 +9324,30 @@ class TestProjectPublish(unittest.TestCase):
         scan = next(c for c in self.calls if any("check_secrets.py" in str(a) for a in c))
         self.assertEqual(scan[scan.index("--commits") + 1], "@{u}..HEAD")
 
+    def test_auto_push_installs_the_guard_before_uploading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                '[remote "origin"]\n\turl = https://github.com/me/app.git\n', encoding="utf-8")
+
+            def run(argv, cwd):
+                if argv[:4] == ["git", "remote", "get-url", "origin"]:
+                    return 0, "https://github.com/me/app.git"
+                if argv[:4] == ["git", "rev-parse", "--verify", "HEAD"]:
+                    return 0, "abc123"
+                if argv[:4] == ["git", "rev-parse", "--verify", "@{u}"]:
+                    return 0, "origin/main"
+                if argv[:2] == ["git", "log"]:
+                    return 0, "abc123 feat: x"
+                if any("check_secrets.py" in str(arg) for arg in argv):
+                    return 0, "[OK]"
+                return 0, ""
+
+            code, report = auto_push_project(root, "app", runner=run)
+            self.assertEqual(code, 0, report)
+            self.assertTrue(is_guard_installed(root))
+
     def test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding(self):
         def runner(scan_code):
             def run(argv, cwd):

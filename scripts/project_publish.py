@@ -220,6 +220,9 @@ def auto_push_project(project_root: Path, name: str, runner: Optional[Runner] = 
     there is no origin to push to. Never forces (PRINCIPLE-018 R4).
     """
     run = runner or run_command
+    # Every sanctioned push installs the guard first: a project attached before
+    # the guard existed must not keep a raw-push path just because AIKit pushed it.
+    install_pre_push_hook(project_root, name)
     url = get_project_repo_url(project_root, runner=run)
     if not url:
         # The push is asked for (`check --push`), so no remote is a failure, not "nothing to do":

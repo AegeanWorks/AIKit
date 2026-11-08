@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-12push-v2",
+    "task_id": "verify-15push-v3",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794130233.494217,
+    "updated_at": 1794130896.5283363,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794130234.1791222
+    "completed_at": 1794130897.260857
   },
   "checkpoints": [
-    {
-      "task_id": "verify-15push-v2",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/3] CI contract probe pin; unit test and map check passed; skipped timing budgets (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794112094.0677361,
-      "timestamp_str": "2026-11-08 07:28:14",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-15push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-15push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794112959.036019,
-      "timestamp_str": "2026-11-08 07:42:39",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-18push",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Review the last 18 pushes and pin the CI runner git identity",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794112959.4931548,
-      "timestamp_str": "2026-11-08 07:42:39",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "Fresh Linux runners have no git identity, so committing tests fail before assertions; ADR-337 added the identity but nothing pinned it.",
-        "benefits": "Removing the identity step now fails the unit tier before a Linux-only rediscovery.",
-        "risks": "contract: CI workflow shape; dependency: stdlib; concurrency: none; state: tests, decisions, map",
-        "mitigation": "workflow-text unit pin, map check, verify_commit before push"
-      },
-      "plan_digest": "999bd995f1846e846b5ec0072c1bac70f294eb050e655bdaffb4e83897f73cae"
-    },
     {
       "task_id": "verify-18push",
       "phase": "implementation",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794130234.1791248,
       "timestamp_str": "2026-11-08 12:30:34",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-15push-v3",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 15 pushes: install the publish guard on every sanctioned push",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794130444.8046904,
+      "timestamp_str": "2026-11-08 12:34:04",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "auto_push_project uploads through check --push, the push alias and archive but never installs the guard; an older project can be pushed by AIKit while raw pushes stay unblocked.",
+        "benefits": "Every AIKit push path installs or repairs the guard before it uploads, so the raw-push block cannot be skipped by project age or entrypoint.",
+        "risks": "contract: sanctioned push path; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, codebase map",
+        "mitigation": "failing-first guard-install probe, targeted publish tests, full suite, read-only gates, verify_commit before push"
+      },
+      "plan_digest": "0055ccd29fb142d04fd689f9fdfe164cfafb9adcbb29ccf4177c454672c37679"
+    },
+    {
+      "task_id": "verify-15push-v3",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Guard install on every sanctioned push; 1050 tests, read-only gates and dogfood 5/5 passed; timing budgets skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794130896.5283363,
+      "timestamp_str": "2026-11-08 12:41:36",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-15push-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-15push-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794130897.2608595,
+      "timestamp_str": "2026-11-08 12:41:37",
       "agent": "opencode:goal"
     }
   ]

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1006`
-- **Total Class Methods**: `1212`
-- **Total Source Lines**: `45960`
+- **Total Class Methods**: `1213`
+- **Total Source Lines**: `45987`
 
 ---
 
@@ -1274,7 +1274,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `345` lines (`16904` bytes)
+**Size**: `348` lines (`17114` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1896,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14783` lines (`805514` bytes)
+**Size**: `14807` lines (`806642` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2647,6 +2647,7 @@
   - Method `.test_public_only_when_asked()`
   - Method `.test_existing_remote_is_pushed_never_recreated_or_forced()`
   - Method `.test_an_existing_upstream_scans_only_the_commits_it_pushes()`
+  - Method `.test_auto_push_installs_the_guard_before_uploading()`
   - Method `.test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding()`
   - Method `.test_refusals_upload_nothing()`
   - Method `.test_secret_refusal_is_not_masked_by_a_push_named_workspace()`
