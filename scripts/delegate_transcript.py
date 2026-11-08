@@ -47,9 +47,14 @@ def append_event(path: Path, kind: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Append one scrubbed event; returns the stored event (with `seq`/`ts`)."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    from scripts.disruption_recovery import file_lock
+    from scripts.disruption_recovery import LOCK_TIMEOUT_SECONDS, file_lock
 
-    with file_lock(target):
+    with file_lock(target, timeout_seconds=LOCK_TIMEOUT_SECONDS) as acquired:
+        if not acquired:
+            raise TimeoutError(
+                f"Could not acquire the delegate transcript lock for {target.name} "
+                f"within {LOCK_TIMEOUT_SECONDS:g}s; no event was appended."
+            )
         seq = 1
         try:
             with open(target, "r", encoding="utf-8") as handle:

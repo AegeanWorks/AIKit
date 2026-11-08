@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-24push-v2",
+    "task_id": "verify-28push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794135400.0799742,
+    "updated_at": 1794138284.7576454,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794135403.794963
+    "completed_at": 1794138284.9608033
   },
   "checkpoints": [
-    {
-      "task_id": "verify-6push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/3] Clause boundary + publish-fake hardening; full 1047-test suite, read-only gates and dogfood 5/5 passed; timing budgets skipped (host load, 39ms/2129ms)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794127964.9865716,
-      "timestamp_str": "2026-11-08 11:52:44",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-6push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-6push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794127965.4288886,
-      "timestamp_str": "2026-11-08 11:52:45",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-9push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 9 pushes: pin CI identity order and the full CLI contract",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794128419.336527,
-      "timestamp_str": "2026-11-08 12:00:19",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The identity test only checks that both git config lines exist, so the step can move below the committing tests; the CLI probe test only checks the set -e guard, so the help guard and the expected exit 2 can disappear while it stays green.",
-        "benefits": "A fresh runner fails before the suite if identity moves; removing either half of the CLI contract now fails the unit tier.",
-        "risks": "contract: CI workflow shape; dependency: stdlib; concurrency: none; state: tests/test_kit.py, ADR, codebase map",
-        "mitigation": "failing-first order and contract pins, targeted unit run, full suite, read-only gates, verify_commit before push"
-      },
-      "plan_digest": "b8097dc260721ba8097c84f67493c50a7b290086639c2506ac6cde8f00009b42"
-    },
     {
       "task_id": "verify-9push-v2",
       "phase": "in_progress",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794135403.794965,
       "timestamp_str": "2026-11-08 13:56:43",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-28push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the newest pushes: refuse a delegate transcript append when the lock times out",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794138182.7224607,
+      "timestamp_str": "2026-11-08 14:43:02",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "append_event ignores file_lock's acquired result, so a 3-second timeout appends without serialization and can duplicate seq numbers or interleave lines.",
+        "benefits": "A timed-out lock now raises before any read or append; the transcript sequence stays serialized.",
+        "risks": "contract: delegate transcript append; dependency: stdlib; concurrency: lock contention; state: delegate_transcript.py, tests, ADR, map",
+        "mitigation": "failing-first no-lock test, targeted transcript tests, unit tier, reachability and secret gates"
+      },
+      "plan_digest": "9bb9a2017da00d55702d862c100a4310f597c2eac85881070b2eb68c89938403"
+    },
+    {
+      "task_id": "verify-28push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Transcript append refuses a timed-out lock; 968 unit tests, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794138284.7576454,
+      "timestamp_str": "2026-11-08 14:44:44",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-28push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-28push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794138284.960805,
+      "timestamp_str": "2026-11-08 14:44:44",
       "agent": "opencode:goal"
     }
   ]

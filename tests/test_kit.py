@@ -8489,6 +8489,19 @@ class TestDelegateTranscript(unittest.TestCase):
         ok, detail = delegate_transcript.verify_transcript(path)
         self.assertTrue(ok, detail)
 
+    def test_transcript_append_refuses_when_the_lock_times_out(self):
+        from scripts import delegate_transcript
+        path = self.kit / "locked.jsonl"
+
+        @contextlib.contextmanager
+        def no_lock(*args, **kwargs):
+            yield False
+
+        with mock.patch("scripts.disruption_recovery.file_lock", no_lock):
+            with self.assertRaises(TimeoutError):
+                delegate_transcript.append_event(path, "probe", {"x": 1})
+        self.assertFalse(path.exists(), "no event may be written without the lock")
+
     def test_replay_refuses_a_corrupt_transcript(self):
         from scripts import delegate_transcript
         path = self.kit / "bad.jsonl"

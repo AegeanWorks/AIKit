@@ -3690,3 +3690,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Add `/articles/` to `.gitignore` as local-only evidence, matching the reports inbox. Do not rely on a scan-level name skip; the scan reads only recognized code and asset files.
 - **Consequences**: Draft files stay out of Git, `check --strict` no longer sees them, and `find_python_files` prunes the folder through `gitignored_top_dirs`. The hygiene scan still inspects draft assets, so a draft with a real hygiene defect is caught before publication.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because drafts are local evidence like `reports/`; PRINCIPLE-014: no conflict because a unit test pins the ignore; PRINCIPLE-005: no conflict because no tracked path or documented command changes.
+
+### ADR-360: A timed-out transcript lock refuses the append
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The delegate transcript fix (`2470c92`) wrapped `append_event` in `file_lock`, but the function ignored the yielded `acquired` result. A 3-second timeout therefore appended without serialization, allowing duplicate `seq` values or interleaved lines.
+- **Decision**: Pass `LOCK_TIMEOUT_SECONDS` to `file_lock`, check `acquired`, and raise `TimeoutError` before reading or appending when it is false.
+- **Consequences**: No event is written without the lock; callers see a clear timeout instead of a silently corrupt transcript. The unit tier mocks `file_lock` yielding `False` and asserts no file is created.
+- **Cross-principle check**: PRINCIPLE-013: no conflict because the advisory lock now gates the whole read-append cycle; PRINCIPLE-014: no conflict because the new test fails on the previous behavior and no assertion is weakened; PRINCIPLE-018: no conflict because transcript writes are not a delivery path.

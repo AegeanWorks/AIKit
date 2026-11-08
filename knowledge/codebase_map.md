@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1218`
-- **Total Source Lines**: `46093`
+- **Total Class Methods**: `1219`
+- **Total Source Lines**: `46111`
 
 ---
 
@@ -853,7 +853,7 @@
 ### [`scripts/delegate_transcript.py`](scripts/delegate_transcript.py)
 > *Append-only JSONL transcript for sub-agent delegation (S-E).*
 
-**Size**: `203` lines (`9071` bytes)
+**Size**: `208` lines (`9375` bytes)
 
 **Functions:**
 - `def _scrub_data(obj)` - *Scrub every string inside `obj` (keys are ours, values may be theirs).*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14894` lines (`811224` bytes)
+**Size**: `14907` lines (`811766` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2570,6 +2570,7 @@
   - Method `.runner(returncode, stdout, stderr)`
   - Method `.test_transcript_round_trip_returns_the_identical_verdict()`
   - Method `.test_transcript_scrubs_secrets_before_writing()`
+  - Method `.test_transcript_append_refuses_when_the_lock_times_out()`
   - Method `.test_replay_refuses_a_corrupt_transcript()`
 - `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
   - Method `.setUp()`
