@@ -3597,3 +3597,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: The universal CLI contract step runs under the runner's `set -e`. A bare `python scripts/<gate>.py --not-a-real-flag` exits 2 by design, killing the shell before `code=$?`; the gate then never executed. Commit 97b50ff fixed it with `code=0` and `|| code=$?`.
 - **Decision**: Pin the shape in the unit tier: the CI file must contain `code=0` followed by the probe line ending in `|| code=$?`. The test reads the workflow text and spawns no process.
 - **Consequences**: A future edit that restores the bare probe fails before CI, keeping the misuse check live on every runner.
+
+### ADR-348: CI commit identity is a pinned prerequisite
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-337 found that fresh CI runners have no git identity, so tests that commit (reforge repair and integration fixtures) fail before any assertion. The workflow now sets `user.email` and `user.name` globally.
+- **Decision**: Add a unit pin that the CI workflow contains both identity lines. It reads the workflow text and spawns no process.
+- **Consequences**: Removing or renaming the identity step fails the unit tier before a Linux-only run rediscovers it. The pin covers the runner prerequisite, not the commit tests themselves.

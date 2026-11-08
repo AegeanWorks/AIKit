@@ -1364,6 +1364,12 @@ class TestCiContractGuards(unittest.TestCase):
             "a bare misuse probe exits 2 and kills the set -e shell before code capture",
         )
 
+    def test_ci_supplies_the_identity_committing_tests_need(self):
+        ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml")
+        text = ci.read_text(encoding="utf-8")
+        self.assertIn('git config --global user.email "aikit-ci@example.com"', text)
+        self.assertIn('git config --global user.name "AIKit CI"', text)
+
 
 class TestPythonFileDiscovery(unittest.TestCase):
     """`find_python_files` prunes ignored directories relative to the root (ADR-115)."""

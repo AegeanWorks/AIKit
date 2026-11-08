@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1003`
-- **Total Class Methods**: `1205`
-- **Total Source Lines**: `45775`
+- **Total Class Methods**: `1206`
+- **Total Source Lines**: `45781`
 
 ---
 
@@ -1893,7 +1893,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14686` lines (`799815` bytes)
+**Size**: `14692` lines (`800174` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2000,6 +2000,7 @@
   - Method `.test_floor_is_three_thirteen_everywhere()`
 - `class TestCiContractGuards` - *The CI misuse probe must run under `set -e` (ADR-347).*
   - Method `.test_cli_contract_probe_is_guarded()`
+  - Method `.test_ci_supplies_the_identity_committing_tests_need()`
 - `class TestPythonFileDiscovery` - *`find_python_files` prunes ignored directories relative to the root (ADR-115).*
   - Method `.test_a_repository_under_an_ignored_name_is_still_scanned()`
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`
