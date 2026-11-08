@@ -14,35 +14,6 @@
   "checkpoints": [
     {
       "task_id": "verify-48push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 48 pushes: include merge diffs and dedupe commit file paths",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145319.3430016,
-      "timestamp_str": "2026-11-08 16:41:59",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "verify_commit's project boundary uses diff-tree without -m, so a merge that introduces projects/ files can evade it; duplicate paths also inflate the file/line scope.",
-        "benefits": "Changed-file collection sees every parent's merge diff and returns unique sorted paths, so the projects/ boundary and scope budgets are accurate.",
-        "risks": "contract: commit verification and scope; dependency: git; concurrency: none; state: verify_commit.py, tests, ADR, map",
-        "mitigation": "failing-first merge/dedup test, existing verify_commit tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "8532e8234b4e1a7f492495e0d171eb5b87f2d122ad8d9d6f7a4101a32b2f4dc4"
-    },
-    {
-      "task_id": "verify-48push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Merge diffs included and commit paths deduped; 993 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794145470.361175,
-      "timestamp_str": "2026-11-08 16:44:30",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-48push-v2",
       "phase": "completed",
       "phase_num": 5,
       "description": "Task 'verify-48push-v2' completed successfully.",
@@ -257,6 +228,28 @@
       "timestamp": 1794146726.9389377,
       "timestamp_str": "2026-11-08 17:05:26",
       "agent": "opencode:goal"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 50",
+      "phase_num": 3,
+      "description": "Reforge stage 50: stage 50 host review reviewed; run active; coverage 13/13",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794146867.1495924,
+      "timestamp_str": "2026-11-08 17:07:47",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 50",
+      "phase_num": 3,
+      "description": "Reforge stage 50: stage 50 host review reviewed; run active; coverage 13/13",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794146878.5968196,
+      "timestamp_str": "2026-11-08 17:07:58",
+      "agent": "opencode"
     }
   ]
 }
