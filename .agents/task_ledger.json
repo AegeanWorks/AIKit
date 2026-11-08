@@ -1,50 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-27push-v2",
+    "task_id": "verify-30push-v3",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794142547.828488,
+    "updated_at": 1794142996.114245,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794142548.1374533
+    "completed_at": 1794142996.9205637
   },
   "checkpoints": [
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 30",
-      "phase_num": 3,
-      "description": "Reforge stage 30: window 90, 3 commit(s), 31 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138308.7084749,
-      "timestamp_str": "2026-11-08 14:45:08",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 30",
-      "phase_num": 3,
-      "description": "Reforge stage 30: stage 30 host review reviewed; run active; coverage 100/100",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138626.7184415,
-      "timestamp_str": "2026-11-08 14:50:26",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 31",
-      "phase_num": 3,
-      "description": "Reforge stage 31: window 93, 3 commit(s), 11 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794138780.5648448,
-      "timestamp_str": "2026-11-08 14:53:00",
-      "agent": "opencode"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 31",
@@ -260,6 +227,45 @@
       "status": "completed",
       "timestamp": 1794142548.1374557,
       "timestamp_str": "2026-11-08 15:55:48",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-30push-v3",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Record the merged tarfile/gzip binary-mode decision",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794142922.2822745,
+      "timestamp_str": "2026-11-08 16:02:02",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The remote fix makes tarfile always binary and compressed streams default to binary unless t/rt is explicit, but the behavior change has no ADR.",
+        "benefits": "The register explains why r:gz is not a text mode and why gzip default is quiet while rt stays flagged.",
+        "risks": "contract: hygiene encoding rule documentation; dependency: none; concurrency: remote moved during the duplicate rebase; state: ADR, map, ledger",
+        "mitigation": "docs-only ADR, map check, targeted tar/gzip test, root scan"
+      },
+      "plan_digest": "8757560b153d7a33888128124b5587b476c33b9f2eb4ef4e3fab401fe901d4db"
+    },
+    {
+      "task_id": "verify-30push-v3",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] ADR for merged tarfile/gzip binary modes; targeted test, map, root scan, reachability and secrets pass; timing budgets and dogfood skipped",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794142996.114245,
+      "timestamp_str": "2026-11-08 16:03:16",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-30push-v3",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-30push-v3' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794142996.920566,
+      "timestamp_str": "2026-11-08 16:03:16",
       "agent": "opencode:goal"
     }
   ]

@@ -3746,3 +3746,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Catch `OSError` and `ValueError` from the guard install and return a triad with the cause and a permission fix; nothing is pushed.
 - **Consequences**: A guard-install failure is a normal delivery refusal, and the raw-push block is never silently left uninstalled. The unit tier patches the installer to raise and asserts no push call.
 - **Cross-principle check**: PRINCIPLE-011: no conflict because the failure keeps the Why/Fix shape; PRINCIPLE-018: no conflict because the push is still never forced and no upload occurs; PRINCIPLE-014: no conflict because the new test fails on the previous uncaught path and no assertion is weakened.
+
+### ADR-367: tarfile modes and compressed streams are binary by default
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `tarfile.open("x.tar", "r:gz")` has no `b` but is always binary. `gzip.open`/`bz2.open`/`lzma.open` default to binary unless the mode explicitly says `t`/`rt`. Treating every mode without `b` as text produced false `open-encoding` findings.
+- **Decision**: Treat `tarfile.open` as binary for the encoding rule; default `gzip`/`bz2`/`lzma` to binary and honor an explicit `b` or `t`. Other open calls keep their literal mode.
+- **Consequences**: Archive reads and default compressed reads are quiet; an explicit `rt` compressed read still requires `encoding`. The unit tier pins `r:gz` and both gzip default/text forms.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because text-mode opens still require portable encoding; PRINCIPLE-014: no conflict because the assertions pin both the binary and text sides and none is weakened.
