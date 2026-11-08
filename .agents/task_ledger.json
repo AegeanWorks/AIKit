@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-75push-v2",
+    "task_id": "verify-78push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794151462.4597402,
+    "updated_at": 1794151924.0439174,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794151463.1226547
+    "completed_at": 1794151924.6455927
   },
   "checkpoints": [
-    {
-      "task_id": "verify-75push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 75 pushes: cover every exit-2 gate script in the CI CLI contract",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151322.444588,
-      "timestamp_str": "2026-11-08 18:22:02",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "97b50ff made the CLI contract loop set -e safe, but the loop still tests only six scripts; check_project_hygiene, proof_gate and check_test_budgets implement the same --help/exit-2 contract and are omitted, so the step's 'all entrypoints' claim is false.",
-        "benefits": "The CI contract gate exercises every standalone gate script that declares the exit-2 misuse behavior, so a regression in any of them fails CI.",
-        "risks": "contract: CI CLI contract; dependency: bash on the runner; concurrency: none; state: ci.yml, tests, ADR, map",
-        "mitigation": "failing-first loop-coverage test, local misuse probes for the three scripts, full unit tier, root scan and gates"
-      },
-      "plan_digest": "37c8020ad1e98d916b08616fa3a6cfa3b3e1ff941847035a6a1e640758a810fe"
-    },
-    {
-      "task_id": "verify-75push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] CI CLI contract covers nine gate scripts; 1001 unit tests, clean root scan (11.8s), map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151462.4597402,
-      "timestamp_str": "2026-11-08 18:24:22",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-75push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-75push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794151463.122657,
-      "timestamp_str": "2026-11-08 18:24:23",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 222",
@@ -66,7 +27,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 223",
       "phase_num": 3,
-      "description": "Reforge stage 223: window 669, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 223: window 669, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151776.3866076,
@@ -85,10 +46,28 @@
       "agent": "opencode"
     },
     {
+      "task_id": "verify-78push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 78 pushes: keep pathlib basename matching for non-recursive scope globs",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794151787.1310306,
+      "timestamp_str": "2026-11-08 18:29:47",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "17069a4 replaced PurePath.match for every scope pattern; a declaration like paths: ['*.py'] no longer covers scripts/a.py, so a valid commit is refused as outside scope even though the previous matcher accepted it.",
+        "benefits": "Only patterns with a whole ** segment use the recursive walker; ordinary globs keep their suffix matching and existing declarations stay valid.",
+        "risks": "contract: proof scope paths; dependency: stdlib pathlib/fnmatch; concurrency: none; state: verify_commit.py, tests, ADR, map",
+        "mitigation": "failing-first basename/suffix glob test, existing recursive and directory tests, full unit tier, root scan and gates"
+      },
+      "plan_digest": "35bee0fe097fc5f11e9e4a2ee11747ab199b60b7ba2e1c3bd140cb6c910200de"
+    },
+    {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 224",
       "phase_num": 3,
-      "description": "Reforge stage 224: window 672, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 224: window 672, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151789.6364558,
@@ -110,7 +89,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 225",
       "phase_num": 3,
-      "description": "Reforge stage 225: window 675, 3 commit(s), 12 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 225: window 675, 3 commit(s), 12 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151815.922684,
@@ -132,7 +111,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 226",
       "phase_num": 3,
-      "description": "Reforge stage 226: window 678, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 226: window 678, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151829.846329,
@@ -154,7 +133,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 227",
       "phase_num": 3,
-      "description": "Reforge stage 227: window 681, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 227: window 681, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151851.722465,
@@ -176,7 +155,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 228",
       "phase_num": 3,
-      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151869.2570536,
@@ -198,7 +177,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 229",
       "phase_num": 3,
-      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151894.533931,
@@ -220,12 +199,33 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 230",
       "phase_num": 3,
-      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151923.3207672,
       "timestamp_str": "2026-11-08 18:32:03",
       "agent": "opencode"
+    },
+    {
+      "task_id": "verify-78push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Non-recursive scope globs keep pathlib matching; 1002 unit tests, clean root scan (6.5s), map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794151924.0439174,
+      "timestamp_str": "2026-11-08 18:32:04",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-78push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-78push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794151924.6455946,
+      "timestamp_str": "2026-11-08 18:32:04",
+      "agent": "opencode:goal"
     },
     {
       "task_id": "reforge:run-2",

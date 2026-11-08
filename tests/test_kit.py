@@ -10999,6 +10999,16 @@ class TestPostCommitVerification(unittest.TestCase):
         self.assertEqual(scope_errors({"tests": ["tests/test_x.py"]},
                                        ["anything/at/all.py"], 10**9), [])
 
+    def test_scope_globs_keep_pathlib_matching_without_recursive_segments(self):
+        # 17069a4 replaced PurePath.match for every pattern; a plain basename glob
+        # must still match at any depth, as it did before `**` support.
+        self.assertEqual(scope_errors(
+            {"tests": ["tests/test_x.py"], "paths": ["*.py"]},
+            ["scripts/a.py"], 10), [])
+        self.assertEqual(scope_errors(
+            {"tests": ["tests/test_x.py"], "paths": ["scripts/*.py"]},
+            ["x/scripts/a.py"], 10), [])
+
     def test_numstat_counts_binary_files_as_single_line_changes(self):
         # `git diff --numstat` reports `- -` for binaries; each counts as one
         # changed line so a binary cannot slip under a `max_lines` budget uncounted.

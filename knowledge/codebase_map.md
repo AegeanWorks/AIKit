@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1014`
-- **Total Class Methods**: `1252`
-- **Total Source Lines**: `46828`
+- **Total Class Methods**: `1253`
+- **Total Source Lines**: `46843`
 
 ---
 
@@ -1677,7 +1677,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `755` lines (`36338` bytes)
+**Size**: `760` lines (`36604` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1904,7 +1904,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15411` lines (`838122` bytes)
+**Size**: `15421` lines (`838651` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2774,6 +2774,7 @@
   - Method `.test_min_killed_flag_follows_the_schema_default()`
   - Method `.test_scope_keys_are_optional_but_validated()`
   - Method `.test_scope_errors_name_outside_files_and_broken_budgets()`
+  - Method `.test_scope_globs_keep_pathlib_matching_without_recursive_segments()`
   - Method `.test_numstat_counts_binary_files_as_single_line_changes()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`

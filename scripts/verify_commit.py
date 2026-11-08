@@ -195,15 +195,20 @@ def _glob_match(path: str, pattern: str) -> bool:
     """Recursive glob: `**` spans zero or more segments, `*?[]` stay in-segment.
 
     `pathlib.PurePath.match` does not let `**` cross directories
-    (`scripts/**` misses `scripts/a/b.py`), so scope matching is segment-wise
-    here. A pattern without glob characters also matches everything beneath
-    that directory (`scripts` covers `scripts/a.py`).
+    (`scripts/**` misses `scripts/a/b.py`), so only a pattern with a whole
+    `**` segment uses the segment walker. Other patterns keep pathlib's suffix
+    matching, which lets `*.py` and `scripts/*.py` match at any depth. A pattern
+    without glob characters also matches everything beneath that directory
+    (`scripts` covers `scripts/a.py`).
     """
     import fnmatch as _fn
+    from pathlib import PurePosixPath as _Pure
     candidate = path.replace("\\", "/").strip()
     pat = pattern.replace("\\", "/").strip()
     if not any(char in pat for char in "*?["):
         return candidate == pat or candidate.startswith(pat.rstrip("/") + "/")
+    if "**" not in pat.split("/"):
+        return _Pure(candidate).match(pat)
     p_segs = pat.split("/")
     s_segs = candidate.split("/")
 

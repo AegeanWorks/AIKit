@@ -3882,3 +3882,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Add the three scripts to the loop, correct the closing message, and extend `TestCiContractGuards` to parse the loop and require the full set.
 - **Consequences**: Every standalone gate script that declares the exit-2 contract is exercised on both OS legs. A future script must add itself to the loop and the test, so the claim cannot silently drift again.
 - **Cross-principle check**: PRINCIPLE-011: no conflict because the CLI misuse contract is now enforced more broadly; PRINCIPLE-014: no conflict because the new test fails on the previous loop and none is weakened; PRINCIPLE-018: no conflict because only the CI gate changes.
+
+### ADR-384: Non-recursive scope globs keep pathlib matching
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `17069a4` replaced `PurePath.match` with a segment walker for every scope pattern. A declaration such as `paths: ["*.py"]` or `["scripts/*.py"]` no longer matched a nested path (`scripts/a.py`, `x/scripts/a.py`), so a valid commit was refused as outside scope even though the previous matcher accepted it.
+- **Decision**: Use the recursive walker only when `**` is a whole pattern segment. Other globs keep `PurePosixPath.match` suffix matching, and a pattern without glob characters keeps the directory-prefix rule.
+- **Consequences**: Existing declarations stay valid while `**` still spans directories. The unit tier pins both a basename glob and a nested directory glob, alongside the recursive cases.
+- **Cross-principle check**: PRINCIPLE-014: no conflict because the new test fails on the previous matcher and none is weakened; PRINCIPLE-018: no conflict because the scope boundary is unchanged for `**` patterns; PRINCIPLE-003: no conflict because the matching remains pure `pathlib`/`fnmatch`.
