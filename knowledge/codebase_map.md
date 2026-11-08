@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1224`
-- **Total Source Lines**: `46199`
+- **Total Class Methods**: `1225`
+- **Total Source Lines**: `46214`
 
 ---
 
@@ -1296,7 +1296,7 @@
 ### [`scripts/project_registry.py`](scripts/project_registry.py)
 > *Project registry: the projects AIKit builds (cockpit model, ADR-119).*
 
-**Size**: `1255` lines (`58800` bytes)
+**Size**: `1259` lines (`58985` bytes)
 
 **Classes:**
 - `class ProjectError` - *A request AIKit cannot carry out, with its reason and remedy (PRINCIPLE-011 R6).*
@@ -1331,7 +1331,7 @@
 - `def node_runner(root)` - *The package manager the project's lockfile names: pnpm, yarn, or npm by default.*
 - `def _node_test(root)`
 - `def _gradle_test(root)`
-- `def _cpp_test(root)` - *The project's canonical test entry: its own script when present, else CTest.*
+- `def _cpp_test(root)` - *The project's canonical test entry: its own native script when present, else CTest.*
 - `def _fixed(command)`
 - `def detect_stacks(root)` - *Every stack whose marker file sits in the project's top folder (polyglot repos list several).*
 - `def validate_name(name)` - *Reject names that are not one portable folder name.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14964` lines (`814965` bytes)
+**Size**: `14975` lines (`815499` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2338,6 +2338,7 @@
   - Method `.test_npm_placeholder_is_not_a_test_command()`
   - Method `.test_detects_python_from_test_folder_and_top_level_script()`
   - Method `.test_detects_cpp_with_cmake_and_project_test_script()`
+  - Method `.test_detects_cpp_with_native_test_script_preference()`
   - Method `.test_detects_cpp_with_ctest_preset_when_no_project_script()`
   - Method `.test_detects_node_from_lockfile_without_inventing_a_command()`
   - Method `.test_name_must_be_one_portable_segment()`

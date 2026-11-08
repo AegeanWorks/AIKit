@@ -5461,6 +5461,17 @@ class TestProjectRegistry(unittest.TestCase):
         stacks = {s.name: s.test_command for s in detect_stacks(folder)}
         self.assertEqual(stacks.get("cpp"), "scripts/test.cmd")
 
+    def test_detects_cpp_with_native_test_script_preference(self):
+        folder = self.make_folder(
+            ("CMakeLists.txt", "cmake_minimum_required(VERSION 3.28)\n"),
+            ("CMakePresets.json", "{}\n"),
+            ("scripts/test.cmd", "@echo off\n"),
+            ("scripts/test.sh", "#!/bin/sh\n"),
+        )
+        stacks = {s.name: s.test_command for s in detect_stacks(folder)}
+        expected = "scripts/test.cmd" if os.name == "nt" else "scripts/test.sh"
+        self.assertEqual(stacks.get("cpp"), expected)
+
     def test_detects_cpp_with_ctest_preset_when_no_project_script(self):
         folder = self.make_folder(
             ("CMakeLists.txt", "cmake_minimum_required(VERSION 3.28)\n"),

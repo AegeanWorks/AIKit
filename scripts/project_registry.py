@@ -13,6 +13,7 @@ stale; `project.json` holds only an explicit `test_command` override.
 """
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -791,9 +792,12 @@ def _gradle_test(root: Path) -> str:
 
 
 def _cpp_test(root: Path) -> str:
-    """The project's canonical test entry: its own script when present, else CTest."""
-    if (root / "scripts" / "test.cmd").is_file():
-        return "scripts/test.cmd"
+    """The project's canonical test entry: its own native script when present, else CTest."""
+    native = "scripts/test.cmd" if os.name == "nt" else "scripts/test.sh"
+    fallback = "scripts/test.sh" if os.name == "nt" else "scripts/test.cmd"
+    for script in (native, fallback):
+        if (root / script).is_file():
+            return script
     if (root / "CMakePresets.json").is_file():
         return "ctest --preset release"
     return "ctest"
