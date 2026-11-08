@@ -34,7 +34,7 @@ from scripts.update_knowledge_base import write_generated_file
 
 Runner = Callable[[List[str], Path], Tuple[int, str]]
 ARCHIVE_DIRNAME = "archive"
-_ARCHIVE_BANNER_RE = re.compile(r"^>\s*\*\*Archived\*\*")
+_ARCHIVE_BANNER_RE = re.compile(r"^>\s*\*\*Archived\*\*", re.IGNORECASE)
 
 
 def _is_archive_banner(line: str) -> bool:
@@ -123,7 +123,7 @@ def update_readme_for_archive(readme_path: Path, reason: str, date_str: str) -> 
             text = handle.read()
     except OSError:
         return False
-    if "> **Archived**" in text:
+    if any(_is_archive_banner(line) for line in text.splitlines()):
         return False
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)

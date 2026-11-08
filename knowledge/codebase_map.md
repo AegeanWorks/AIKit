@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1008`
-- **Total Class Methods**: `1237`
-- **Total Source Lines**: `46496`
+- **Total Class Methods**: `1238`
+- **Total Source Lines**: `46510`
 
 ---
 
@@ -1078,7 +1078,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `568` lines (`29460` bytes)
+**Size**: `568` lines (`29510` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1275,7 +1275,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `374` lines (`18246` bytes)
+**Size**: `374` lines (`18249` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1898,7 +1898,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15179` lines (`826368` bytes)
+**Size**: `15193` lines (`827109` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2701,6 +2701,7 @@
   - Method `.test_banner_ignores_casual_archived_mention()`
   - Method `.test_banner_goes_after_description_when_media_block_precedes_it()`
   - Method `.test_existing_archive_banner_is_not_the_description()`
+  - Method `.test_archive_banner_recognition_is_case_insensitive()`
   - Method `.test_github_description_prefixes_archived_once()`
   - Method `.test_destination_defaults_to_projects_archive()`
   - Method `.test_move_refuses_existing_destination()`

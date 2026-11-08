@@ -3786,3 +3786,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: When `.git/config` contains an `includeIf` section, ask Git for the effective `core.hooksPath`; otherwise keep the no-subprocess file parser. Fall back to the parsed value if Git returns none. System/global files keep the parser.
 - **Consequences**: Repository-local conditional includes are honored without making the common path spawn. The unit tier mocks the config reader for the conditional case.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because the platform path handling is unchanged; PRINCIPLE-014: no conflict because the new test fails on the parser-only path and no assertion is weakened; PRINCIPLE-018: no conflict because the guard installs where Git actually looks.
+
+### ADR-372: Archive banner recognition is case-insensitive
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `update_readme_for_archive` and `extract_readme_description` matched only the exact title-case banner. A legacy or hand-edited `> **archived**` line was treated as the description, and a re-archive inserted a second banner.
+- **Decision**: Match the banner case-insensitively in both places, and treat any recognized banner line as proof that the README is already archived.
+- **Consequences**: A re-archive leaves one banner and the original description intact; the GitHub description is not the archive reason. The unit tier pins a lower-case banner.
+- **Cross-principle check**: PRINCIPLE-000: no conflict because the documented archive marker becomes robust rather than ambiguous; PRINCIPLE-014: no conflict because the new test fails on the previous case-sensitive checks and none is weakened.

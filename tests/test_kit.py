@@ -10190,6 +10190,20 @@ class TestProjectArchive(unittest.TestCase):
             self.assertEqual(extract_readme_description(root),
                              "A tool that does X for Y users here.")
 
+    def test_archive_banner_recognition_is_case_insensitive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            readme = root / "README.md"
+            readme.write_text(
+                "# demo\n\n"
+                "> **archived**: legacy reason (archived 2026-11-05).\n\n"
+                "A tool that does X for Y users here.\n", encoding="utf-8")
+            self.assertFalse(update_readme_for_archive(readme, "second reason", "2026-11-06"))
+            self.assertEqual(
+                readme.read_text(encoding="utf-8").lower().count("**archived**"), 1)
+            self.assertEqual(extract_readme_description(root),
+                             "A tool that does X for Y users here.")
+
     def test_github_description_prefixes_archived_once(self):
         self.assertEqual(archive_github_description("A tool that does X."),
                          "[ARCHIVED] A tool that does X.")

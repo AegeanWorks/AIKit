@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-39push-v2",
+    "task_id": "verify-42push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794144329.7323244,
+    "updated_at": 1794144655.0967095,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794144330.0540526
+    "completed_at": 1794144655.6732745
   },
   "checkpoints": [
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 27 pushes: report a publish-guard install failure instead of raising",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142365.2544463,
-      "timestamp_str": "2026-11-08 15:52:45",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "auto_push_project calls install_pre_push_hook without a handler; a hook-path permission or disk error raises OSError out of check --push/push/archive, breaking the Why/Fix contract and hiding the cause.",
-        "benefits": "A failed guard install returns a clear delivery triad and nothing is pushed.",
-        "risks": "contract: sanctioned push error path; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, map",
-        "mitigation": "failing-first patched-install test, targeted publish tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "cff1cc606e692de646ede3939473e51779321e597e16dc0176d72dbff439c712"
-    },
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Guard-install failures return a delivery triad; 978 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142547.828488,
-      "timestamp_str": "2026-11-08 15:55:47",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-27push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-27push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794142548.1374557,
-      "timestamp_str": "2026-11-08 15:55:48",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 40",
@@ -257,6 +218,45 @@
       "status": "completed",
       "timestamp": 1794144330.0540547,
       "timestamp_str": "2026-11-08 16:25:30",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 42 pushes: recognize archive banners case-insensitively",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144521.9667256,
+      "timestamp_str": "2026-11-08 16:28:41",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "update_readme_for_archive and extract_readme_description match only the exact title-case banner; a legacy or hand-edited lowercase banner is treated as the description and a re-archive adds a second banner.",
+        "benefits": "One banner is recognized in any case, the original description survives a re-archive, and the GitHub description is not the archive reason.",
+        "risks": "contract: archive README boundary; dependency: stdlib re; concurrency: none; state: project_archive.py, project_publish.py, tests, ADR, map",
+        "mitigation": "failing-first lowercase-banner test, existing archive tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "cb918a9d509200172edb9ed936b2a5f97901df571d33e1283506cc4c9c32224d"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Archive banners recognized case-insensitively; 987 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144655.0967095,
+      "timestamp_str": "2026-11-08 16:30:55",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-42push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-42push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144655.6732786,
+      "timestamp_str": "2026-11-08 16:30:55",
       "agent": "opencode:goal"
     }
   ]
