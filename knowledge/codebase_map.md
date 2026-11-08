@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1229`
-- **Total Source Lines**: `46353`
+- **Total Source Lines**: `46349`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `830` lines (`40545` bytes)
+**Size**: `826` lines (`40271` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
