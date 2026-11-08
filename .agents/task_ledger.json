@@ -13,45 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "verify-60push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 60 pushes: recognize the archive prefix in any case",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146976.8439841,
-      "timestamp_str": "2026-11-08 17:09:36",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "archive_github_description tests only uppercase [ARCHIVED]; a legacy or hand-edited [archived] description gets a second prefix on re-archive.",
-        "benefits": "The prefix is idempotent in any case and the original casing is preserved.",
-        "risks": "contract: GitHub description prefix; dependency: stdlib; concurrency: none; state: project_publish.py, tests, ADR, map",
-        "mitigation": "failing-first lower/mixed-case test, existing archive tests, unit tier, root scan and gates"
-      },
-      "plan_digest": "6818a148c79404c00c1950436ade7f893b5cf9677203ddf5f1acb4804d4fc39b"
-    },
-    {
-      "task_id": "verify-60push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Blank archive override stays bare; 996 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794147634.9053478,
-      "timestamp_str": "2026-11-08 17:20:34",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-60push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-60push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794147635.0855484,
-      "timestamp_str": "2026-11-08 17:20:35",
-      "agent": "opencode:goal"
-    },
-    {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 51",
       "phase_num": 3,
@@ -248,6 +209,39 @@
       "status": "in_progress",
       "timestamp": 1794149393.239588,
       "timestamp_str": "2026-11-08 17:49:53",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 54",
+      "phase_num": 3,
+      "description": "Reforge stage 54: stage 54 host review reviewed; run active; coverage 23/23",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149434.5254889,
+      "timestamp_str": "2026-11-08 17:50:34",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 55",
+      "phase_num": 3,
+      "description": "Reforge stage 55: window 165, 2 commit(s), 1 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149488.3435652,
+      "timestamp_str": "2026-11-08 17:51:28",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 55",
+      "phase_num": 3,
+      "description": "Reforge stage 55: stage 55 host review reviewed; run active; coverage 6/6",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149488.9427917,
+      "timestamp_str": "2026-11-08 17:51:28",
       "agent": "opencode"
     }
   ]
