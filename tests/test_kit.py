@@ -1352,6 +1352,19 @@ class TestRuntimeFloorConsistency(unittest.TestCase):
         self.assertIn("python-version: ['3.13']", ci)
 
 
+class TestCiContractGuards(unittest.TestCase):
+    """The CI misuse probe must run under `set -e` (ADR-347)."""
+
+    def test_cli_contract_probe_is_guarded(self):
+        ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml")
+        text = ci.read_text(encoding="utf-8")
+        self.assertRegex(
+            text,
+            r'code=0\s*\n\s*python "scripts/\$s\.py" --not-a-real-flag[^\n]*\|\| code=\$\?',
+            "a bare misuse probe exits 2 and kills the set -e shell before code capture",
+        )
+
+
 class TestPythonFileDiscovery(unittest.TestCase):
     """`find_python_files` prunes ignored directories relative to the root (ADR-115)."""
 

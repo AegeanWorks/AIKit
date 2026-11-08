@@ -1,48 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-12push",
+    "task_id": "verify-15push-v2",
     "last_phase": "implementation",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794111586.0734847,
+    "updated_at": 1794112094.0677361,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "runtime-floor",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "[2/4] Floor raised to 3.13 with retargeted guards, Phase 4 green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794051905.271774,
-      "timestamp_str": "2026-11-07 14:45:05",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "runtime-floor",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[4/4] Floor 3.13 shipped as 7a13761, CI green on main",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794052241.9511719,
-      "timestamp_str": "2026-11-07 14:50:41",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "runtime-floor",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'runtime-floor' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794052242.0892367,
-      "timestamp_str": "2026-11-07 14:50:42",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "t487-va45-va50-va54-pmid-onarimi",
       "phase": "2",
@@ -265,6 +233,45 @@
       "status": "in_progress",
       "timestamp": 1794111586.0734847,
       "timestamp_str": "2026-11-08 07:19:46",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-12push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-12push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794112091.8813162,
+      "timestamp_str": "2026-11-08 07:28:11",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-15push-v2",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/3] Review the last 15 pushes and pin the set -e-safe CLI contract probe",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112093.2448142,
+      "timestamp_str": "2026-11-08 07:28:13",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The CI misuse probe exited 2 by design; a bare probe under set -e killed the shell before code capture, so the gate never ran.",
+        "benefits": "The guarded probe shape is enforced by the unit tier; a regression fails before CI.",
+        "risks": "contract: CI workflow shape; dependency: stdlib; concurrency: none; state: tests, decisions, code map",
+        "mitigation": "workflow-text unit pin, map check, verify_commit before push"
+      },
+      "plan_digest": "0b4e6f3aa2a4fe68c859f8affa5fe3119ca9ccb6d1d9b4021cfc96d81380d562"
+    },
+    {
+      "task_id": "verify-15push-v2",
+      "phase": "implementation",
+      "phase_num": 4,
+      "description": "[2/3] CI contract probe pin; unit test and map check passed; skipped timing budgets (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794112094.0677361,
+      "timestamp_str": "2026-11-08 07:28:14",
       "agent": "opencode:goal"
     }
   ]

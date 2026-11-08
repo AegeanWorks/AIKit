@@ -3590,3 +3590,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: ADR-340 moved the floor from 3.10 to 3.13 across `MIN_PYTHON`, README, GUIDELINES and the CI matrix. Four independent surfaces can drift again, recreating a promise the code does not keep.
 - **Decision**: Add a unit test that imports `MIN_PYTHON`, checks the README badge and prerequisites, the GUIDELINES wording and the CI matrix all say 3.13. It reads files only and spawns no process.
 - **Consequences**: Changing the floor without updating every declared surface fails the unit tier. The test pins the declaration, not the interpreter actually running the suite.
+
+### ADR-347: CI misuse probe stays guarded under set -e
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The universal CLI contract step runs under the runner's `set -e`. A bare `python scripts/<gate>.py --not-a-real-flag` exits 2 by design, killing the shell before `code=$?`; the gate then never executed. Commit 97b50ff fixed it with `code=0` and `|| code=$?`.
+- **Decision**: Pin the shape in the unit tier: the CI file must contain `code=0` followed by the probe line ending in `|| code=$?`. The test reads the workflow text and spawns no process.
+- **Consequences**: A future edit that restores the bare probe fails before CI, keeping the misuse check live on every runner.
