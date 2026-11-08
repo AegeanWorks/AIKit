@@ -207,7 +207,7 @@ python aikit.py publish my-app [--owner ORG] [--license auto]  # pre-push guard,
 python aikit.py archive my-app --reason "superseded by X" [--offline]  # move to projects/archive/, archive GitHub repo
 python aikit.py license my-app [--suggest|--set game|--restrict]  # AL-1.1, AGL-1.1 (DRM-free games) or ASL-1.1 (science)
 ```
-A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` installs a `.git/hooks/pre-push` guard: a raw `git push` is refused until the project is uploaded through AIKit (ADR-341), then needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
+A project's memory is `.aikit/`; ledger commands take `--workspace projects/<name>`. `publish` installs a pre-push guard at `.git/hooks` or the repository's `core.hooksPath`: a raw `git push` is refused until the project is uploaded through AIKit (ADR-341, ADR-342), then needs a 10-350 char README description; `license` picks AL-1.1, AGL-1.1 or ASL-1.1. `check` wants `checklists: passed`; deliberate hygiene findings need `hygiene: allow <reason>`. `ui` is opt-in (`.aikit/ui.json`); `finish` needs `--reviewed` (ADR-160..166). `check`/`fix`/`publish` run project commands unsandboxed: attach trusted repositories only.
 
 ## 🔁 Aegean Reforge: Host Review & Safe Repair
 

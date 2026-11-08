@@ -149,6 +149,7 @@ from scripts.project_publish import (
 from scripts.git_guard import (
     HOOK_MARKER,
     PUBLISH_ENV,
+    hook_path,
     install_pre_push_hook,
     is_guard_installed,
     publish_environment,
@@ -9055,6 +9056,18 @@ class TestPublishGuard(unittest.TestCase):
     def test_no_git_repository_is_a_no_op(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIsNone(install_pre_push_hook(Path(tmp), "demo"))
+
+    def test_core_hooks_path_is_respected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            (root / ".git" / "config").write_text(
+                "[core]\n\thooksPath = .husky\n", encoding="utf-8")
+            target = install_pre_push_hook(root, "demo")
+            self.assertEqual(target, root / ".husky" / "pre-push")
+            self.assertEqual(hook_path(root), target)
+            self.assertTrue(is_guard_installed(root))
+            self.assertTrue(target.is_file())
 
     def test_create_project_installs_the_guard(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -24,15 +24,90 @@ _HOOK_NAME = "pre-push"
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def _config_value(raw: str) -> str:
+    """A git config value as git reads it: quotes removed, and ; or # outside quotes ends it."""
+    value, quoted, escaped = [], False, False
+    for char in raw.strip():
+        if escaped:
+            value.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == '"':
+            quoted = not quoted
+        elif char in ";#" and not quoted:
+            break
+        else:
+            value.append(char)
+    return "".join(value).strip()
+
+
+def _local_hooks_path(project_root: Path) -> Optional[str]:
+    """core.hooksPath from the repository-local .git/config, without spawning git."""
+    config = Path(project_root) / ".git" / "config"
+    if not config.is_file():
+        return None
+    try:
+        lines = config.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    in_core = False
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            in_core = line[1:-1].strip().lower() == "core"
+            continue
+        if in_core and "=" in line:
+            key, value = line.split("=", 1)
+            if key.strip().lower() == "hookspath":
+                return _config_value(value) or None
+    return None
+
+
+def _git_config_value(project_root: Path, key: str) -> Optional[str]:
+    """Read one git config value, or None when it is unset or git cannot run."""
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", key],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    value = result.stdout.strip()
+    return value or None
+
+
 def hook_path(project_root: Path) -> Optional[Path]:
     """The repository's pre-push hook path, or None when the folder is not a git repo."""
     project_root = Path(project_root)
     dot_git = project_root / ".git"
     if dot_git.is_dir():
+        # core.hooksPath redirects Git away from .git/hooks; install where Git looks.
+        configured = _local_hooks_path(project_root)
+        if configured:
+            path = Path(configured).expanduser()
+            if not path.is_absolute():
+                path = project_root / path
+            return path / _HOOK_NAME
         return dot_git / "hooks" / _HOOK_NAME
     if not dot_git.exists():
         return None
     # A worktree or submodule stores `.git` as a file; ask git for the real hooks path.
+    configured = _git_config_value(project_root, "core.hooksPath")
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.is_absolute():
+            path = project_root / path
+        return path / _HOOK_NAME
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--git-path", "hooks"],
