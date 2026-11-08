@@ -14,28 +14,6 @@
   "checkpoints": [
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 226",
-      "phase_num": 3,
-      "description": "Reforge stage 226: stage 226 host review reviewed; run active; coverage 35/35",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151834.47262,
-      "timestamp_str": "2026-11-08 18:30:34",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 227",
-      "phase_num": 3,
-      "description": "Reforge stage 227: window 681, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151851.722465,
-      "timestamp_str": "2026-11-08 18:30:51",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 227",
       "phase_num": 3,
       "description": "Reforge stage 227: stage 227 host review reviewed; run active; coverage 40/40",
@@ -49,7 +27,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 228",
       "phase_num": 3,
-      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151869.2570536,
@@ -71,7 +49,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 229",
       "phase_num": 3,
-      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151894.533931,
@@ -93,7 +71,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 230",
       "phase_num": 3,
-      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151923.3207672,
@@ -136,7 +114,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 231",
       "phase_num": 3,
-      "description": "Reforge stage 231: window 693, 3 commit(s), 20 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 231: window 693, 3 commit(s), 20 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151951.7457502,
@@ -158,7 +136,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 232",
       "phase_num": 3,
-      "description": "Reforge stage 232: window 695, 2 commit(s), 4 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 232: window 695, 2 commit(s), 4 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794152076.142367,
@@ -180,7 +158,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 233",
       "phase_num": 3,
-      "description": "Reforge stage 233: window 696, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 233: window 696, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794152387.3575208,
@@ -236,6 +214,28 @@
       "timestamp": 1794152570.7570357,
       "timestamp_str": "2026-11-08 18:42:50",
       "agent": "opencode:goal"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 234",
+      "phase_num": 3,
+      "description": "Reforge stage 234: window 699, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794152761.7930045,
+      "timestamp_str": "2026-11-08 18:46:01",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 234",
+      "phase_num": 3,
+      "description": "Reforge stage 234: stage 234 host review reviewed; run completed; coverage 18/18",
+      "files_affected": [],
+      "status": "completed",
+      "timestamp": 1794152766.433982,
+      "timestamp_str": "2026-11-08 18:46:06",
+      "agent": "opencode"
     }
   ]
 }
