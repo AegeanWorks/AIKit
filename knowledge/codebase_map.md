@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `794` lines (`38720` bytes)
+**Size**: `794` lines (`38732` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
