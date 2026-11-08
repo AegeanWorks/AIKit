@@ -3634,3 +3634,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Match git and gh commands by exact token, match `--push` explicitly, and match `check_secrets.py` by basename. Add a regression test whose workspace is `/p/push-app` and whose scan returns a finding.
 - **Consequences**: A checkout or workspace directory name cannot change which fake reply a test receives. The secret-scan refusal stays tested regardless of the path. The new regression test fails against the old matcher.
 - **Cross-principle check**: PRINCIPLE-000: no conflict because production behavior is unchanged; PRINCIPLE-014: no conflict because the new test tightens the suite and no assertion is weakened; PRINCIPLE-019: no conflict because the secret-scan refusal remains visible.
+
+### ADR-353: CI pins cover order and the whole CLI contract
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-337 pinned the runner identity lines by presence, and ADR-347 pinned the `set -e` guard on the misuse probe. Neither pinned that the identity step runs before the committing tests, nor that the CLI contract keeps its `--help` success and exit-2 assertions. Moving or deleting either half would leave the unit tier green and a fresh runner red.
+- **Decision**: Assert the identity step precedes the first test step and that both git config lines live inside that step. Assert the CLI contract keeps the `--help` guard, the `if [ "$code" -ne 2 ]` assertion and the expected exit code.
+- **Consequences**: Reordering the workflow or weakening the CLI contract fails the unit tier. The pins cover the workflow shape the two earlier ADRs intended, not only the strings they introduced.
+- **Cross-principle check**: PRINCIPLE-014: no conflict because the assertions fail on the weakened workflow and none is relaxed; PRINCIPLE-015: no conflict because the dogfood gate is unchanged and still runs; PRINCIPLE-017: no conflict because the workflow remains a generated-free rule target and `scripts/sync_principles.py --check` passes.

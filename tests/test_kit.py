@@ -1365,12 +1365,24 @@ class TestCiContractGuards(unittest.TestCase):
             r'code=0\s*\n\s*python "scripts/\$s\.py" --not-a-real-flag[^\n]*\|\| code=\$\?',
             "a bare misuse probe exits 2 and kills the set -e shell before code capture",
         )
+        # The guard alone is not the contract: --help must still succeed and
+        # misuse must still be asserted as exit 2.
+        self.assertIn('--help > /dev/null < /dev/null', text)
+        self.assertIn('if [ "$code" -ne 2 ]; then', text)
+        self.assertIn("expected 2", text)
 
     def test_ci_supplies_the_identity_committing_tests_need(self):
         ci = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml")
         text = ci.read_text(encoding="utf-8")
-        self.assertIn('git config --global user.email "aikit-ci@example.com"', text)
-        self.assertIn('git config --global user.name "AIKit CI"', text)
+        identity = text.find("name: Provide git identity for committing tests")
+        tests = text.find("name: Test tier budget gate")
+        self.assertGreaterEqual(identity, 0, "the identity step is missing")
+        self.assertGreaterEqual(tests, 0, "the test step is missing")
+        self.assertLess(identity, tests, "identity must run before any committing test")
+        next_step = text.find("- name:", identity + 1)
+        block = text[identity:next_step if next_step != -1 else len(text)]
+        self.assertIn('git config --global user.email "aikit-ci@example.com"', block)
+        self.assertIn('git config --global user.name "AIKit CI"', block)
 
 
 class TestPythonFileDiscovery(unittest.TestCase):
