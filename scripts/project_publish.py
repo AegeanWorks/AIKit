@@ -224,7 +224,13 @@ def auto_push_project(project_root: Path, name: str, runner: Optional[Runner] = 
     # the guard existed must not keep a raw-push path just because AIKit pushed it.
     try:
         install_pre_push_hook(project_root, name)
-    except (OSError, ValueError) as exc:
+    except ValueError as exc:
+        return 1, _triad(
+            f"the publish guard could not be installed in '{name}': {exc}",
+            "the project name must be safe for a hook file.",
+            "use a name without path separators or shell metacharacters, then retry.",
+        )
+    except OSError as exc:
         return 1, _triad(
             f"the publish guard could not be installed in '{name}': {exc}",
             "a raw push would bypass AIKit's gates.",

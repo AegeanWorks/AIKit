@@ -9652,6 +9652,16 @@ class TestProjectPublish(unittest.TestCase):
         self.assertIn("publish guard", report)
         self.assertEqual(self.made("push"), [])
 
+    def test_auto_push_reports_an_unsafe_project_name(self):
+        with mock.patch("scripts.project_publish.install_pre_push_hook",
+                        side_effect=ValueError("project name is not safe for a hook")):
+            code, report = auto_push_project(
+                Path("/p/app"), "bad/name",
+                runner=self.runner(**{"get-url": (0, "https://github.com/me/app.git")}))
+        self.assertEqual(code, 1, report)
+        self.assertIn("Fix: use a name without path separators", report)
+        self.assertEqual(self.made("push"), [])
+
     def test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding(self):
         def runner(scan_code):
             def run(argv, cwd):
