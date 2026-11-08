@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1006`
 - **Total Class Methods**: `1215`
-- **Total Source Lines**: `46046`
+- **Total Source Lines**: `46054`
 
 ---
 
@@ -772,7 +772,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `382` lines (`17130` bytes)
+**Size**: `382` lines (`17115` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -1044,7 +1044,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `269` lines (`9263` bytes)
+**Size**: `276` lines (`9633` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
@@ -1896,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14844` lines (`808603` bytes)
+**Size**: `14845` lines (`808722` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*

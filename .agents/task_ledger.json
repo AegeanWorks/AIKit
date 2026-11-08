@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-18push-v2",
+    "task_id": "verify-21push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794132627.477323,
+    "updated_at": 1794133395.948096,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794132627.8541305
+    "completed_at": 1794133396.3062522
   },
   "checkpoints": [
-    {
-      "task_id": "verify-19push",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/3] Per-clause cross-check boundary; tests, sync gate, read-only gates and dogfood passed; skipped timing budgets (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794113556.1766837,
-      "timestamp_str": "2026-11-08 07:52:36",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-19push",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-19push' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794114030.1555939,
-      "timestamp_str": "2026-11-08 08:00:30",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-19push-followup",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Accept short gate names in the Unverified override",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794114478.4999063,
-      "timestamp_str": "2026-11-08 08:07:58",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The format required six characters after Unverified:, so the real five-character gate name tiers was rejected.",
-        "benefits": "Unverified: tiers is valid; bare and one-character lists still fail.",
-        "risks": "contract: commit-message validator; dependency: stdlib; concurrency: none; state: validator, tests, decisions, map",
-        "mitigation": "unit pin for tiers, direct knowledge gate, verify_commit before push"
-      },
-      "plan_digest": "73b378635e37c437ad2a000409a6fa1b849083dd20938b7a3d40393a085d930a"
-    },
     {
       "task_id": "verify-19push-followup",
       "phase": "implementation",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794132627.8541338,
       "timestamp_str": "2026-11-08 13:10:27",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-21push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Integrate the concurrent Windows Git config discovery into the pushed guard",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794133271.038507,
+      "timestamp_str": "2026-11-08 13:21:11",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The pushed guard reads %PROGRAMDATA%\\\\Git\\\\config, but Git for Windows keeps its system config beside the executable at <install>/etc/gitconfig; the concurrent work found the more reliable path.",
+        "benefits": "The guard finds the real system config on standard Git for Windows installs and drops the PROGRAMDATA allowlist entry.",
+        "risks": "contract: guard config search; dependency: stdlib shutil; concurrency: overlapping uncommitted work in the main checkout; state: git_guard.py, tests, reachability allowlist, ADR, map",
+        "mitigation": "apply only the Windows discovery hunk over the pushed atomic install, targeted tests, reachability, full unit tier"
+      },
+      "plan_digest": "44d1562159edafeeb2682d9ee8ece2d5a59d6154fca224bcb4f39f05f167b8a4"
+    },
+    {
+      "task_id": "verify-21push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Windows Git config discovery integrated; 964 unit tests and guard-hook integration pass; reachability and map checks pass; dogfood and timing budgets skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794133395.948096,
+      "timestamp_str": "2026-11-08 13:23:15",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-21push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-21push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794133396.3062549,
+      "timestamp_str": "2026-11-08 13:23:16",
       "agent": "opencode:goal"
     }
   ]

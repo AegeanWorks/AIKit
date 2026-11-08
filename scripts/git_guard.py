@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import shutil
 import stat
 import subprocess
 from contextlib import contextmanager
@@ -96,9 +97,15 @@ def _global_hooks_path() -> Optional[str]:
         system = os.environ.get("GIT_CONFIG_SYSTEM")
         if system is None:
             if os.name == "nt":
-                programdata = os.environ.get("PROGRAMDATA")
-                if programdata:
-                    paths.append(Path(programdata) / "Git" / "config")
+                # Git for Windows keeps its system config beside the executable
+                # (<install>/etc/gitconfig), which is more reliable than PROGRAMDATA.
+                executable = shutil.which("git")
+                if executable:
+                    for ancestor in Path(executable).resolve().parents:
+                        candidate = ancestor / "etc" / "gitconfig"
+                        if candidate.is_file():
+                            paths.append(candidate)
+                            break
             else:
                 paths.append(Path("/etc/gitconfig"))
         elif system:

@@ -9221,17 +9221,18 @@ class TestPublishGuard(unittest.TestCase):
             (root / ".git").mkdir()
             (root / ".git" / "config").write_text(
                 "[core]\n\trepositoryformatversion = 0\n", encoding="utf-8")
-            programdata = root / "programdata"
+            install = root / "Git"
+            (install / "cmd").mkdir(parents=True)
+            git_exe = install / "cmd" / "git.exe"
+            git_exe.write_text("", encoding="utf-8")
+            (install / "etc").mkdir()
             system_hooks = root / "system-hooks"
-            (programdata / "Git").mkdir(parents=True)
-            (programdata / "Git" / "config").write_text(
+            (install / "etc" / "gitconfig").write_text(
                 f"[core]\n\thooksPath = {system_hooks.as_posix()}\n", encoding="utf-8")
             global_config = root / "global.gitconfig"
             global_config.write_text("", encoding="utf-8")
-            with mock.patch.dict(os.environ, {
-                "PROGRAMDATA": str(programdata),
-                "GIT_CONFIG_GLOBAL": str(global_config),
-            }):
+            with (mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(global_config)}),
+                  mock.patch("shutil.which", return_value=str(git_exe))):
                 os.environ.pop("GIT_CONFIG_SYSTEM", None)
                 os.environ.pop("GIT_CONFIG_NOSYSTEM", None)
                 self.assertEqual(hook_path(root), system_hooks / "pre-push")

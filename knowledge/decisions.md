@@ -3674,3 +3674,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Read `%PROGRAMDATA%\Git\config` on Windows and keep `/etc/gitconfig` elsewhere, then record `PROGRAMDATA` as a host-set key in `scripts/check_reachability.py`.
 - **Consequences**: The guard follows the same system config Git does on Windows, and the reachability shield keeps a producer for every environment key. The Windows-only test exercises the path.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because the path is platform-guarded and uses `pathlib`; PRINCIPLE-009: no conflict because no subprocess is added; PRINCIPLE-014: no conflict because the reachability gate stays green and the Windows test is retained.
+
+### ADR-358: Find Git for Windows system config beside the executable
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-357 read `%PROGRAMDATA%\Git\config`, but Git for Windows keeps its system config at `<install>/etc/gitconfig`, which may not live under `PROGRAMDATA`. The stage-14 reforge work found the unreliable path.
+- **Decision**: On Windows, search the ancestors of `shutil.which("git")` for `etc/gitconfig`; keep `/etc/gitconfig` elsewhere. Drop `PROGRAMDATA` from the reachability allowlist.
+- **Consequences**: Standard Git for Windows installs are found without depending on an environment variable Git itself may not use. The Windows-only test mocks `shutil.which` and runs on the Windows CI leg.
+- **Cross-principle check**: PRINCIPLE-003: no conflict because `shutil.which` is standard library and the path work uses `pathlib`; PRINCIPLE-009: no conflict because no subprocess is added; PRINCIPLE-014: no conflict because the Windows test is retained and rewritten; PRINCIPLE-018: no conflict because the guard's purpose is unchanged.
