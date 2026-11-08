@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1218`
-- **Total Source Lines**: `46108`
+- **Total Source Lines**: `46100`
 
 ---
 
@@ -1410,13 +1410,13 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `350` lines (`15352` bytes)
+**Size**: `342` lines (`15028` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
 - `def witness_key(receipt)` - *Content hash binding a receipt to its evidence (IDEA-1156 witness).*
 - `def entry_path(corpus, key)` - *Filesystem path of one corpus entry (hex key, no traversal).*
-- `def _atomic_write_json(path, value)`
+- `def _atomic_write_json(path, value)` - *Write one corpus entry with the shared PRINCIPLE-013 durability contract.*
 - `def store(receipt, corpus, *, envelope, now)` - *File a receipt under its witness key (IDEA-1156); returns key, path.*
 - `def load(corpus, key)` - *Read one entry by witness key; None when absent or unreadable.*
 - `def list_entries(corpus)` - *Every readable entry, oldest first (IDEA-1156 pruning order).*

@@ -22,7 +22,6 @@ import argparse
 import hashlib
 import inspect
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -101,21 +100,14 @@ def entry_path(corpus: Path, key: str) -> Path:
 
 
 def _atomic_write_json(path: Path, value: Any) -> None:
-    import tempfile as _tempfile
-    parent = path.parent
-    parent.mkdir(parents=True, exist_ok=True)
-    handle_no, temporary = _tempfile.mkstemp(
-        prefix=path.name + ".tmp_", dir=str(parent))
-    try:
-        with os.fdopen(handle_no, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(json.dumps(value, indent=2, ensure_ascii=False,
-                                    sort_keys=True) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+    """Write one corpus entry with the shared PRINCIPLE-013 durability contract."""
+    from scripts.disruption_recovery import atomic_write_text
+
+    atomic_write_text(
+        Path(path),
+        json.dumps(value, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        backup=False,
+    )
 
 
 def store(receipt: Mapping[str, Any], corpus: Path, *,
