@@ -45,6 +45,18 @@ try:
 except ImportError:  # pragma: no cover - exercised by the standalone CLI contract, not the tier
     from check_secrets import scrub_text
 
+# The task machine is declared once in scripts/state_machines.py (ADR-388). Two import forms
+# because this module runs both as a package and as a standalone script (PRINCIPLE-011 R1).
+try:
+    from scripts.state_machines import BY_NAME as _STATE_MACHINES
+except ImportError:  # pragma: no cover - standalone `python scripts/disruption_recovery.py`
+    from state_machines import BY_NAME as _STATE_MACHINES
+
+TASK_MACHINE = _STATE_MACHINES["task-lifecycle"]
+TASK_STATES = frozenset(TASK_MACHINE.states)
+# `missing` is the absence of a task, not a checkpoint status a writer may record.
+TASK_CHECKPOINT_STATES = frozenset(TASK_STATES - {"missing"})
+
 # Safe terminal encoding on Windows (cp1254/cp1252)
 if sys.platform == "win32":
     try:
@@ -817,6 +829,15 @@ class LedgerOwnershipError(Exception):
                          "nothing was recorded.")
 
 
+class CompletedTaskError(Exception):
+    """A checkpoint tried to reopen a completed task (ADR-388); nothing was changed."""
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        super().__init__(f"task '{task_id}' is completed; it cannot be reopened by a checkpoint. "
+                         "Start a new task id, or use --resume-task only for a suspended task.")
+
+
 def _claim(active: Dict[str, Any], agent: str, take_over: bool) -> Optional[str]:
     """
     Check that `agent` may write the in-progress task `active`; returns the previous owner when the
@@ -860,6 +881,11 @@ def record_checkpoint(
     agent owns, or replacing it, needs `take_over`; LedgerOwnershipError otherwise (ADR-209).
     """
     agent = agent or resolve_agent()
+    if status not in TASK_CHECKPOINT_STATES:
+        raise ValueError(
+            f"unknown checkpoint status {status!r}; known statuses are "
+            f"{', '.join(sorted(TASK_CHECKPOINT_STATES))}"
+        )
     resolved_phase = resolve_phase_num(phase, phase_num)
     checkpoint_entry = {
         "task_id": task_id,
@@ -908,6 +934,10 @@ def record_checkpoint(
     # Locked read-modify-write: parallel subagents must not interleave here (PRINCIPLE-013 R3)
     with locked_ledger(ledger_file) as ledger:
         previous = ledger.get("active_task") or {}
+        if previous.get("task_id") == task_id and previous.get("status") == "completed":
+            # A completed task is terminal; reopening it through the same id silently erased the
+            # closure and reset started_by. Refuse before any mutation (ADR-388).
+            raise CompletedTaskError(task_id)
         # Raises before anything is written; a continued task records whom it continues.
         continued_from = _claim(previous, agent, take_over)
         same_task = previous.get("task_id") == task_id and previous.get("status") == "in_progress"
@@ -1253,6 +1283,12 @@ def run_disruption_audit(
             audit["clean_shutdown"] = False
         if active and active.get("status") == "suspended":
             audit["suspended_task"] = active
+            # A paused task is not a clean shutdown: --audit used to hide it behind a green line
+            # while --resume listed it (ADR-388).
+            audit["clean_shutdown"] = False
+        if active and active.get("status") not in TASK_STATES:
+            audit["unknown_task_status"] = active
+            audit["clean_shutdown"] = False
 
         checkpoints = ledger.get("checkpoints", [])
         if checkpoints:
@@ -1337,6 +1373,16 @@ def audit_body_lines(audit: Dict[str, Any]) -> List[str]:
     if audit.get("interrupted_task"):
         it = audit["interrupted_task"]
         lines.append(f"⚠️  Interrupted Task: '{it.get('task_id')}' in phase '{it.get('last_phase')}'")
+
+    if audit.get("suspended_task"):
+        st = audit["suspended_task"]
+        lines.append(f"⏸️  Paused Task: '{st.get('task_id')}' in phase '{st.get('last_phase')}' "
+                     f"(resume with --resume-task {st.get('task_id')})")
+
+    if audit.get("unknown_task_status"):
+        ut = audit["unknown_task_status"]
+        lines.append(f"🔴 Unknown Task Status: '{ut.get('status')}' for task '{ut.get('task_id')}'")
+        lines.append(f"   Fix: use one of {', '.join(sorted(TASK_STATES))}, or reset the task.")
     
     if audit.get("last_checkpoint"):
         lc = audit["last_checkpoint"]
@@ -1891,6 +1937,13 @@ def checkpoint_command(task_id: str, phase: str, phase_num: Optional[int], desc:
                                take_over=take_over)
     except LedgerOwnershipError as error:
         return report_ownership(error)
+    except CompletedTaskError as error:
+        print(f"[TASK COMPLETED] {error}", file=sys.stderr)
+        print("Why: a completed task is terminal; reopening it would erase the closure and the "
+              "record of who finished it (PRINCIPLE-006, ADR-388).", file=sys.stderr)
+        print("Fix: record the new work under a new task id; only a suspended task can be "
+              "resumed with --resume-task.", file=sys.stderr)
+        return 1
     # Printed only once the write happened: a refused write used to warn about itself (ADR-211).
     if warning:
         print(warning, file=sys.stderr)

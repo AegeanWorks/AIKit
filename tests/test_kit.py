@@ -7,6 +7,7 @@ knowledge base AST generation, and operational dogfooding.
 import ast
 import contextlib
 import hashlib
+import inspect
 import io
 import os
 import re
@@ -6164,8 +6165,7 @@ class TestProjectRegistry(unittest.TestCase):
 
     def test_ai_topic_choice_is_validated_and_never_auto_filled(self):
         from scripts.project_topics import validate_choice
-        folder = self.make_licensed_project()
-        plan = validate_choice(folder, ["aikit", "old"], ["aikit", "old", "python"],
+        plan = validate_choice(["aikit", "old"], ["aikit", "old", "python"],
                                ["aikit", "python", "security"])
         self.assertEqual(plan["desired"], ["aikit", "old", "python", "security"])
         self.assertEqual(plan["added"], ["security"])
@@ -6173,7 +6173,7 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("python", plan["kept"])
         self.assertIn("old", plan["kept"])
         with self.assertRaises(ValueError):
-            validate_choice(folder, ["aikit"], [], ["aikit", "Bad Tag"])
+            validate_choice(["aikit"], [], ["aikit", "Bad Tag"])
 
     def test_license_suggest_on_a_restricted_project_is_read_only(self):
         folder = self.make_licensed_project()
@@ -11501,22 +11501,21 @@ class TestReforgeCore(unittest.TestCase):
         self.assertEqual(brief["max_topics"], 20)
 
     def test_ai_choice_is_added_on_top_and_never_auto_filled(self):
-        root = self.project(readme="A local-first AI agent with a CLI and research notes.")
         plan = project_topics.validate_choice(
-            root, ["aikit", "old"], ["aikit", "old", "python"],
+            ["aikit", "old"], ["aikit", "old", "python"],
             ["aikit", "security"])
         self.assertEqual(plan["desired"], ["aikit", "old", "python", "security"])
         self.assertEqual(plan["kept"], ["aikit", "old", "python"])
         self.assertEqual(plan["added"], ["security"])
         self.assertEqual(plan["removed"], [])
         replaced = project_topics.validate_choice(
-            root, ["aikit", "old"], ["aikit", "old"], ["aikit", "python"], replace=True)
+            ["aikit", "old"], ["aikit", "old"], ["aikit", "python"], replace=True)
         self.assertEqual((replaced["desired"], replaced["removed"]),
                          (["aikit", "python"], ["old"]))
         with self.assertRaises(ValueError):
-            project_topics.validate_choice(root, ["aikit"], [], ["aikit", "Bad Tag"])
+            project_topics.validate_choice(["aikit"], [], ["aikit", "Bad Tag"])
         with self.assertRaises(ValueError):
-            project_topics.validate_choice(root, ["aikit"], [], ["aikit"])
+            project_topics.validate_choice(["aikit"], [], ["aikit"])
 
     def test_every_catalog_project_has_a_unique_palette_and_artwork(self):
         catalog = json.loads((ROOT_DIR / "scripts" / "brand_catalog.json").read_text(encoding="utf-8"))
@@ -15436,6 +15435,170 @@ class TestVerifyFollowupHardening(unittest.TestCase):
         run = {"id": "run-1", "stop": 0, "audited_commits": [], "stage": 0, "window": 0}
         self.assertFalse(st.run_complete(run, 0, total_commits=None))
         self.assertFalse(st.run_complete(run, 5, total_commits=None))
+
+
+class TestVestigialParameters(unittest.TestCase):
+    """IDEA-1749: a parameter the body never reads misreports the call graph.
+
+    Each pin fails on the previous signature and passes once the dead argument is
+    gone, so a reader can trust the five signatures below to name what is used.
+    """
+
+    def _params(self, func) -> list:
+        return list(inspect.signature(func).parameters)
+
+    def test_reforge_dispatch_has_no_aikit_root(self) -> None:
+        from reforge.cli import dispatch
+        self.assertNotIn("aikit_root", self._params(dispatch))
+        self.assertIn("project_root", self._params(dispatch))
+        self.assertIn("gate_runner", self._params(dispatch))
+
+    def test_repair_editors_do_not_take_unused_text(self) -> None:
+        from reforge import repair as rp
+        # Both editors derive every offset from `lines`; `text` was never read. Asserting the
+        # dead name is gone, not the whole list, leaves room for a real parameter later.
+        self.assertNotIn("text", self._params(rp._bare_except_edit))
+        self.assertNotIn("text", self._params(rp._yaml_edit))
+        self.assertIn("lines", self._params(rp._bare_except_edit))
+        self.assertIn("lines", self._params(rp._yaml_edit))
+
+    def test_html_files_does_not_take_unused_root(self) -> None:
+        from scripts import project_ui
+        self.assertNotIn("root", self._params(project_ui._html_files))
+        self.assertIn("files", self._params(project_ui._html_files))
+
+    def test_validate_choice_does_not_take_unused_project_root(self) -> None:
+        from scripts import project_topics
+        self.assertNotIn("project_root", self._params(project_topics.validate_choice))
+
+    def test_the_editors_still_repair_their_findings(self) -> None:
+        """The removal is signature-only: both edits must still produce a patch."""
+        import ast
+        from reforge import repair as rp
+        source = "def f():\n    try:\n        pass\n    except:\n        pass\n"
+        lines = rp._lines(source)
+        handler = next(n for n in ast.walk(ast.parse(source))
+                       if isinstance(n, ast.ExceptHandler))
+        edit = rp._bare_except_edit(lines, handler)
+        self.assertIsNotNone(edit)
+        self.assertIn("except Exception:", edit.text)
+
+        yaml_source = "import yaml\nv = yaml.load(stream)\n"
+        call = next(n for n in ast.walk(ast.parse(yaml_source))
+                    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute))
+        yaml_edit = rp._yaml_edit(rp._lines(yaml_source), call)
+        self.assertEqual(yaml_edit.text, "yaml.safe_load")
+
+
+class TestStateMachines(unittest.TestCase):
+    """ADR-388: the state machines are declared once and the worst transitions are guarded."""
+
+    def test_registry_is_internally_consistent(self) -> None:
+        from scripts import state_machines as sm
+        from scripts.disruption_recovery import TASK_STATES
+        self.assertGreaterEqual(len(sm.MACHINES), 12)
+        names = [machine.name for machine in sm.MACHINES]
+        self.assertEqual(len(names), len(set(names)))
+        for machine in sm.MACHINES:
+            self.assertEqual(set(machine.transitions), set(machine.states), machine.name)
+            for source, targets in machine.transitions.items():
+                for target in targets:
+                    self.assertIn(target, machine.states, f"{machine.name}: {source} -> {target}")
+        task = sm.BY_NAME["task-lifecycle"]
+        self.assertEqual(set(task.states), set(TASK_STATES))
+        self.assertEqual(set(task.transitions), set(TASK_STATES))
+
+    def test_registry_reports_and_refuses_transitions_in_process(self) -> None:
+        from scripts import state_machines as sm
+        with contextlib.redirect_stdout(io.StringIO()) as listing:
+            self.assertEqual(sm.main([]), 0)
+        self.assertIn("task-lifecycle", listing.getvalue())
+
+        with contextlib.redirect_stdout(io.StringIO()) as payload:
+            self.assertEqual(sm.main(["--json"]), 0)
+        self.assertEqual(len(json.loads(payload.getvalue())["machines"]), len(sm.MACHINES))
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(sm.main(["--machine", "task-lifecycle", "--from",
+                                      "in_progress", "--to", "completed"]), 0)
+            self.assertEqual(sm.main(["--machine", "task-lifecycle",
+                                      "--check-status", "completed"]), 0)
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sm.main(["--machine", "task-lifecycle", "--from",
+                                      "completed", "--to", "in_progress"]), 1)
+            self.assertEqual(sm.main(["--machine", "task-lifecycle",
+                                      "--check-status", "ghost"]), 1)
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sm.main(["--machine", "nope"]), 2)
+        with self.assertRaises(SystemExit) as raised:
+            with contextlib.redirect_stderr(io.StringIO()):
+                sm.main(["--bogus"])
+        self.assertEqual(raised.exception.code, 2)
+
+    def test_unknown_checkpoint_status_is_refused_before_writing(self) -> None:
+        from scripts.disruption_recovery import load_ledger, record_checkpoint
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / ".agents" / "task_ledger.json"
+            with self.assertRaises(ValueError):
+                record_checkpoint("t", "implementation", "x", status="ghost", ledger_file=ledger)
+            self.assertIsNone(load_ledger(ledger)["active_task"])
+            self.assertFalse(ledger.exists(), "a refused status must not create the ledger")
+
+    def test_completed_task_cannot_be_reopened_by_a_checkpoint(self) -> None:
+        from scripts.disruption_recovery import (CompletedTaskError, load_ledger,
+                                                  mark_task_completed, record_checkpoint)
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / ".agents" / "task_ledger.json"
+            record_checkpoint("done", "planning", "[1/1] plan", phase_num=2, ledger_file=ledger)
+            mark_task_completed("done", ledger_file=ledger)
+            before = load_ledger(ledger)
+            with self.assertRaises(CompletedTaskError):
+                record_checkpoint("done", "implementation", "reopen", phase_num=3,
+                                  ledger_file=ledger)
+            after = load_ledger(ledger)
+            self.assertEqual(after["active_task"]["status"], "completed")
+            self.assertEqual(len(after["checkpoints"]), len(before["checkpoints"]))
+
+    def test_a_new_task_can_follow_a_completed_one(self) -> None:
+        from scripts.disruption_recovery import (load_ledger, mark_task_completed,
+                                                  record_checkpoint)
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / ".agents" / "task_ledger.json"
+            record_checkpoint("done", "planning", "[1/1] plan", phase_num=2, ledger_file=ledger)
+            mark_task_completed("done", ledger_file=ledger)
+            record_checkpoint("next", "planning", "[1/1] next", phase_num=2, ledger_file=ledger)
+            self.assertEqual(load_ledger(ledger)["active_task"]["task_id"], "next")
+
+    def test_audit_reports_a_suspended_task(self) -> None:
+        from scripts.disruption_recovery import (format_audit_report, record_checkpoint,
+                                                  run_disruption_audit, suspend_active_task)
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / ".agents" / "task_ledger.json"
+            record_checkpoint("paused", "implementation", "work", phase_num=3, ledger_file=ledger)
+            suspend_active_task("test pause", ledger_file=ledger)
+            audit = run_disruption_audit(workspace_dir=Path(tmp), git_status=not_a_git_repo)
+            self.assertIsNotNone(audit.get("suspended_task"))
+            self.assertFalse(audit["clean_shutdown"])
+            self.assertIn("Paused Task", format_audit_report(audit))
+
+    def test_audit_reports_an_unknown_task_status(self) -> None:
+        from scripts.disruption_recovery import format_audit_report, run_disruption_audit
+        with tempfile.TemporaryDirectory() as tmp:
+            agents = Path(tmp) / ".agents"
+            agents.mkdir()
+            (agents / "task_ledger.json").write_text(json.dumps({
+                "version": 1,
+                "active_task": {"task_id": "ghost", "last_phase": "implementation",
+                                "active_phase": 3, "status": "ghost"},
+                "checkpoints": [{"task_id": "ghost", "phase": "implementation", "phase_num": 3,
+                                 "description": "x", "status": "ghost", "timestamp": 0,
+                                 "timestamp_str": "", "agent": "a"}],
+            }), encoding="utf-8")
+            audit = run_disruption_audit(workspace_dir=Path(tmp), git_status=not_a_git_repo)
+            self.assertIsNotNone(audit.get("unknown_task_status"))
+            self.assertFalse(audit["clean_shutdown"])
+            self.assertIn("Unknown Task Status", format_audit_report(audit))
+
 
 if __name__ == "__main__":
     unittest.main()

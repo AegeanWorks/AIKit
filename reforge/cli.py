@@ -443,7 +443,7 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
     return 0
 
 
-def dispatch(args, aikit_root: Optional[Path] = None, project_root: Optional[Path] = None,
+def dispatch(args, project_root: Optional[Path] = None,
              gate_runner: Optional[GateRunner] = None) -> int:
     """Run one parsed request; every failure is reported as a triad or a JSON envelope."""
     as_json = bool(getattr(args, "json", False))
@@ -476,4 +476,4 @@ def dispatch(args, aikit_root: Optional[Path] = None, project_root: Optional[Pat
 
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
-    return dispatch(args, aikit_root=Path(__file__).resolve().parent.parent)
+    return dispatch(args)

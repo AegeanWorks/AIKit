@@ -180,7 +180,7 @@ def _dedupe_raw(tags: Iterable[object]) -> List[str]:
     return seen
 
 
-def validate_choice(project_root: Path, recorded: Sequence[str], current: Sequence[str],
+def validate_choice(recorded: Sequence[str], current: Sequence[str],
                     chosen: Sequence[str], replace: bool = False,
                     remove: Sequence[str] = ()) -> Dict[str, object]:
     """Validate an AI addition to the existing tags; valid older tags are never dropped.

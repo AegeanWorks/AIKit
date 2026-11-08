@@ -1220,7 +1220,7 @@ def cmd_topics(args: argparse.Namespace) -> int:
 
     try:
         plan = project_topics.validate_choice(
-            project.path, recorded, current, chosen, replace=replace, remove=explicit_remove)
+            recorded, current, chosen, replace=replace, remove=explicit_remove)
     except ValueError as exc:
         return _topic_error(exc)
     source = "ai" if (getattr(args, "from_file", None) or getattr(args, "brief", False)) else "manual"
@@ -1395,7 +1395,7 @@ def cmd_reforge(args: argparse.Namespace) -> int:
                      for result in results]
             return all(result.passed for result in results), lines
 
-    return dispatch(args, aikit_root=args.workspace,
+    return dispatch(args,
                     project_root=project.path if project else None,
                     gate_runner=gate_runner)
 

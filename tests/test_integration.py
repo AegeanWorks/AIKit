@@ -2208,5 +2208,46 @@ class TestProjectTrackingBoundary(unittest.TestCase):
                          "projects/ is ignored; each project is its own repository")
 
 
+class TestStateMachineCLI(unittest.TestCase):
+    """ADR-388: the explicit registry is a real, read-only CLI with the universal contract."""
+
+    def test_help_list_json_and_transition_contract(self):
+        script = ROOT_DIR / "scripts" / "state_machines.py"
+        common = {"cwd": ROOT_DIR, "capture_output": True, "text": True,
+                  "encoding": "utf-8", "errors": "replace"}
+        help_res = subprocess.run([sys.executable, str(script), "--help"],
+                                  timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(help_res.returncode, 0, help_res.stderr)
+        self.assertIn("state machines", help_res.stdout)
+
+        listing = subprocess.run([sys.executable, str(script), "--list"],
+                                 timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(listing.returncode, 0, listing.stderr)
+        self.assertIn("task-lifecycle", listing.stdout)
+
+        payload = subprocess.run([sys.executable, str(script), "--json"],
+                                 timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(payload.returncode, 0, payload.stderr)
+        self.assertGreaterEqual(len(json.loads(payload.stdout)["machines"]), 12)
+
+        allowed = subprocess.run(
+            [sys.executable, str(script), "--machine", "task-lifecycle",
+             "--from", "in_progress", "--to", "completed"],
+            timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(allowed.returncode, 0, allowed.stderr)
+        self.assertIn("allowed:", allowed.stdout)
+
+        refused = subprocess.run(
+            [sys.executable, str(script), "--machine", "task-lifecycle",
+             "--from", "completed", "--to", "in_progress"],
+            timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(refused.returncode, 1)
+        self.assertIn("Why:", refused.stderr)
+
+        bad = subprocess.run([sys.executable, str(script), "--bogus"],
+                             timeout=PROC_TIMEOUT, **common)
+        self.assertEqual(bad.returncode, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

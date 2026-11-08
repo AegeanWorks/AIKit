@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `70`
-- **Total Classes**: `164`
-- **Total Top-Level Functions**: `1014`
-- **Total Class Methods**: `1255`
-- **Total Source Lines**: `46879`
+- **Total Python Modules**: `71`
+- **Total Classes**: `169`
+- **Total Top-Level Functions**: `1018`
+- **Total Class Methods**: `1271`
+- **Total Source Lines**: `47477`
 
 ---
 
@@ -268,7 +268,7 @@
 ### [`reforge/cli.py`](reforge/cli.py)
 > *The Reforge command grammar, shared by `python -m reforge` and `aikit.py reforge`.*
 
-**Size**: `479` lines (`24013` bytes)
+**Size**: `479` lines (`23927` bytes)
 
 **Classes:**
 - `class ReforgeArgumentParser` - *argparse whose usage errors carry the AIKit What/Why/Fix triad (PRINCIPLE-011).*
@@ -288,7 +288,7 @@
 - `def _print_review(report)` - *Say whether a reviewer answered the stage, and where its packet is.*
 - `def _print_ledger(payload)` - *Say where the run was recorded: the ledger is how a cold start finds an open audit.*
 - `def _workspace(args, root, gate_runner)`
-- `def dispatch(args, aikit_root, project_root, gate_runner)` - *Run one parsed request; every failure is reported as a triad or a JSON envelope.*
+- `def dispatch(args, project_root, gate_runner)` - *Run one parsed request; every failure is reported as a triad or a JSON envelope.*
 - `def main(argv)`
 
 ---
@@ -487,7 +487,7 @@
 ### [`reforge/repair.py`](reforge/repair.py)
 > *Smallest-safe automatic repairs, generated regression tests and repair verification.*
 
-**Size**: `487` lines (`21277` bytes)
+**Size**: `487` lines (`21243` bytes)
 
 **Classes:**
 - `class _Edit`
@@ -500,8 +500,8 @@
 - `def _default_constructor(node)`
 - `def _locate(tree, finding)`
 - `def _call_name(node)`
-- `def _bare_except_edit(text, lines, node)`
-- `def _yaml_edit(text, lines, node)`
+- `def _bare_except_edit(lines, node)`
+- `def _yaml_edit(lines, node)`
 - `def _remove_keyword(text, lines, node, name)`
 - `def _mutable_default_edits(lines, located, newline)`
 - `def _edits_for(text, finding, tree)`
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1580` lines (`79726` bytes)
+**Size**: `1580` lines (`79685` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -877,13 +877,15 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2160` lines (`102828` bytes)
+**Size**: `2213` lines (`105731` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
   - Method `.__init__(path, found, supported)`
 - `class LedgerOwnershipError` - *A write to a task another identified agent owns, refused before anything changed (ADR-209).*
   - Method `.__init__(task_id, owner, agent, since)`
+- `class CompletedTaskError` - *A checkpoint tried to reopen a completed task (ADR-388); nothing was changed.*
+  - Method `.__init__(task_id)`
 
 **Functions:**
 - `def empty_ledger()` - *A fresh in-memory ledger; load_ledger() never creates the file for this.*
@@ -1365,7 +1367,7 @@
 ### [`scripts/project_topics.py`](scripts/project_topics.py)
 > *GitHub topic policy (ADR-234, revised by ADR-236): an AI agent chooses the tags; AIKit validates,*
 
-**Size**: `306` lines (`13859` bytes)
+**Size**: `306` lines (`13839` bytes)
 
 **Functions:**
 - `def _read_readme(root)`
@@ -1375,7 +1377,7 @@
 - `def ai_brief(project_root, name, recorded, current)` - *The bounded evidence an AI agent needs to choose the final tags.*
 - `def _dedupe(tags)`
 - `def _dedupe_raw(tags)`
-- `def validate_choice(project_root, recorded, current, chosen, replace, remove)` - *Validate an AI addition to the existing tags; valid older tags are never dropped.*
+- `def validate_choice(recorded, current, chosen, replace, remove)` - *Validate an AI addition to the existing tags; valid older tags are never dropped.*
 - `def choice_from_payload(payload)` - *Accept `{"topics": [...], "remove": [...]}` or a bare list; anything else is refused.*
 - `def read_choice_file(path)`
 - `def repo_slug(project_root, name)` - *`owner/repo` from the project's origin, else the conventional AegeanWorks name.*
@@ -1388,7 +1390,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `402` lines (`16342` bytes)
+**Size**: `402` lines (`16324` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1399,7 +1401,7 @@
 - `def _package_dependencies(root)`
 - `def _python_dependency_text(root)`
 - `def _evidence(paths, root, limit)`
-- `def _html_files(files, root)`
+- `def _html_files(files)`
 - `def detect_ui(project_root, respect_manual)` - *Classify a project's interface, with the marker files that justify the answer.*
 - `def write_ui_identity(project_root, result)` - *Persist the identifier atomically, preserving the rest of the project's memory.*
 - `def set_ui_manual(project_root, has_ui, kind)` - *Record an explicit human/agent decision; `auto` clears it on the next detection.*
@@ -1486,6 +1488,23 @@
 - `def write_receipt(result, dest)` - *Persist a reproducible proof receipt beside the in-memory result (IDEA-1202).*
 - `def render_text(result)` - *A terse human report for the CLI.*
 - `def build_parser()`
+- `def main(argv)`
+
+---
+
+### [`scripts/state_machines.py`](scripts/state_machines.py)
+> *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
+
+**Size**: `341` lines (`15447` bytes)
+
+**Classes:**
+- `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
+  - Method `.allows(source, target)`
+
+**Functions:**
+- `def as_dict()` - *A deterministic JSON-ready view; useful to agents and documentation tests.*
+- `def run_transition(machine, source, target)`
+- `def print_machine(machine)`
 - `def main(argv)`
 
 ---
@@ -1738,7 +1757,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2212` lines (`113978` bytes)
+**Size**: `2253` lines (`115992` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1889,6 +1908,8 @@
   - Method `.test_hook_blocks_raw_push_and_allows_aikit_publish()`
 - `class TestProjectTrackingBoundary` - *Projects are independent repositories; AIKit tracks none of their files.*
   - Method `.test_no_project_files_are_tracked()`
+- `class TestStateMachineCLI` - *ADR-388: the explicit registry is a real, read-only CLI with the universal contract.*
+  - Method `.test_help_list_json_and_transition_contract()`
 
 **Functions:**
 - `def _sh_path()` - *The POSIX shell Git uses for hooks, including Git for Windows' bundled sh.*
@@ -1904,7 +1925,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15441` lines (`839752` bytes)
+**Size**: `15604` lines (`848932` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3090,6 +3111,21 @@
   - Method `.test_ui_safe_rel_survives_resolve_failure()`
   - Method `.test_archive_validate_survives_resolve_failure()`
   - Method `.test_run_complete_zero_stop_stays_unbounded()`
+- `class TestVestigialParameters` - *IDEA-1749: a parameter the body never reads misreports the call graph.*
+  - Method `._params(func)`
+  - Method `.test_reforge_dispatch_has_no_aikit_root()`
+  - Method `.test_repair_editors_do_not_take_unused_text()`
+  - Method `.test_html_files_does_not_take_unused_root()`
+  - Method `.test_validate_choice_does_not_take_unused_project_root()`
+  - Method `.test_the_editors_still_repair_their_findings()` - *The removal is signature-only: both edits must still produce a patch.*
+- `class TestStateMachines` - *ADR-388: the state machines are declared once and the worst transitions are guarded.*
+  - Method `.test_registry_is_internally_consistent()`
+  - Method `.test_registry_reports_and_refuses_transitions_in_process()`
+  - Method `.test_unknown_checkpoint_status_is_refused_before_writing()`
+  - Method `.test_completed_task_cannot_be_reopened_by_a_checkpoint()`
+  - Method `.test_a_new_task_can_follow_a_completed_one()`
+  - Method `.test_audit_reports_a_suspended_task()`
+  - Method `.test_audit_reports_an_unknown_task_status()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

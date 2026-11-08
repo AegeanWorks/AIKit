@@ -91,7 +91,7 @@ def _call_name(node: ast.Call) -> str:
     return ""
 
 
-def _bare_except_edit(text: str, lines: Sequence[str], node: ast.ExceptHandler) -> Optional[_Edit]:
+def _bare_except_edit(lines: Sequence[str], node: ast.ExceptHandler) -> Optional[_Edit]:
     line = node.lineno
     if not 1 <= line <= len(lines):
         return None
@@ -104,7 +104,7 @@ def _bare_except_edit(text: str, lines: Sequence[str], node: ast.ExceptHandler) 
     return _Edit(start, start + len(original), f"{match.group(1)}except Exception:{rest}")
 
 
-def _yaml_edit(text: str, lines: Sequence[str], node: ast.Call) -> _Edit:
+def _yaml_edit(lines: Sequence[str], node: ast.Call) -> _Edit:
     start = _offset(lines, node.func.lineno, node.func.col_offset)
     end = _offset(lines, node.func.end_lineno, node.func.end_col_offset)
     return _Edit(start, end, "yaml.safe_load")
@@ -161,12 +161,12 @@ def _edits_for(text: str, finding: Finding, tree: ast.Module) -> List[_Edit]:
         return []
     lines = _lines(text)
     if finding.code == "bare-except" and isinstance(located, ast.ExceptHandler):
-        edit = _bare_except_edit(text, lines, located)
+        edit = _bare_except_edit(lines, located)
         return [edit] if edit else []
     if finding.code == "mutable-default" and isinstance(located, _MutableDefault):
         return _mutable_default_edits(lines, located, _newline(text))
     if finding.code == "unsafe-yaml-load" and isinstance(located, ast.Call):
-        return [_yaml_edit(text, lines, located)]
+        return [_yaml_edit(lines, located)]
     if finding.code == "verify-false" and isinstance(located, ast.Call):
         edit = _remove_keyword(text, lines, located, "verify")
         return [edit] if edit else []

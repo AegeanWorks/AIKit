@@ -169,7 +169,7 @@ def _evidence(paths: List[Path], root: Path, limit: int = 12) -> List[str]:
     return sorted(seen)[:limit]
 
 
-def _html_files(files: List[Path], root: Path) -> List[Path]:
+def _html_files(files: List[Path]) -> List[Path]:
     found = []
     for path in files:
         if path.suffix.lower() not in {".html", ".htm"}:
@@ -201,7 +201,7 @@ def detect_ui(project_root: Path, respect_manual: bool = True) -> Dict[str, obje
         if path.is_file():
             evidence.append(path)
             kind = UI_WEB
-    html = _html_files(files, root)
+    html = _html_files(files)
     if html:
         evidence.extend(html)
         kind = UI_WEB
