@@ -172,6 +172,8 @@ def _snapshot(root: Path, findings: Sequence[Finding],
 
 def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> List[str]:
     """Restore snapshotted bytes; returns paths that could not be restored."""
+    from scripts.disruption_recovery import atomic_write_bytes
+
     failures: List[str] = []
     for relative, original in snapshots.items():
         if not _is_safe_under_root(root, relative):
@@ -183,8 +185,9 @@ def _restore(root: Path, snapshots: Dict[str, Optional[bytes]]) -> List[str]:
                 if path.exists():
                     path.unlink()
             else:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(original)
+                # A repair rollback is a state write: temp + fsync + replace, so a
+                # failed restore cannot leave a half-written source file.
+                atomic_write_bytes(path, original, backup=False)
         except OSError:
             failures.append(relative)
             continue

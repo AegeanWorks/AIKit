@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1234`
-- **Total Source Lines**: `46439`
+- **Total Class Methods**: `1235`
+- **Total Source Lines**: `46455`
 
 ---
 
@@ -444,7 +444,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `1064` lines (`53041` bytes)
+**Size**: `1067` lines (`53221` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15145` lines (`824710` bytes)
+**Size**: `15158` lines (`825297` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3020,6 +3020,7 @@
   - Method `.test_reforge_settle_reopen_refuses_active_hijack()`
   - Method `.test_pipeline_relative_inside_tolerates_runtime_error()`
   - Method `.test_pipeline_restore_reports_failures()`
+  - Method `.test_pipeline_restore_uses_the_atomic_writer()`
   - Method `.test_archive_fill_allows_valid_override()`
   - Method `.test_archive_readme_crlf_and_title()`
   - Method `.test_ui_surface_paths_rejects_traversal()`

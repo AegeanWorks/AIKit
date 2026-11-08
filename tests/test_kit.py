@@ -14432,6 +14432,19 @@ class TestVerify6PushSafeFixes(unittest.TestCase):
             self.assertEqual(failures, ["gone/file.txt"])
             self.assertEqual(pl._restore(root, {"../outside": b"data"}), ["../outside"])
 
+    def test_pipeline_restore_uses_the_atomic_writer(self) -> None:
+        from reforge import pipeline as pl
+        from pathlib import Path
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with mock.patch("scripts.disruption_recovery.atomic_write_bytes",
+                            side_effect=OSError("disk full")) as writer:
+                failures = pl._restore(root, {"file.txt": b"data"})
+        self.assertEqual(failures, ["file.txt"])
+        writer.assert_called_once()
+
     def test_archive_fill_allows_valid_override(self) -> None:
         from scripts import project_archive
         import tempfile

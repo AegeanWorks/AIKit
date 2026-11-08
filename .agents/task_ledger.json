@@ -1,15 +1,21 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-27push-v2",
+    "task_id": "verify-33push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794142547.828488,
+    "updated_at": 1794143692.886543,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794142548.1374533
+    "impact_assessment": {
+      "why": "_restore wrote snapshot bytes directly; a disk error or crash could leave a partially restored file.",
+      "benefits": "Restore uses temp+fsync+replace and reports a failed restore without leaving partial bytes.",
+      "risks": "contract: reforge rollback; dependency: scripts.disruption_recovery; concurrency: none; state: reforge/pipeline.py, tests, ADR, map",
+      "mitigation": "failing-first mocked-writer test, existing failure test, unit tier, root scan and gates"
+    },
+    "completed_at": 1794143693.1945465
   },
   "checkpoints": [
     {
@@ -182,7 +188,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 40",
       "phase_num": 3,
-      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143016.4698665,
@@ -204,7 +210,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 41",
       "phase_num": 3,
-      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143251.773606,
@@ -237,7 +243,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 42",
       "phase_num": 3,
-      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit, 2 binary not analysed (regression=1)",
+      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit, 2 binary not analysed (regression=1)",
       "files_affected": [
         "scripts/project_artwork.py",
         "assets/logo.png",
@@ -258,6 +264,55 @@
       "timestamp": 1794143610.349334,
       "timestamp_str": "2026-11-08 16:13:30",
       "agent": "opencode"
+    },
+    {
+      "task_id": "verify-33push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Reforge restore atomic; 982 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794143671.2866435,
+      "timestamp_str": "2026-11-08 16:14:31",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-33push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-33push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794143671.633393,
+      "timestamp_str": "2026-11-08 16:14:31",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-33push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 33 pushes: make reforge restore atomic",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794143692.886543,
+      "timestamp_str": "2026-11-08 16:14:52",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "_restore wrote snapshot bytes directly; a disk error or crash could leave a partially restored file.",
+        "benefits": "Restore uses temp+fsync+replace and reports a failed restore without leaving partial bytes.",
+        "risks": "contract: reforge rollback; dependency: scripts.disruption_recovery; concurrency: none; state: reforge/pipeline.py, tests, ADR, map",
+        "mitigation": "failing-first mocked-writer test, existing failure test, unit tier, root scan and gates"
+      },
+      "plan_digest": "4bd8ecebf35b2ffd8322137a560f500f044894d263c66b3c2d9e7dbf65dd7d64"
+    },
+    {
+      "task_id": "verify-33push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-33push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794143693.1945481,
+      "timestamp_str": "2026-11-08 16:14:53",
+      "agent": "opencode:goal"
     }
   ]
 }

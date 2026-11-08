@@ -3762,3 +3762,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Catch `OSError` and `ValueError` in both publish paths and return the same Why/Fix refusal used by the sanctioned push path; no upload occurs.
 - **Consequences**: Every guard-install failure is actionable and consistent, and a raw-push block is never silently skipped. Unit tests patch the installer and assert the library and CLI refusals.
 - **Cross-principle check**: PRINCIPLE-011: no conflict because the failure keeps the Why/Fix shape; PRINCIPLE-018: no conflict because no upload occurs and the push path is unchanged; PRINCIPLE-014: no conflict because the new tests fail on the previous traceback paths and none is weakened.
+
+### ADR-369: Reforge restore uses the shared atomic writer
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `_restore` wrote snapshot bytes directly. A disk error or crash during a repair rollback could leave a half-written source file, unlike every other state write in the repository.
+- **Decision**: Restore through `scripts.disruption_recovery.atomic_write_bytes(..., backup=False)`, keeping the existing safe-path check and returning the path when the write fails.
+- **Consequences**: A restore is temp + fsync + replace; a failed restore leaves the prior file intact and is reported. The unit tier mocks the atomic writer to fail and asserts the path is returned.
+- **Cross-principle check**: PRINCIPLE-013: no conflict because the restore now follows the state-write durability contract; PRINCIPLE-014: no conflict because the new test fails on the direct-write path and no assertion is weakened.
