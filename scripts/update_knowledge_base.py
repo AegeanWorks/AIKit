@@ -240,8 +240,8 @@ def _extract_symbols_uncached(file_path: Path, content: str, strict: bool) -> Di
 GITIGNORED_DIR_RE = re.compile(r"^/?([^\s/*?\[\]!#]+)/(?:\*)?$")
 
 
-def gitignored_kept_python(root: Path) -> Set[str]:
-    """Python files explicitly re-included by a root `.gitignore` negation."""
+def gitignored_kept_files(root: Path) -> Set[str]:
+    """Files explicitly re-included by a root `.gitignore` negation, without globs."""
     try:
         lines = (root / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
@@ -252,12 +252,19 @@ def gitignored_kept_python(root: Path) -> Set[str]:
         if not line.startswith("!"):
             continue
         pattern = line[1:].lstrip("/")
-        if pattern.endswith(".py") and not any(char in pattern for char in "*?["):
+        name = pattern.rsplit("/", 1)[-1]
+        if (not pattern.endswith("/") and "." in name
+                and not any(char in pattern for char in "*?[")):
             kept.add(pattern)
     return kept
 
 
-def _gitignored_top_dirs_raw(root: Path) -> Set[str]:
+def gitignored_kept_python(root: Path) -> Set[str]:
+    """Python files explicitly re-included by a root `.gitignore` negation."""
+    return {path for path in gitignored_kept_files(root) if path.endswith(".py")}
+
+
+def gitignored_top_dirs_raw(root: Path) -> Set[str]:
     """The top-level directories the root `.gitignore` excludes, before negations."""
     try:
         lines = (root / ".gitignore").read_text(encoding="utf-8", errors="replace").splitlines()
@@ -277,7 +284,7 @@ def gitignored_top_dirs(root: Path) -> Set[str]:
     later. A negation under a directory Git already tracks changes nothing.
     """
     kept_dirs = {path.split("/", 1)[0] for path in gitignored_kept_python(root)}
-    return _gitignored_top_dirs_raw(root) - kept_dirs
+    return gitignored_top_dirs_raw(root) - kept_dirs
 
 
 def find_python_files(root: Path) -> List[Path]:
@@ -288,12 +295,12 @@ def find_python_files(root: Path) -> List[Path]:
     `/home/u/env/` would have catalogued nothing.
     """
     py_files: List[Path] = []
-    ignored_top = _gitignored_top_dirs_raw(root)
+    ignored_top = gitignored_top_dirs_raw(root)
     kept_python = gitignored_kept_python(root)
     # A negation scopes the sibling filter to a directory the .gitignore excludes; under an
     # ordinary directory every sibling is already tracked and must stay in the map.
     kept_dirs = {path.split("/", 1)[0] for path in kept_python} & ignored_top
-    skipped_at_top = IGNORE_DIRS | (ignored_top - kept_dirs)
+    skipped_at_top = IGNORE_DIRS | gitignored_top_dirs(root)
     for dirpath, dirnames, filenames in os.walk(root):
         skipped = skipped_at_top if Path(dirpath) == root else IGNORE_DIRS
         dirnames[:] = [d for d in dirnames if d not in skipped]

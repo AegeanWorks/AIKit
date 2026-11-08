@@ -7746,6 +7746,22 @@ class TestProjectHygieneScan(unittest.TestCase):
             "fetch('https://cdn.example/x.js')\n", encoding="utf-8")
         self.assertEqual(scan_tree(root), [])
 
+    def test_scan_tree_skips_ignored_siblings_of_a_kept_python_file(self):
+        root = Path(tempfile.mkdtemp(prefix="test_hygiene_kept_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        (root / ".gitignore").write_text("reports/*\n!/reports/keep.py\n", encoding="utf-8")
+        (root / "reports").mkdir()
+        (root / "reports" / "keep.py").write_text("x = 1\n", encoding="utf-8")
+        (root / "reports" / "drop.py").write_text(
+            "import os\nos.system('x')\n", encoding="utf-8")
+        self.assertEqual(scan_tree(root), [],
+                         "the ignored sibling must not enter the scan")
+        (root / "reports" / "keep.py").write_text(
+            "import os\nos.system('x')\n", encoding="utf-8")
+        self.assertEqual([(finding.path, finding.rule) for finding in scan_tree(root)],
+                         [("reports/keep.py", "os-system")],
+                         "the re-included tracked file is still scanned")
+
     def test_artifact_classifier_flags_root_tests_outputs_and_source(self):
         findings = classify_artifacts(
             tracked=["app/core.py", "tests/test_core.py", "tests.py", "TestFoo.py"],

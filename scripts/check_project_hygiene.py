@@ -669,20 +669,37 @@ def scan_tree(root: Path, artifacts: bool = False) -> List[Finding]:
     findings: List[Finding] = []
     scanned = 0
     try:
-        from scripts.update_knowledge_base import gitignored_top_dirs
+        from scripts.update_knowledge_base import (
+            gitignored_kept_files,
+            gitignored_top_dirs_raw,
+        )
     except ImportError:
-        from update_knowledge_base import gitignored_top_dirs
-    ignored_top = gitignored_top_dirs(root)
+        from update_knowledge_base import (
+            gitignored_kept_files,
+            gitignored_top_dirs_raw,
+        )
+    ignored_top = gitignored_top_dirs_raw(root)
+    kept_files = {
+        path for path in gitignored_kept_files(root)
+        if Path(path).suffix == PY_SUFFIX or Path(path).suffix in ASSET_SUFFIXES
+    }
+    # A re-included file the scan can read keeps its ignored directory walkable; every
+    # other file in it is still ignored, so the scan must not descend into those siblings.
+    kept_dirs = {path.split("/", 1)[0] for path in kept_files} & ignored_top
+    pruned_top = ignored_top - kept_dirs
     for dirpath, dirnames, filenames in os.walk(root):
         current = Path(dirpath)
         # Prune before descending: rglob still walked ignored scratch/shots trees.
         dirnames[:] = sorted(
             name for name in dirnames
-            if name not in SKIP_DIRS and not (current == root and name in ignored_top)
+            if name not in SKIP_DIRS and not (current == root and name in pruned_top)
         )
         for name in sorted(filenames):
             path = current / name
             rel = path.relative_to(root).as_posix()
+            if (any(part in kept_dirs for part in Path(rel).parts[:-1])
+                    and rel not in kept_files):
+                continue
             if path.suffix == PY_SUFFIX or path.suffix in ASSET_SUFFIXES:
                 scanned += 1
                 source, gaps = _read_source(rel, path)

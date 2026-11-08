@@ -3858,3 +3858,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Remove HTML comments before description extraction; blank comment text while preserving line breaks for banner placement; skip CommonMark thematic breaks (`---`, `***`, `___`) when selecting the description, and end the paragraph at a break.
 - **Consequences**: The description and banner position come from the actual tagline. A same-line comment with trailing prose still contributes the prose, because only comment text is removed. The unit tier covers a multi-line template note and all three rule spellings.
 - **Cross-principle check**: PRINCIPLE-016: no conflict because the README description remains the archive record's source; PRINCIPLE-014: no conflict because the new tests fail on the previous scan and none is weakened; PRINCIPLE-003: no conflict because only text parsing changes.
+
+### ADR-381: A re-included file does not unignore its siblings
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `3692a9f` made `name/*` an ignored directory, and a re-included `.py` keeps that directory walkable. `scan_tree` then descended and read every ignored sibling, so an ignored `reports/drop.py` could fail a clean hygiene scan even though Git never tracks it. The discovery walker filtered siblings; the hygiene walker did not.
+- **Decision**: Expose `gitignored_kept_files` and `gitignored_top_dirs_raw`; in `scan_tree`, keep a directory walkable only when a scanned suffix is re-included, intersect that with the raw ignored set, and skip every other file under it.
+- **Consequences**: Ignored evidence stays out of the scan while the re-included tracked file is still checked. The root `/reports/*` plus `!/reports/README.md` still prunes `reports/` because a README is not a scanned suffix, so the root scan stays fast. The unit tier covers both a clean kept file with a bad ignored sibling and a bad kept file.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because tracked code remains mapped; PRINCIPLE-014: no conflict because the new test fails on the previous walk and none is weakened; PRINCIPLE-010: no conflict because ignoring evidence keeps the walk bounded.

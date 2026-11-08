@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
-- **Total Top-Level Functions**: `1013`
-- **Total Class Methods**: `1250`
-- **Total Source Lines**: `46775`
+- **Total Top-Level Functions**: `1014`
+- **Total Class Methods**: `1251`
+- **Total Source Lines**: `46815`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `826` lines (`40271` bytes)
+**Size**: `843` lines (`41002` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -1628,7 +1628,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1249` lines (`59145` bytes)
+**Size**: `1256` lines (`59442` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1637,8 +1637,9 @@
 - `def parse_source(content, filename)` - *`ast.parse` at the minimum supported grammar (PRINCIPLE-003 R7), cached by content.*
 - `def extract_python_symbols(file_path, strict)` - *Parse a python file with AST and extract docstrings, classes, and functions (PRINCIPLE-003).*
 - `def _extract_symbols_uncached(file_path, content, strict)` - *AST extraction proper; see extract_python_symbols().*
+- `def gitignored_kept_files(root)` - *Files explicitly re-included by a root `.gitignore` negation, without globs.*
 - `def gitignored_kept_python(root)` - *Python files explicitly re-included by a root `.gitignore` negation.*
-- `def _gitignored_top_dirs_raw(root)` - *The top-level directories the root `.gitignore` excludes, before negations.*
+- `def gitignored_top_dirs_raw(root)` - *The top-level directories the root `.gitignore` excludes, before negations.*
 - `def gitignored_top_dirs(root)` - *The top-level directories `root/.gitignore` excludes by name. Git never tracks them, so their*
 - `def find_python_files(root)` - *Every Python file under `root`, skipping `IGNORE_DIRS`. Ignored directories are pruned while*
 - `def build_digest(rows, max_lines, max_chars, map_name)` - *`path  <lines>L <classes>C <functions>F  purpose` per module, within both budgets, shared-code*
@@ -1903,7 +1904,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15376` lines (`836015` bytes)
+**Size**: `15392` lines (`836995` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2502,6 +2503,7 @@
   - Method `.test_asset_urls_skip_loopback_namespaces_and_marked_lines()`
   - Method `.test_scan_tree_skips_vendored_dirs_and_reports_unreadable_files()`
   - Method `.test_scan_tree_prunes_root_gitignored_dirs()`
+  - Method `.test_scan_tree_skips_ignored_siblings_of_a_kept_python_file()`
   - Method `.test_artifact_classifier_flags_root_tests_outputs_and_source()`
   - Method `.test_artifact_scan_reports_missing_git_without_a_traceback()`
   - Method `.test_artifact_classifier_flags_tracked_caches_and_temporary_state()`
