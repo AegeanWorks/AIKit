@@ -3842,3 +3842,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Give the override branch the same bare-marker case as the original branch.
 - **Consequences**: A blank description is exactly the marker, with no trailing whitespace. The unit tier pins the empty override and a lower-case existing prefix.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because the description remains bounded and portable; PRINCIPLE-014: no conflict because the new assertion fails on the previous branch and none is weakened.
+
+### ADR-379: A negation filters siblings only inside an ignored directory
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `find_python_files` turned every negation such as `!/pkg/keep.py` into `kept_dirs={'pkg'}` and then dropped every other `pkg/*.py` file, even though `pkg/` was not ignored and Git tracked those siblings. Only the named file entered the code map.
+- **Decision**: Keep the raw ignored-directory set separate from the negated view; intersect kept directories with the raw set, and prune only directories that are both ignored and not re-included.
+- **Consequences**: A negation under a normal package no longer hides its siblings, while a negation under a genuinely ignored directory still filters that directory's siblings. The unit tier creates `pkg/mod.py`, `pkg/keep.py` and `!/pkg/keep.py` and expects both package files.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because the map again lists tracked modules; PRINCIPLE-014: no conflict because the new discovery test fails on the previous filter and none is weakened; PRINCIPLE-003: no conflict because the walk remains bounded to the tree Git actually tracks.

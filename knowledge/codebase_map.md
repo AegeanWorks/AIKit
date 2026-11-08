@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
-- **Total Top-Level Functions**: `1009`
-- **Total Class Methods**: `1247`
-- **Total Source Lines**: `46683`
+- **Total Top-Level Functions**: `1010`
+- **Total Class Methods**: `1248`
+- **Total Source Lines**: `46704`
 
 ---
 
@@ -1625,7 +1625,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1241` lines (`58669` bytes)
+**Size**: `1249` lines (`59145` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1635,6 +1635,7 @@
 - `def extract_python_symbols(file_path, strict)` - *Parse a python file with AST and extract docstrings, classes, and functions (PRINCIPLE-003).*
 - `def _extract_symbols_uncached(file_path, content, strict)` - *AST extraction proper; see extract_python_symbols().*
 - `def gitignored_kept_python(root)` - *Python files explicitly re-included by a root `.gitignore` negation.*
+- `def _gitignored_top_dirs_raw(root)` - *The top-level directories the root `.gitignore` excludes, before negations.*
 - `def gitignored_top_dirs(root)` - *The top-level directories `root/.gitignore` excludes by name. Git never tracks them, so their*
 - `def find_python_files(root)` - *Every Python file under `root`, skipping `IGNORE_DIRS`. Ignored directories are pruned while*
 - `def build_digest(rows, max_lines, max_chars, map_name)` - *`path  <lines>L <classes>C <functions>F  purpose` per module, within both budgets, shared-code*
@@ -1899,7 +1900,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15324` lines (`832973` bytes)
+**Size**: `15337` lines (`833893` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2012,6 +2013,7 @@
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`
   - Method `.test_top_level_wildcard_gitignore_prunes_the_directory()`
   - Method `.test_negated_python_file_under_ignored_dir_is_kept()`
+  - Method `.test_negation_under_an_unignored_dir_keeps_its_siblings()`
   - Method `.test_this_repository_ignores_references()`
   - Method `.test_this_repository_ignores_article_drafts()`
   - Method `.test_this_repository_ignores_kilo_state()`

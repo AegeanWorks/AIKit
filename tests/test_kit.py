@@ -1445,6 +1445,19 @@ class TestPythonFileDiscovery(unittest.TestCase):
         self.assertEqual(found, ["pkg/mod.py", "reports/keep.py"],
                          "a re-included tracked file must not be pruned with its directory")
 
+    def test_negation_under_an_unignored_dir_keeps_its_siblings(self):
+        # Only a directory the .gitignore actually excludes needs the sibling filter.
+        # '!/pkg/keep.py' under the normal pkg/ must not hide pkg/mod.py from the map.
+        root = Path(tempfile.mkdtemp(prefix="test_discovery_negation_normal_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        for rel in ("pkg/keep.py", "pkg/mod.py", "other/app.py"):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text("x = 1\n", encoding="utf-8")
+        (root / ".gitignore").write_text("!/pkg/keep.py\n", encoding="utf-8")
+        found = [p.relative_to(root).as_posix() for p in find_python_files(root)]
+        self.assertEqual(found, ["other/app.py", "pkg/keep.py", "pkg/mod.py"],
+                         "a normal directory keeps every sibling; only ignored dirs filter")
+
     def test_this_repository_ignores_references(self):
         self.assertIn("references/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
 
