@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
-- **Total Classes**: `160`
+- **Total Classes**: `161`
 - **Total Top-Level Functions**: `1003`
-- **Total Class Methods**: `1202`
-- **Total Source Lines**: `45733`
+- **Total Class Methods**: `1203`
+- **Total Source Lines**: `45745`
 
 ---
 
@@ -1727,7 +1727,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2199` lines (`113316` bytes)
+**Size**: `2211` lines (`113888` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1876,6 +1876,8 @@
   - Method `.test_no_tstring_in_aikit_needs_python_314()`
 - `class TestPublishGuardHook` - *The installed hook actually blocks a raw push and allows AIKit's push.*
   - Method `.test_hook_blocks_raw_push_and_allows_aikit_publish()`
+- `class TestProjectTrackingBoundary` - *Projects are independent repositories; AIKit tracks none of their files.*
+  - Method `.test_no_project_files_are_tracked()`
 
 **Functions:**
 - `def _sh_path()` - *The POSIX shell Git uses for hooks, including Git for Windows' bundled sh.*

@@ -2195,5 +2195,17 @@ class TestPublishGuardHook(unittest.TestCase):
             self.assertEqual(allowed.returncode, 0)
 
 
+class TestProjectTrackingBoundary(unittest.TestCase):
+    """Projects are independent repositories; AIKit tracks none of their files."""
+
+    def test_no_project_files_are_tracked(self):
+        result = subprocess.run(
+            ["git", "ls-files", "projects"], cwd=ROOT_DIR, capture_output=True,
+            text=True, encoding="utf-8", errors="replace", timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "",
+                         "projects/ is ignored; each project is its own repository")
+
+
 if __name__ == "__main__":
     unittest.main()

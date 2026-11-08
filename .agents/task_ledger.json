@@ -1,48 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-6push",
+    "task_id": "verify-9push",
     "last_phase": "implementation",
     "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794109960.3852828,
+    "updated_at": 1794110831.7965636,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "policy-docs",
-      "phase": "in_progress",
-      "phase_num": 3,
-      "description": "Record push-policy resolution ADR-338 and analyze-first mandate ADR-339",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794049661.8739882,
-      "timestamp_str": "2026-11-07 14:07:41",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "policy-docs",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] ADR-338 plus ADR-339 committed solo-verified as 2e68b09, reported local-only",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794049810.9879823,
-      "timestamp_str": "2026-11-07 14:10:10",
-      "agent": "kilo:goal"
-    },
-    {
-      "task_id": "policy-docs",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'policy-docs' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794049811.1956642,
-      "timestamp_str": "2026-11-07 14:10:11",
-      "agent": "kilo:goal"
-    },
     {
       "task_id": "readme-pointer",
       "phase": "in_progress",
@@ -258,6 +226,45 @@
       "status": "in_progress",
       "timestamp": 1794109960.3852828,
       "timestamp_str": "2026-11-08 06:52:40",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-6push",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-6push' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794110831.338295,
+      "timestamp_str": "2026-11-08 07:07:11",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-9push",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/3] Review the last 9 pushes: pin the no-project-files boundary after the no-op destructive revert",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110831.5731544,
+      "timestamp_str": "2026-11-08 07:07:11",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The 9-push window contains a mislabeled commit that deleted tracked projects/foundry and its full revert; .gitignore alone cannot untrack files already in the index.",
+        "benefits": "A commit that tracks or deletes project content now fails the integration tier; independent project repositories stay independent.",
+        "risks": "contract: integration boundary test; dependency: git; concurrency: none; state: tests, decisions, code map",
+        "mitigation": "failing-first-style boundary test, read-only gates, verify_commit before push"
+      },
+      "plan_digest": "d502ff6b350f81f9d89ab9b4ac1d537348452ba48fba252e26f5b0c5bfcd622d"
+    },
+    {
+      "task_id": "verify-9push",
+      "phase": "implementation",
+      "phase_num": 4,
+      "description": "[2/3] No-project-files integration pin; test, map and read-only gates passed; skipped timing budgets (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794110831.7965636,
+      "timestamp_str": "2026-11-08 07:07:11",
       "agent": "opencode:goal"
     }
   ]

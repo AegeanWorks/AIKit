@@ -3576,3 +3576,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: ADR-333 taught the discovery walker to prune `/reports/*`, but `.gitignore` negations such as `!/reports/keep.py` were ignored. The tracked Python file then vanished from the code map and the structure gate, even though Git would track it.
 - **Decision**: `gitignored_kept_python` collects exact `.py` negations. A directory holding one stays walkable, and `find_python_files` includes only the named re-included files, so ignored siblings remain out of the map. Glob and directory negations remain outside the supported plain forms and are left to Git.
 - **Consequences**: A tracked re-included Python file is catalogued while its ignored neighbours stay out. The unit tier pins both the pruning and the narrow negation exception; no production process is spawned.
+
+### ADR-345: AIKit tracks no project files
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Reviewing the last 9 pushes found a mislabeled commit (`986f39c`, "fix(ui)") that deleted the tracked `projects/foundry` tree, followed by a full revert (`aa165a0`). The net tree was correct, but nothing prevented a future commit from tracking or deleting a project through AIKit's index; `projects/` being in `.gitignore` does not untrack already-tracked files.
+- **Decision**: Add an integration pin that `git ls-files projects` is empty in the AIKit repository. Projects and articles live in their own repositories; only AIKit's writer, scripts, tests and docs are tracked.
+- **Consequences**: A commit that stages project content or deletes a tracked project fails the integration tier. The revert pair remains in history as a no-op and is not rewritten; the boundary is enforced going forward.
