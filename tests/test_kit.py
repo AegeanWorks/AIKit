@@ -8807,6 +8807,11 @@ class TestVerifyCommitProjectBoundary(unittest.TestCase):
             ["projects/foundry/a.py", "projects"],
         )
         self.assertEqual(
+            project_path_violations(
+                ["README.md", "Projects/foundry/a.py", "projects\\foundry\\b.py"]),
+            ["Projects/foundry/a.py", "projects\\foundry\\b.py"],
+        )
+        self.assertEqual(
             project_path_violations(["Projects\\Foundry\\a.py", "PROJECTS"]),
             ["Projects\\Foundry\\a.py", "PROJECTS"],
             "Windows path case and separators must not bypass the boundary",

@@ -3818,3 +3818,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Update both audit-ledger statements to 3.13 and extend `TestRuntimeFloorConsistency` to assert the ledger's two floor descriptions.
 - **Consequences**: A cold-start reader sees the actual floor, and future drift in that document fails the unit tier.
 - **Cross-principle check**: PRINCIPLE-005: no conflict because the living documentation now matches the declared runtime; PRINCIPLE-014: no conflict because the new assertions fail on the stale ledger and none is weakened; PRINCIPLE-017: no conflict because the audit ledger remains a knowledge document, not a generated rule target.
+
+### ADR-376: The HEAD project pin uses the shared boundary
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: The HEAD integration pin from `f3b5eb1` ran `git ls-files projects`, while `verify_commit.project_path_violations` normalizes case and separators. A tracked `Projects/` path could evade the HEAD pin even though a commit would be rejected.
+- **Decision**: List every tracked file and pass the paths through `project_path_violations`, so the HEAD and commit-time checks share one definition.
+- **Consequences**: Both boundaries reject any case or backslash variant; the test remains cheap and runs on the integration tier.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because each project remains its own repository; PRINCIPLE-018: no conflict because the commit boundary is unchanged; PRINCIPLE-014: no conflict because the stronger HEAD assertion uses the same helper and no assertion is weakened.

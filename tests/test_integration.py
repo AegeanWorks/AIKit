@@ -47,6 +47,7 @@ from scripts import ui_contract  # noqa: E402
 from scripts.check_project_hygiene import scan_artifacts, scan_tree  # noqa: E402
 from scripts.project_registry import create_project, render_project_readme  # noqa: E402
 from scripts.git_guard import install_pre_push_hook  # noqa: E402
+from scripts.verify_commit import project_path_violations  # noqa: E402
 
 
 def _sh_path():
@@ -2200,10 +2201,10 @@ class TestProjectTrackingBoundary(unittest.TestCase):
 
     def test_no_project_files_are_tracked(self):
         result = subprocess.run(
-            ["git", "ls-files", "projects"], cwd=ROOT_DIR, capture_output=True,
+            ["git", "ls-files"], cwd=ROOT_DIR, capture_output=True,
             text=True, encoding="utf-8", errors="replace", timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "",
+        self.assertEqual(project_path_violations(result.stdout.splitlines()), [],
                          "projects/ is ignored; each project is its own repository")
 
 
