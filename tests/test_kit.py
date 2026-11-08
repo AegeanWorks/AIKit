@@ -9619,6 +9619,28 @@ class TestProjectPublish(unittest.TestCase):
             self.assertEqual(code, 0, report)
             self.assertTrue(is_guard_installed(root))
 
+    def test_publish_reports_a_guard_install_failure(self):
+        with mock.patch("scripts.project_publish.install_pre_push_hook",
+                        side_effect=OSError("permission denied")):
+            code, report = publish_project(Path("/p/app"), "app", runner=self.runner())
+        self.assertEqual(code, 1, report)
+        self.assertIn("Fix:", report)
+        self.assertIn("publish guard", report)
+        self.assertEqual(self.made("create") + self.made("push"), [])
+
+    def test_cmd_publish_reports_a_guard_install_failure(self):
+        import argparse
+        import io
+        from scripts import aikit_cli
+        project = mock.Mock(path=Path("/p/app"), name="app")
+        args = argparse.Namespace(name="app", workspace=Path("."), public=False, license="keep")
+        with mock.patch.object(aikit_cli, "present_project", return_value=project), \
+             mock.patch.object(aikit_cli, "install_pre_push_hook",
+                               side_effect=OSError("permission denied")), \
+             contextlib.redirect_stderr(io.StringIO()):
+            code = aikit_cli.cmd_publish(args)
+        self.assertEqual(code, 1)
+
     def test_auto_push_reports_a_guard_install_failure(self):
         with mock.patch("scripts.project_publish.install_pre_push_hook",
                         side_effect=OSError("permission denied")):

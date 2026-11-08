@@ -300,7 +300,14 @@ def publish_project(project_root: Path, name: str, public: bool = False,
     caller can refuse an unusable one before any gate runs.
     """
     run = runner or run_command
-    install_pre_push_hook(project_root, name)
+    try:
+        install_pre_push_hook(project_root, name)
+    except (OSError, ValueError) as exc:
+        return 1, _triad(
+            f"the publish guard could not be installed in '{name}': {exc}",
+            "a direct git push would bypass AIKit's publish gates.",
+            "check .git/hooks permissions, then publish again.",
+        )
     if run(["git", "rev-parse", "--verify", "HEAD"], project_root)[0] != 0:
         return 1, _triad(f"project '{name}' has no commit to publish.",
                          "only committed history is uploaded.",

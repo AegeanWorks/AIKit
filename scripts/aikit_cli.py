@@ -743,7 +743,15 @@ def cmd_fix(args: argparse.Namespace) -> int:
 def cmd_publish(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
     # Install the local guard before any refusal: even a failed publish must block a raw retry.
-    guard = install_pre_push_hook(project.path, project.name)
+    try:
+        guard = install_pre_push_hook(project.path, project.name)
+    except (OSError, ValueError) as exc:
+        return report_error(ProjectError(
+            f"the publish guard could not be installed in '{project.name}': {exc}",
+            "a direct git push would bypass AIKit's publish gates.",
+            "check .git/hooks permissions, then publish again.",
+            exit_code=1,
+        ))
     if guard is not None and not is_guard_installed(project.path):
         return report_error(ProjectError(
             f"the publish guard could not be installed in '{project.name}'.",

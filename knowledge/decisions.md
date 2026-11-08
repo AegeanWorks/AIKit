@@ -3754,3 +3754,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Treat `tarfile.open` as binary for the encoding rule; default `gzip`/`bz2`/`lzma` to binary and honor an explicit `b` or `t`. Other open calls keep their literal mode.
 - **Consequences**: Archive reads and default compressed reads are quiet; an explicit `rt` compressed read still requires `encoding`. The unit tier pins `r:gz` and both gzip default/text forms.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because text-mode opens still require portable encoding; PRINCIPLE-014: no conflict because the assertions pin both the binary and text sides and none is weakened.
+
+### ADR-368: Every publish-guard install failure returns the delivery triad
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-366 fixed `auto_push_project`, but `cmd_publish` and `publish_project` still called `install_pre_push_hook` unguarded. A hook-path permission or disk error raised `OSError` out of publish before any refusal, hiding the cause in a traceback.
+- **Decision**: Catch `OSError` and `ValueError` in both publish paths and return the same Why/Fix refusal used by the sanctioned push path; no upload occurs.
+- **Consequences**: Every guard-install failure is actionable and consistent, and a raw-push block is never silently skipped. Unit tests patch the installer and assert the library and CLI refusals.
+- **Cross-principle check**: PRINCIPLE-011: no conflict because the failure keeps the Why/Fix shape; PRINCIPLE-018: no conflict because no upload occurs and the push path is unchanged; PRINCIPLE-014: no conflict because the new tests fail on the previous traceback paths and none is weakened.

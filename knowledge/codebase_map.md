@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1229`
-- **Total Source Lines**: `46349`
+- **Total Class Methods**: `1231`
+- **Total Source Lines**: `46386`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1562` lines (`78871` bytes)
+**Size**: `1570` lines (`79221` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1274,7 +1274,7 @@
 ### [`scripts/project_publish.py`](scripts/project_publish.py)
 > *Publish a project to its own GitHub repository (ADR-134).*
 
-**Size**: `355` lines (`17392` bytes)
+**Size**: `362` lines (`17692` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd)` - *Default runner: the command's exit code and combined output; -1 when it cannot start.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15089` lines (`821655` bytes)
+**Size**: `15111` lines (`822810` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2664,6 +2664,8 @@
   - Method `.test_existing_remote_is_pushed_never_recreated_or_forced()`
   - Method `.test_an_existing_upstream_scans_only_the_commits_it_pushes()`
   - Method `.test_auto_push_installs_the_guard_before_uploading()`
+  - Method `.test_publish_reports_a_guard_install_failure()`
+  - Method `.test_cmd_publish_reports_a_guard_install_failure()`
   - Method `.test_auto_push_reports_a_guard_install_failure()`
   - Method `.test_auto_push_scans_the_commits_it_pushes_and_refuses_a_finding()`
   - Method `.test_refusals_upload_nothing()`
