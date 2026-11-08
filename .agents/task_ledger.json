@@ -53,28 +53,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 92",
-      "phase_num": 3,
-      "description": "Reforge stage 92: stage 92 host review reviewed; run active; coverage 46/46",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149937.7075248,
-      "timestamp_str": "2026-11-08 17:58:57",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 93",
-      "phase_num": 3,
-      "description": "Reforge stage 93: window 279, 3 commit(s), 34 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149962.0125558,
-      "timestamp_str": "2026-11-08 17:59:22",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 93",
       "phase_num": 3,
       "description": "Reforge stage 93: stage 93 host review reviewed; run active; coverage 91/91",
@@ -239,6 +217,28 @@
       "status": "in_progress",
       "timestamp": 1794150122.3595498,
       "timestamp_str": "2026-11-08 18:02:02",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 101",
+      "phase_num": 3,
+      "description": "Reforge stage 101: window 303, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150128.161555,
+      "timestamp_str": "2026-11-08 18:02:08",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 101",
+      "phase_num": 3,
+      "description": "Reforge stage 101: stage 101 host review reviewed; run active; coverage 21/21",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150130.6019855,
+      "timestamp_str": "2026-11-08 18:02:10",
       "agent": "opencode"
     }
   ]
