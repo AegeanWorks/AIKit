@@ -14040,10 +14040,10 @@ class TestVerify6PushSafeFixes(unittest.TestCase):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            missing = root / "gone" / "file.txt"
+            (root / "gone").write_text("blocking", encoding="utf-8")
             failures = pl._restore(root, {"gone/file.txt": b"data"})
-            # Either restored or reported; never raises
-            self.assertIsInstance(failures, list)
+            self.assertEqual(failures, ["gone/file.txt"])
+            self.assertEqual(pl._restore(root, {"../outside": b"data"}), ["../outside"])
 
     def test_archive_fill_allows_valid_override(self) -> None:
         from scripts import project_archive
