@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1223`
-- **Total Source Lines**: `46180`
+- **Total Class Methods**: `1224`
+- **Total Source Lines**: `46191`
 
 ---
 
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14948` lines (`813968` bytes)
+**Size**: `14959` lines (`814623` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2013,6 +2013,7 @@
   - Method `.test_this_repository_ignores_references()`
   - Method `.test_this_repository_ignores_article_drafts()`
   - Method `.test_this_repository_ignores_kilo_state()`
+  - Method `.test_kilo_state_is_pruned_from_python_discovery()`
   - Method `.test_temporary_python_buffers_are_not_catalogued()`
 - `class TestOpenCodePermissionBoundaries` - *PRINCIPLE-008 R6 / PRINCIPLE-009 R6 (ADR-116): replay OpenCode v2's documented evaluation*
   - Method `.decide(rules, action, resource)`

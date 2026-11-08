@@ -1461,6 +1461,17 @@ class TestPythonFileDiscovery(unittest.TestCase):
         self.assertIn(".kilo", disruption_recovery.SWEEP_PRUNED_DIRS)
         self.assertIn(".kilo", proof_gate.COPY_IGNORE_PATTERNS)
 
+    def test_kilo_state_is_pruned_from_python_discovery(self):
+        root = Path(tempfile.mkdtemp(prefix="test_discovery_kilo_"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        (root / "pkg").mkdir()
+        (root / "pkg" / "mod.py").write_text("x = 1\n", encoding="utf-8")
+        (root / ".kilo" / "worktree").mkdir(parents=True)
+        (root / ".kilo" / "worktree" / "hidden.py").write_text("x = 1\n", encoding="utf-8")
+        (root / ".gitignore").write_text("/.kilo/\n", encoding="utf-8")
+        found = [p.relative_to(root).as_posix() for p in find_python_files(root)]
+        self.assertEqual(found, ["pkg/mod.py"])
+
     def test_temporary_python_buffers_are_not_catalogued(self):
         # A crashed agent leaves `.tmp_*` probes behind; they are not codebase modules and may be
         # intentionally invalid, so the AST map must not fail on them.
