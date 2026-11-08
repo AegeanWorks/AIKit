@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `164`
 - **Total Top-Level Functions**: `1014`
-- **Total Class Methods**: `1253`
-- **Total Source Lines**: `46843`
+- **Total Class Methods**: `1254`
+- **Total Source Lines**: `46864`
 
 ---
 
@@ -1677,7 +1677,7 @@
 ### [`scripts/verify_commit.py`](scripts/verify_commit.py)
 > *Post-Commit Verification (PRINCIPLE-018 Rule 7)*
 
-**Size**: `760` lines (`36604` bytes)
+**Size**: `771` lines (`37167` bytes)
 
 **Functions:**
 - `def run_command(argv, cwd, timeout)` - *A command's exit code and combined output; -1 when it could not start or timed out.*
@@ -1690,8 +1690,8 @@
 - `def _glob_match(path, pattern)` - *Recursive glob: `**` spans zero or more segments, `*?[]` stay in-segment.*
 - `def _scope_match(path, patterns)` - *Whether one repo-relative path matches any allowlist glob.*
 - `def scope_errors(declaration, files, added_lines)` - *Scope failures for one declaration against changed files and diff size.*
-- `def _numstat_total(output)` - *Added plus deleted lines across a `git diff --numstat` output.*
-- `def commit_files_and_lines(ref, repo, run)` - *Changed files and changed lines for one commit.*
+- `def _numstat_total(output, exclude)` - *Added plus deleted lines across a `git diff --numstat` output.*
+- `def commit_files_and_lines(ref, repo, run, exclude)` - *Changed files and changed lines for one commit.*
 - `def project_path_violations(paths)` - *Changed paths AIKit must never track: a project owns its own repository.*
 - `def proof_command_from_declaration(declaration, *, worktree, parent, script)` - *Build the proof-gate command from a parsed `.aikit/proof.json` object.*
 - `def scope_step(worktree, ref, repo, run)` - *Scope verdict for a commit carrying `.aikit/proof.json`; None when absent.*
@@ -1904,7 +1904,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15421` lines (`838651` bytes)
+**Size**: `15431` lines (`839145` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2775,6 +2775,7 @@
   - Method `.test_scope_keys_are_optional_but_validated()`
   - Method `.test_scope_errors_name_outside_files_and_broken_budgets()`
   - Method `.test_scope_globs_keep_pathlib_matching_without_recursive_segments()`
+  - Method `.test_scope_line_budget_skips_exempt_files()`
   - Method `.test_numstat_counts_binary_files_as_single_line_changes()`
   - Method `.test_a_proof_declaration_without_tests_or_required_sources_is_refused()`
   - Method `.test_verify_commit_runs_a_declared_proof_gate()`

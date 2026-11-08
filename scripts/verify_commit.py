@@ -260,28 +260,39 @@ def scope_errors(declaration: Dict[str, Any], files: List[str],
     return errors
 
 
-def _numstat_total(output: str) -> int:
+def _numstat_total(output: str,
+                   exclude: Optional[Callable[[str], bool]] = None) -> int:
     """Added plus deleted lines across a `git diff --numstat` output.
 
     Binary files report `- -` instead of counts; each counts as one changed
-    line so a binary cannot slip under a `max_lines` budget uncounted.
+    line so a binary cannot slip under a `max_lines` budget uncounted. When
+    `exclude` accepts a path, that file's lines are skipped entirely, which is
+    how the ledger, declaration and map stay outside a scope budget.
     """
     total = 0
     for line in output.splitlines():
-        fields = line.split()
-        if len(fields) >= 3 and fields[0].isdigit() and fields[1].isdigit():
+        fields = line.split("\t")
+        if len(fields) < 3:
+            continue
+        path = fields[2]
+        if exclude is not None and exclude(path):
+            continue
+        if fields[0].isdigit() and fields[1].isdigit():
             total += int(fields[0]) + int(fields[1])
-        elif len(fields) >= 3 and fields[0] == "-" and fields[1] == "-":
+        elif fields[0] == "-" and fields[1] == "-":
             total += 1
     return total
 
 
-def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str], int]:
+def commit_files_and_lines(ref: str, repo: Path, run: Runner,
+                           exclude: Optional[Callable[[str], bool]] = None
+                           ) -> Tuple[List[str], int]:
     """Changed files and changed lines for one commit.
 
     A root commit has no parent to diff against: the whole tree counts as
     changed files with 0 lines, so `max_files` still binds while `max_lines`
-    cannot (there is no base for a line delta).
+    cannot (there is no base for a line delta). `exclude` drops a path's lines
+    from the budget without dropping it from the changed-file list.
     """
     code, parent = run(["git", "rev-parse", f"{ref}^"], repo)
     if code == 0 and parent.strip():
@@ -291,7 +302,7 @@ def commit_files_and_lines(ref: str, repo: Path, run: Runner) -> Tuple[List[str]
         files = (sorted({line for line in names.splitlines() if line.strip()})
                  if code == 0 else [])
         code, stat = run(["git", "diff", "--numstat", f"{base}", ref], repo)
-        return files, _numstat_total(stat) if code == 0 else 0
+        return files, _numstat_total(stat, exclude) if code == 0 else 0
     code, names = run(["git", "ls-tree", "-r", "--name-only", ref], repo)
     return (sorted({line for line in names.splitlines() if line.strip()})
             if code == 0 else [], 0)
@@ -382,7 +393,7 @@ def scope_step(worktree: Path, ref: str, repo: Path, run: Runner
         _scope_int(declaration.get("max_lines", 0), "max_lines")
     except ValueError as exc:
         return False, str(exc), [f"[FAIL] scope declaration: {exc}"]
-    files, lines = commit_files_and_lines(ref, repo, run)
+    files, lines = commit_files_and_lines(ref, repo, run, exclude=_scope_exempt)
     problems = scope_errors(declaration, files, lines)
     if problems:
         return False, "; ".join(problems), ["[FAIL] scope"] + [

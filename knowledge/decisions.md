@@ -3890,3 +3890,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Use the recursive walker only when `**` is a whole pattern segment. Other globs keep `PurePosixPath.match` suffix matching, and a pattern without glob characters keeps the directory-prefix rule.
 - **Consequences**: Existing declarations stay valid while `**` still spans directories. The unit tier pins both a basename glob and a nested directory glob, alongside the recursive cases.
 - **Cross-principle check**: PRINCIPLE-014: no conflict because the new test fails on the previous matcher and none is weakened; PRINCIPLE-018: no conflict because the scope boundary is unchanged for `**` patterns; PRINCIPLE-003: no conflict because the matching remains pure `pathlib`/`fnmatch`.
+
+### ADR-385: Exempt files do not consume the scope line budget
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `9c1c01d` exempts the ledger, the proof declaration and the generated codebase map from `paths` and `max_files`, but `max_lines` still used the whole commit diff. A commit that only regenerated the map could fail a budget the data model says those files do not constrain.
+- **Decision**: Let `_numstat_total` and `commit_files_and_lines` accept an optional exclude predicate; `scope_step` passes `_scope_exempt`, so exempt files contribute no lines while remaining in the changed-file list.
+- **Consequences**: `max_lines` counts only the files the declaration governs, matching `paths` and `max_files`. The unit tier pins a 105-line total that becomes 5 scoped lines when the map and a binary are excluded.
+- **Cross-principle check**: PRINCIPLE-018: no conflict because the scope gate now matches its documented exemptions; PRINCIPLE-014: no conflict because the new test fails on the previous signature and none is weakened; PRINCIPLE-016: no conflict because the map keeps its own freshness gate.

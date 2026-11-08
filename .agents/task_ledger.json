@@ -1,57 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-78push-v2",
+    "task_id": "verify-81push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794151924.0439174,
+    "updated_at": 1794152570.392291,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794151924.6455927
+    "completed_at": 1794152570.757034
   },
   "checkpoints": [
-    {
-      "task_id": "verify-78push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 78 pushes: keep pathlib basename matching for non-recursive scope globs",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151787.1310306,
-      "timestamp_str": "2026-11-08 18:29:47",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "17069a4 replaced PurePath.match for every scope pattern; a declaration like paths: ['*.py'] no longer covers scripts/a.py, so a valid commit is refused as outside scope even though the previous matcher accepted it.",
-        "benefits": "Only patterns with a whole ** segment use the recursive walker; ordinary globs keep their suffix matching and existing declarations stay valid.",
-        "risks": "contract: proof scope paths; dependency: stdlib pathlib/fnmatch; concurrency: none; state: verify_commit.py, tests, ADR, map",
-        "mitigation": "failing-first basename/suffix glob test, existing recursive and directory tests, full unit tier, root scan and gates"
-      },
-      "plan_digest": "35bee0fe097fc5f11e9e4a2ee11747ab199b60b7ba2e1c3bd140cb6c910200de"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 225",
-      "phase_num": 3,
-      "description": "Reforge stage 225: stage 225 host review reviewed; run active; coverage 34/34",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151820.0090685,
-      "timestamp_str": "2026-11-08 18:30:20",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 226",
-      "phase_num": 3,
-      "description": "Reforge stage 226: window 678, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794151829.846329,
-      "timestamp_str": "2026-11-08 18:30:29",
-      "agent": "opencode"
-    },
     {
       "task_id": "reforge:run-2",
       "phase": "reforge stage 226",
@@ -67,7 +27,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 227",
       "phase_num": 3,
-      "description": "Reforge stage 227: window 681, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 227: window 681, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151851.722465,
@@ -89,7 +49,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 228",
       "phase_num": 3,
-      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 228: window 684, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151869.2570536,
@@ -111,7 +71,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 229",
       "phase_num": 3,
-      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 229: window 687, 3 commit(s), 13 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151894.533931,
@@ -133,7 +93,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 230",
       "phase_num": 3,
-      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 230: window 690, 3 commit(s), 15 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151923.3207672,
@@ -176,7 +136,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 231",
       "phase_num": 3,
-      "description": "Reforge stage 231: window 693, 3 commit(s), 20 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 231: window 693, 3 commit(s), 20 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794151951.7457502,
@@ -198,7 +158,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 232",
       "phase_num": 3,
-      "description": "Reforge stage 232: window 695, 2 commit(s), 4 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 232: window 695, 2 commit(s), 4 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794152076.142367,
@@ -220,7 +180,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 233",
       "phase_num": 3,
-      "description": "Reforge stage 233: window 696, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "description": "Reforge stage 233: window 696, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794152387.3575208,
@@ -237,6 +197,45 @@
       "timestamp": 1794152387.5652475,
       "timestamp_str": "2026-11-08 18:39:47",
       "agent": "opencode"
+    },
+    {
+      "task_id": "verify-81push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 81 pushes: exclude exempt files from the scope line budget",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794152420.6284487,
+      "timestamp_str": "2026-11-08 18:40:20",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "9c1c01d exempts the ledger, the proof declaration and the generated map from scope, but max_lines still counts their diff lines; a commit that regenerates the map can fail a scope budget the docs say it does not constrain.",
+        "benefits": "Scope line budgets count only the files the declaration actually governs, matching paths and max_files.",
+        "risks": "contract: proof scope budgets; dependency: git numstat; concurrency: none; state: verify_commit.py, tests, ADR, map",
+        "mitigation": "failing-first exclude-aware numstat test, existing scope and binary tests, full unit tier, root scan and gates"
+      },
+      "plan_digest": "f9eac8e13f214ad7aac07127da07d8312740d12cfa95a417990ac512a6292cd7"
+    },
+    {
+      "task_id": "verify-81push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Exempt files excluded from max_lines; 1003 unit tests, clean root scan (12.6s), map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794152570.392291,
+      "timestamp_str": "2026-11-08 18:42:50",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-81push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-81push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794152570.7570357,
+      "timestamp_str": "2026-11-08 18:42:50",
+      "agent": "opencode:goal"
     }
   ]
 }

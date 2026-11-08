@@ -133,6 +133,7 @@ from scripts.aikit_cli import build_parser, main as aikit_main
 from scripts.verify_commit import (
     PROOF_DEFAULTS,
     _numstat_total,
+    _scope_exempt,
     proof_command_from_declaration,
     proof_gate_command,
     scanned_range,
@@ -11008,6 +11009,15 @@ class TestPostCommitVerification(unittest.TestCase):
         self.assertEqual(scope_errors(
             {"tests": ["tests/test_x.py"], "paths": ["scripts/*.py"]},
             ["x/scripts/a.py"], 10), [])
+
+    def test_scope_line_budget_skips_exempt_files(self):
+        # The ledger, proof declaration and generated map are exempt from scope;
+        # their lines must not consume the max_lines budget either.
+        output = ("100\t0\tknowledge/codebase_map.md\n"
+                  "3\t1\tscripts/a.py\n"
+                  "-\t-\tassets/x.png\n")
+        self.assertEqual(_numstat_total(output, exclude=_scope_exempt), 5)
+        self.assertEqual(_numstat_total(output), 105)
 
     def test_numstat_counts_binary_files_as_single_line_changes(self):
         # `git diff --numstat` reports `- -` for binaries; each counts as one
