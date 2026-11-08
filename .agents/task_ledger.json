@@ -237,6 +237,28 @@
       "timestamp": 1794151933.814581,
       "timestamp_str": "2026-11-08 18:32:13",
       "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 231",
+      "phase_num": 3,
+      "description": "Reforge stage 231: window 693, 3 commit(s), 20 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794151951.7457502,
+      "timestamp_str": "2026-11-08 18:32:31",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 231",
+      "phase_num": 3,
+      "description": "Reforge stage 231: stage 231 host review reviewed; run completed; coverage 43/43",
+      "files_affected": [],
+      "status": "completed",
+      "timestamp": 1794151972.2406526,
+      "timestamp_str": "2026-11-08 18:32:52",
+      "agent": "opencode"
     }
   ]
 }
