@@ -1,33 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-33push-v2",
+    "task_id": "verify-36push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794143692.886543,
+    "updated_at": 1794144023.993774,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "impact_assessment": {
-      "why": "_restore wrote snapshot bytes directly; a disk error or crash could leave a partially restored file.",
-      "benefits": "Restore uses temp+fsync+replace and reports a failed restore without leaving partial bytes.",
-      "risks": "contract: reforge rollback; dependency: scripts.disruption_recovery; concurrency: none; state: reforge/pipeline.py, tests, ADR, map",
-      "mitigation": "failing-first mocked-writer test, existing failure test, unit tier, root scan and gates"
-    },
-    "completed_at": 1794143693.1945465
+    "completed_at": 1794144024.1989112
   },
   "checkpoints": [
-    {
-      "task_id": "verify-32push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-32push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794139567.0842094,
-      "timestamp_str": "2026-11-08 15:06:07",
-      "agent": "opencode:goal"
-    },
     {
       "task_id": "verify-36push-v2",
       "phase": "in_progress",
@@ -65,84 +49,6 @@
       "status": "completed",
       "timestamp": 1794141083.637854,
       "timestamp_str": "2026-11-08 15:31:23",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-21push-v3",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 21 pushes: keep the %PROGRAMDATA% Windows system-config fallback",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794141275.6260097,
-      "timestamp_str": "2026-11-08 15:34:35",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The 21-push window added the Windows system config at %PROGRAMDATA%\\\\Git\\\\config; the later executable-relative fix replaced it. A portable or differently installed Git can have no etc/gitconfig beside the executable while the machine config remains.",
-        "benefits": "Both standard Windows system-config locations are checked; the executable-relative path still wins when both exist.",
-        "risks": "contract: publish guard config search; dependency: stdlib; concurrency: none; state: git_guard.py, tests, reachability allowlist, ADR, map",
-        "mitigation": "failing-first PROGRAMDATA fallback test, targeted guard tests, root scan, unit tier, reachability"
-      },
-      "plan_digest": "0adc3017351bb78e49c90df718727871008fe287218b9e09d643e440eaefc12a"
-    },
-    {
-      "task_id": "verify-21push-v3",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] PROGRAMDATA + install-relative system config fallback; 974 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794141488.4892344,
-      "timestamp_str": "2026-11-08 15:38:08",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-21push-v3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-21push-v3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794141489.4416513,
-      "timestamp_str": "2026-11-08 15:38:09",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-24push-v3",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 24 pushes: pin Windows system-config precedence and fallback",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794141878.2866068,
-      "timestamp_str": "2026-11-08 15:44:38",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The window adds both %PROGRAMDATA% and install-relative system configs, but no test proves which wins when both exist or that PROGRAMDATA fills a missing key in the install file.",
-        "benefits": "The precedence is pinned before a future config-reader change can silently reverse it.",
-        "risks": "contract: Windows publish-guard config search; dependency: stdlib; concurrency: none; state: tests, ADR, map",
-        "mitigation": "Windows-only precedence tests, targeted guard tests, full unit tier, root scan"
-      },
-      "plan_digest": "a392cc74bcc3b603483cccb6eb07f217eac95b4b28814446ca26ebea6a254052"
-    },
-    {
-      "task_id": "verify-24push-v3",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Windows system-config precedence/fallback tests; 977 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794142015.3770325,
-      "timestamp_str": "2026-11-08 15:46:55",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-24push-v3",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-24push-v3' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794142015.6752713,
-      "timestamp_str": "2026-11-08 15:46:55",
       "agent": "opencode:goal"
     },
     {
@@ -188,7 +94,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 40",
       "phase_num": 3,
-      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 40: window 120, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143016.4698665,
@@ -210,7 +116,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 41",
       "phase_num": 3,
-      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 41: window 123, 3 commit(s), 3 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794143251.773606,
@@ -243,7 +149,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 42",
       "phase_num": 3,
-      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty — nothing to commit, 2 binary not analysed (regression=1)",
+      "description": "Reforge stage 42: window 126, 3 commit(s), 18 file(s) reviewed (unreviewed), 1 finding(s), 0 repaired, empty \u2014 nothing to commit, 2 binary not analysed (regression=1)",
       "files_affected": [
         "scripts/project_artwork.py",
         "assets/logo.png",
@@ -312,6 +218,45 @@
       "status": "completed",
       "timestamp": 1794143693.1945481,
       "timestamp_str": "2026-11-08 16:14:53",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-36push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 36 pushes: fsync the hook directory after the atomic replace",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794143919.5203557,
+      "timestamp_str": "2026-11-08 16:18:39",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "install_pre_push_hook fsyncs the temp file and replaces it but never fsyncs the containing directory, so on POSIX a power loss can revert the rename and leave the project unguarded.",
+        "benefits": "The hook rename is durable like every other PRINCIPLE-013 state write; Windows stays a no-op.",
+        "risks": "contract: publish guard durability; dependency: disruption_recovery.fsync_dir; concurrency: none; state: git_guard.py, tests, ADR, map",
+        "mitigation": "failing-first mocked fsync test, targeted guard tests, unit tier, root scan and gates"
+      },
+      "plan_digest": "8bd1ac47e30ea1db6f3a95ec5d170582ba10ccba2106f2fa80b685d9698ef039"
+    },
+    {
+      "task_id": "verify-36push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] Guard directory fsync; 985 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794144023.993774,
+      "timestamp_str": "2026-11-08 16:20:23",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-36push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-36push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794144024.1989133,
+      "timestamp_str": "2026-11-08 16:20:24",
       "agent": "opencode:goal"
     }
   ]

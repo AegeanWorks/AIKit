@@ -206,6 +206,8 @@ def install_pre_push_hook(project_root: Path, project_name: str) -> Optional[Pat
     if not _SAFE_NAME.fullmatch(project_name):
         raise ValueError(f"project name is not safe for a hook: {project_name!r}")
     target.parent.mkdir(parents=True, exist_ok=True)
+    from scripts.disruption_recovery import fsync_dir
+
     script = _hook_script(project_name)
     temp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
     moved: Optional[Path] = None
@@ -227,7 +229,10 @@ def install_pre_push_hook(project_root: Path, project_name: str) -> Optional[Pat
         except OSError:
             if moved is not None and not target.exists():
                 moved.replace(target)
+                fsync_dir(target.parent)
             raise
+        # Fsync the directory so the rename itself survives power loss (Windows no-op).
+        fsync_dir(target.parent)
     finally:
         temp.unlink(missing_ok=True)
     try:

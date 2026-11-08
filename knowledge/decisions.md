@@ -3770,3 +3770,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: Restore through `scripts.disruption_recovery.atomic_write_bytes(..., backup=False)`, keeping the existing safe-path check and returning the path when the write fails.
 - **Consequences**: A restore is temp + fsync + replace; a failed restore leaves the prior file intact and is reported. The unit tier mocks the atomic writer to fail and asserts the path is returned.
 - **Cross-principle check**: PRINCIPLE-013: no conflict because the restore now follows the state-write durability contract; PRINCIPLE-014: no conflict because the new test fails on the direct-write path and no assertion is weakened.
+
+### ADR-370: The guard install fsyncs its directory
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: `install_pre_push_hook` fsynced the temporary guard and replaced it, but never fsynced the containing directory. On POSIX journalling filesystems the rename can be lost on power failure, silently leaving the project unguarded.
+- **Decision**: Call `fsync_dir(target.parent)` after the successful replace and after restoring the original hook on failure. `fsync_dir` is a no-op on Windows and reports network-mount failures without undoing the install.
+- **Consequences**: The hook rename follows the same durability barrier as other state writes; the unit tier mocks `fsync_dir` and asserts it receives the hook directory.
+- **Cross-principle check**: PRINCIPLE-013: no conflict because the guard now completes the state-write barrier; PRINCIPLE-014: no conflict because the new test fails without the call and no assertion is weakened; PRINCIPLE-018: no conflict because the raw-push guard is more durable, not weaker.

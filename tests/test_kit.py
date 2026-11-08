@@ -9309,6 +9309,16 @@ class TestPublishGuard(unittest.TestCase):
             self.assertEqual(target.read_text(encoding="utf-8"), original)
             self.assertFalse((hooks / "pre-push.local").exists())
 
+    def test_install_fsyncs_the_hook_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".git").mkdir()
+            with mock.patch("scripts.disruption_recovery.fsync_dir",
+                            return_value=True) as sync:
+                target = install_pre_push_hook(root, "demo")
+            self.assertEqual(target, root / ".git" / "hooks" / "pre-push")
+            sync.assert_called_once_with(root / ".git" / "hooks")
+
     def test_no_git_repository_is_a_no_op(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertIsNone(install_pre_push_hook(Path(tmp), "demo"))

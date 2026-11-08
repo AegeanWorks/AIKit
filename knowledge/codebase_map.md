@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
-- **Total Class Methods**: `1235`
-- **Total Source Lines**: `46455`
+- **Total Class Methods**: `1236`
+- **Total Source Lines**: `46470`
 
 ---
 
@@ -1044,7 +1044,7 @@
 ### [`scripts/git_guard.py`](scripts/git_guard.py)
 > *Local publish guard: block raw git pushes so only `aikit.py publish` uploads.*
 
-**Size**: `283` lines (`10065` bytes)
+**Size**: `288` lines (`10282` bytes)
 
 **Functions:**
 - `def _config_value(raw)` - *A git config value as git reads it: quotes removed, and ; or # outside quotes ends it.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15158` lines (`825297` bytes)
+**Size**: `15168` lines (`825795` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2644,6 +2644,7 @@
   - Method `.test_install_writes_guard_and_preserves_an_existing_hook()`
   - Method `.test_a_failed_guard_write_keeps_the_existing_hook()`
   - Method `.test_a_failed_guard_replace_restores_the_existing_hook()`
+  - Method `.test_install_fsyncs_the_hook_directory()`
   - Method `.test_no_git_repository_is_a_no_op()`
   - Method `.test_core_hooks_path_is_respected()`
   - Method `.test_global_core_hooks_path_is_respected()`
