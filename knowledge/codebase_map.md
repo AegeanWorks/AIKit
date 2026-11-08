@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1218`
-- **Total Source Lines**: `46112`
+- **Total Source Lines**: `46108`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1565` lines (`78803` bytes)
+**Size**: `1560` lines (`78681` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1077,7 +1077,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `566` lines (`29226` bytes)
+**Size**: `567` lines (`29383` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*

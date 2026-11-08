@@ -519,8 +519,9 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
                     shutil.rmtree(dst, ignore_errors=True)
                 else:
                     dst.unlink(missing_ok=True)
-        except (OSError, shutil.Error):
-            pass
+        except (OSError, shutil.Error) as cleanup_error:
+            notes.append(f"Note: could not clean the partial destination {dst} "
+                         f"({cleanup_error}); inspect it before retrying.")
         return 1, _triad(f"moving '{name}' to {dst} failed: {exc}",
                          "the filesystem denied the move.",
                          "check the path permissions and free space, then archive again.")

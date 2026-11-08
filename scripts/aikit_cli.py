@@ -362,12 +362,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         kind = "attached" if project.attached else "local"
         repo_url = get_project_repo_url(project.path)
         repo_note = f"  repo: {repo_url}" if repo_url else ""
-        archived = ""
-        try:
-            if is_archived(project.path):
-                archived = "  [ARCHIVED]"
-        except (OSError, ValueError, KeyError):
-            archived = ""
+        archived = "  [ARCHIVED]" if is_archived(project.path) else ""
         print(f"{project.name}  [{stacks}]  test: {test}  ({kind}: {project.path}){repo_note}{archived}")
     return 0
 
