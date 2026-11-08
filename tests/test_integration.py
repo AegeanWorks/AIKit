@@ -2228,7 +2228,7 @@ class TestStateMachineCLI(unittest.TestCase):
         payload = subprocess.run([sys.executable, str(script), "--json"],
                                  timeout=PROC_TIMEOUT, **common)
         self.assertEqual(payload.returncode, 0, payload.stderr)
-        self.assertGreaterEqual(len(json.loads(payload.stdout)["machines"]), 12)
+        self.assertGreaterEqual(len(json.loads(payload.stdout)["machines"]), 19)
 
         allowed = subprocess.run(
             [sys.executable, str(script), "--machine", "task-lifecycle",

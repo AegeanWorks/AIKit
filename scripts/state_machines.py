@@ -290,6 +290,29 @@ MACHINES: Tuple[Machine, ...] = (
             "abort drops allowed removals and leaves no history record.",
     ),
     Machine(
+        name="upstream-check",
+        purpose="One dossier's source, compared with the live upstream repository.",
+        states=("current", "missing", "licence_changed", "moved", "archived",
+                "analysis_behind", "skipped", "error"),
+        transitions={
+            "current": ("current",),
+            "missing": (),
+            "licence_changed": (),
+            "moved": (),
+            "archived": (),
+            "analysis_behind": (),
+            "skipped": ("current", "missing", "licence_changed", "moved", "archived",
+                        "analysis_behind", "error"),
+            "error": ("current", "missing", "licence_changed", "moved", "archived",
+                      "analysis_behind", "skipped", "error"),
+        },
+        source="idea_catcher/upstream_check.py: diff_upstream, run_revalidation; "
+               "dossier headers re-read on the revalidate command",
+        gap="A decided state is final for one run, but skipped and error are never decided "
+            "and can be retried; skip is silent about whether a limit or a missing repo "
+            "caused it, so a limited run reads like a complete one.",
+    ),
+    Machine(
         name="compat-proof",
         purpose="Whether a generated project proves it is drivable without project tooling.",
         states=("absent", "headless", "ui", "pass", "findings"),

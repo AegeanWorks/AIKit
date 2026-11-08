@@ -15496,7 +15496,7 @@ class TestStateMachines(unittest.TestCase):
     def test_registry_is_internally_consistent(self) -> None:
         from scripts import state_machines as sm
         from scripts.disruption_recovery import TASK_STATES
-        self.assertGreaterEqual(len(sm.MACHINES), 12)
+        self.assertGreaterEqual(len(sm.MACHINES), 20)
         names = [machine.name for machine in sm.MACHINES]
         self.assertEqual(len(names), len(set(names)))
         for machine in sm.MACHINES:
@@ -15579,7 +15579,9 @@ class TestStateMachines(unittest.TestCase):
             audit = run_disruption_audit(workspace_dir=Path(tmp), git_status=not_a_git_repo)
             self.assertIsNotNone(audit.get("suspended_task"))
             self.assertFalse(audit["clean_shutdown"])
-            self.assertIn("Paused Task", format_audit_report(audit))
+            report = format_audit_report(audit)
+            self.assertIn("Paused Task", report)
+            self.assertIn("🟡 Status", report)
 
     def test_audit_reports_an_unknown_task_status(self) -> None:
         from scripts.disruption_recovery import format_audit_report, run_disruption_audit
@@ -15598,6 +15600,129 @@ class TestStateMachines(unittest.TestCase):
             self.assertIsNotNone(audit.get("unknown_task_status"))
             self.assertFalse(audit["clean_shutdown"])
             self.assertIn("Unknown Task Status", format_audit_report(audit))
+
+
+    def test_every_machine_renders_and_checks_every_state(self) -> None:
+        from scripts import state_machines as sm
+        for machine in sm.MACHINES:
+            with contextlib.redirect_stdout(io.StringIO()) as rendered:
+                self.assertEqual(sm.main(["--machine", machine.name]), 0, machine.name)
+            self.assertIn(machine.name, rendered.getvalue())
+            self.assertIn("States:", rendered.getvalue())
+            for state in machine.states:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(sm.main(["--machine", machine.name,
+                                              "--check-status", state]), 0,
+                                     f"{machine.name}: {state}")
+
+    def test_cli_matches_the_transition_table_for_every_machine(self) -> None:
+        from scripts import state_machines as sm
+        for machine in sm.MACHINES:
+            for source, targets in machine.transitions.items():
+                for target in targets:
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        self.assertEqual(
+                            sm.main(["--machine", machine.name, "--from", source,
+                                     "--to", target]), 0,
+                            f"{machine.name}: {source} -> {target}")
+                disallowed = [state for state in machine.states if state not in targets]
+                if disallowed:
+                    with contextlib.redirect_stdout(io.StringIO()), \
+                            contextlib.redirect_stderr(io.StringIO()):
+                        self.assertEqual(
+                            sm.main(["--machine", machine.name, "--from", source,
+                                     "--to", disallowed[0]]), 1,
+                            f"{machine.name}: {source} -> {disallowed[0]} must be refused")
+
+    def test_representative_cross_machine_transitions(self) -> None:
+        from scripts import state_machines as sm
+        checks = [
+            ("task-lifecycle", "in_progress", "completed", True),
+            ("task-lifecycle", "completed", "in_progress", False),
+            ("idea-status", "Proposed", "Approved", True),
+            ("idea-status", "Blocked", "Proposed", False),
+            ("project-lifecycle", "archived", "local", False),
+            ("proof-verdict", "pass", "fail", False),
+            ("delegate-run", "ready", "ran-ok", True),
+            ("delegate-run", "refused", "ran-ok", False),
+            ("ui-task", "finished", "open", False),
+            ("compat-proof", "pass", "absent", False),
+        ]
+        for name, source, target, expected in checks:
+            self.assertEqual(sm.BY_NAME[name].allows(source, target), expected,
+                             f"{name}: {source} -> {target}")
+
+    def test_completed_reopen_cli_returns_a_triad(self) -> None:
+        from scripts.disruption_recovery import (checkpoint_command, load_ledger,
+                                                  mark_task_completed, record_checkpoint)
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp) / ".agents" / "task_ledger.json"
+            record_checkpoint("done", "planning", "[1/1] plan", phase_num=2, ledger_file=ledger)
+            mark_task_completed("done", ledger_file=ledger)
+            before = load_ledger(ledger)
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+                code = checkpoint_command(
+                    "done", "implementation", 3, "reopen",
+                    {"why": None, "benefits": None, "risks": None, "mitigation": None},
+                    ledger_file=ledger, agent="test")
+            self.assertEqual(code, 1)
+            self.assertIn("[TASK COMPLETED]", stderr.getvalue())
+            self.assertIn("Why:", stderr.getvalue())
+            self.assertIn("Fix:", stderr.getvalue())
+            self.assertEqual(load_ledger(ledger), before)
+
+    def test_mutation_record_states_match_the_code(self) -> None:
+        """The doc once listed two states the code never assigns; pin doc against code."""
+        import inspect
+        from scripts import proof_gate
+        source = inspect.getsource(proof_gate.mutation_suite)
+        assigned = set(re.findall(r'status = "([a-z]+)"', source))
+        self.assertEqual(assigned, {"killed", "survived", "timeout", "error"})
+        # 'waived' is a summary count of mutants not run, never a per-record status.
+        self.assertNotIn("waived", assigned)
+        # A record with no mutant generated is absent from `records`, not a state.
+        self.assertNotIn("not-generated", source)
+
+        # The inventory row must name exactly these states, so the doc cannot drift back.
+        doc = (Path(__file__).resolve().parents[1] / "knowledge" / "state_machines.md")
+        row = next(line for line in doc.read_text(encoding="utf-8").splitlines()
+                   if line.startswith("| Mutation scoring"))
+        documented = {state.strip() for state in row.split("|")[2].split(",")}
+        self.assertEqual(documented, assigned,
+                         f"knowledge/state_machines.md disagrees with proof_gate: "
+                         f"{documented ^ assigned}")
+
+    def test_upstream_check_states_match_the_registry(self) -> None:
+        """The registry must name every state diff_upstream and run_revalidation produce."""
+        from scripts import state_machines as sm
+        from idea_catcher import upstream_check
+        declared = set(sm.BY_NAME["upstream-check"].states)
+        literal = set(re.findall(r'"state":\s*"([a-z_]+)"', inspect.getsource(upstream_check)))
+        literal |= set(re.findall(r'\["state"\]\s*=\s*"([a-z_]+)"',
+                                  inspect.getsource(upstream_check)))
+        self.assertEqual(declared, literal,
+                         f"registry and upstream_check disagree: {declared ^ literal}")
+
+    def test_registry_names_a_readable_source_for_every_machine(self) -> None:
+        """A drift alarm, not a proof: each machine must point at code that exists.
+
+        States themselves are deliberately NOT required to appear as literals. The registry
+        is a contract, not a claim that every transition is enforced: four machines
+        (gate-result, delegate-run, delegate-transcript, proof-corpus) describe conceptual
+        states computed at call time rather than stored constants, and pinning literals there
+        would encode a false claim.
+        """
+        from scripts import state_machines as sm
+        source_root = Path(__file__).resolve().parents[1]
+        for machine in sm.MACHINES:
+            modules = re.findall(r"([A-Za-z0-9_]+\.py)", machine.source)
+            self.assertTrue(modules, f"{machine.name}: source names no module")
+            existing = [m for m in modules
+                        if any((source_root / d / m).is_file()
+                               for d in ("scripts", "reforge", "idea_catcher"))]
+            self.assertTrue(existing,
+                            f"{machine.name}: source names no readable module in {modules}")
 
 
 if __name__ == "__main__":

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `169`
 - **Total Top-Level Functions**: `1018`
-- **Total Class Methods**: `1271`
-- **Total Source Lines**: `47596`
+- **Total Class Methods**: `1278`
+- **Total Source Lines**: `47744`
 
 ---
 
@@ -1495,7 +1495,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `460` lines (`21191` bytes)
+**Size**: `483` lines (`22370` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1925,7 +1925,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15604` lines (`848932` bytes)
+**Size**: `15729` lines (`856170` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3126,6 +3126,13 @@
   - Method `.test_a_new_task_can_follow_a_completed_one()`
   - Method `.test_audit_reports_a_suspended_task()`
   - Method `.test_audit_reports_an_unknown_task_status()`
+  - Method `.test_every_machine_renders_and_checks_every_state()`
+  - Method `.test_cli_matches_the_transition_table_for_every_machine()`
+  - Method `.test_representative_cross_machine_transitions()`
+  - Method `.test_completed_reopen_cli_returns_a_triad()`
+  - Method `.test_mutation_record_states_match_the_code()` - *The doc once listed two states the code never assigns; pin doc against code.*
+  - Method `.test_upstream_check_states_match_the_registry()` - *The registry must name every state diff_upstream and run_revalidation produce.*
+  - Method `.test_registry_names_a_readable_source_for_every_machine()` - *A drift alarm, not a proof: each machine must point at code that exists.*
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`
