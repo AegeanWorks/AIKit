@@ -320,17 +320,25 @@ def check_environ_index(rel: str, tree: ast.Module) -> Iterable[Finding]:
 
 
 def _open_mode(call: ast.Call) -> Optional[str]:
-    """The literal mode of an open() call, or None when binary-ness is not decidable."""
+    """The effective mode of an open() call, or None when binary-ness is not decidable."""
     mode = _keyword(call, "mode")
+    module = ""
+    if isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name):
+        module = call.func.value.id
     # Builtin/`io.open(path, mode)` put the path first; `Path.open(mode)` does not.
-    module_open = {"io", "codecs", "gzip", "bz2", "lzma", "builtins"}
-    builtin_like = isinstance(call.func, ast.Name) or (
-        isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)
-        and call.func.value.id in module_open
-    )
+    module_open = {"io", "codecs", "gzip", "bz2", "lzma", "tarfile", "builtins"}
+    builtin_like = isinstance(call.func, ast.Name) or module in module_open
     mode_index = 1 if builtin_like else 0
     if mode is None and len(call.args) > mode_index:
         mode = call.args[mode_index]
+    if module == "tarfile":
+        return "rb"
+    if module in {"gzip", "bz2", "lzma"}:
+        if mode is None:
+            return "rb"
+        if isinstance(mode, ast.Constant) and isinstance(mode.value, str):
+            return mode.value if ("b" in mode.value or "t" in mode.value) else "rb"
+        return None
     if mode is None:
         return "r"
     if isinstance(mode, ast.Constant) and isinstance(mode.value, str):

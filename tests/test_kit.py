@@ -7633,9 +7633,18 @@ class TestProjectHygieneScan(unittest.TestCase):
         gzip_binary = self.rules(
             'import gzip\nwith gzip.open("x.gz", "rb") as h:\n    h.read()\n')
         self.assertNotIn("open-encoding", gzip_binary)
+        gzip_default = self.rules(
+            'import gzip\nwith gzip.open("x.gz") as h:\n    h.read()\n')
+        self.assertNotIn("open-encoding", gzip_default)
+        gzip_text = self.rules(
+            'import gzip\nwith gzip.open("x.gz", "rt") as h:\n    h.read()\n')
+        self.assertIn("open-encoding", gzip_text)
         codecs_binary = self.rules(
             'import codecs\nwith codecs.open("x.bin", "rb") as h:\n    h.read()\n')
         self.assertNotIn("open-encoding", codecs_binary)
+        tar_binary = self.rules(
+            'import tarfile\nwith tarfile.open("x.tar", "r:gz") as t:\n    t.getnames()\n')
+        self.assertNotIn("open-encoding", tar_binary)
 
     def test_environ_subscript_writes_are_not_reads(self):
         self.assertEqual(self.rules('import os\nos.environ["X"] = "1"\n'), set())

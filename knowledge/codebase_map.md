@@ -10,7 +10,7 @@
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1007`
 - **Total Class Methods**: `1229`
-- **Total Source Lines**: `46332`
+- **Total Source Lines**: `46353`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `818` lines (`39920` bytes)
+**Size**: `830` lines (`40545` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -745,7 +745,7 @@
 - `def _popen_targets(scope, call)` - *Names a Popen call is assigned to in one scope, including `with ... as name`.*
 - `def check_subprocess_calls(rel, tree)` - *PRINCIPLE-003 R4 and PRINCIPLE-010: portable, bounded, list-passed subprocess calls.*
 - `def check_environ_index(rel, tree)` - *PRINCIPLE-011 R3: a hard-indexed environment variable crashes where it is unset.*
-- `def _open_mode(call)` - *The literal mode of an open() call, or None when binary-ness is not decidable.*
+- `def _open_mode(call)` - *The effective mode of an open() call, or None when binary-ness is not decidable.*
 - `def _is_open_call(node)` - *Whether the node is a builtin `open(...)` or an object's `.open(...)` method call.*
 - `def check_open_calls(rel, tree)` - *PRINCIPLE-003 R4 and PRINCIPLE-010: text mode needs an explicit encoding and a with block.*
 - `def check_silent_except(rel, tree)` - *PRINCIPLE-000 R5: a handler that discards the error and does nothing hides the failure.*
@@ -1897,7 +1897,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15080` lines (`821151` bytes)
+**Size**: `15089` lines (`821655` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
