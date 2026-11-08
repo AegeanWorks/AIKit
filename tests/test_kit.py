@@ -1335,6 +1335,23 @@ class TestAgentOwnership(unittest.TestCase):
                                                 agent="b", take_over=True), 0)
 
 
+class TestRuntimeFloorConsistency(unittest.TestCase):
+    """The declared runtime floor agrees across code, README, principles and CI (ADR-340)."""
+
+    def test_floor_is_three_thirteen_everywhere(self):
+        from scripts.update_knowledge_base import MIN_PYTHON
+
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(MIN_PYTHON, (3, 13))
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        self.assertIn("python-3.13", readme)
+        self.assertIn("Python 3.13+", readme)
+        guidelines = (root / "GUIDELINES.md").read_text(encoding="utf-8")
+        self.assertIn("Python 3.13+", guidelines)
+        ci = (root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("python-version: ['3.13']", ci)
+
+
 class TestPythonFileDiscovery(unittest.TestCase):
     """`find_python_files` prunes ignored directories relative to the root (ADR-115)."""
 

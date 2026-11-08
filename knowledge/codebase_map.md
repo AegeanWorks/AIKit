@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `70`
-- **Total Classes**: `161`
+- **Total Classes**: `162`
 - **Total Top-Level Functions**: `1003`
-- **Total Class Methods**: `1203`
-- **Total Source Lines**: `45745`
+- **Total Class Methods**: `1204`
+- **Total Source Lines**: `45762`
 
 ---
 
@@ -1893,7 +1893,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14656` lines (`798494` bytes)
+**Size**: `14673` lines (`799279` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -1996,6 +1996,8 @@
   - Method `.test_a_refused_write_prints_no_warning()`
   - Method `.test_only_a_bad_agent_name_is_reported_as_one()`
   - Method `.test_checkpoint_command_reports_the_owner_and_the_take_over()`
+- `class TestRuntimeFloorConsistency` - *The declared runtime floor agrees across code, README, principles and CI (ADR-340).*
+  - Method `.test_floor_is_three_thirteen_everywhere()`
 - `class TestPythonFileDiscovery` - *`find_python_files` prunes ignored directories relative to the root (ADR-115).*
   - Method `.test_a_repository_under_an_ignored_name_is_still_scanned()`
   - Method `.test_top_level_directories_the_root_gitignore_lists_are_skipped()`

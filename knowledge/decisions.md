@@ -3583,3 +3583,10 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Context**: Reviewing the last 9 pushes found a mislabeled commit (`986f39c`, "fix(ui)") that deleted the tracked `projects/foundry` tree, followed by a full revert (`aa165a0`). The net tree was correct, but nothing prevented a future commit from tracking or deleting a project through AIKit's index; `projects/` being in `.gitignore` does not untrack already-tracked files.
 - **Decision**: Add an integration pin that `git ls-files projects` is empty in the AIKit repository. Projects and articles live in their own repositories; only AIKit's writer, scripts, tests and docs are tracked.
 - **Consequences**: A commit that stages project content or deletes a tracked project fails the integration tier. The revert pair remains in history as a no-op and is not rewritten; the boundary is enforced going forward.
+
+### ADR-346: Runtime floor consistency is a unit pin
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: ADR-340 moved the floor from 3.10 to 3.13 across `MIN_PYTHON`, README, GUIDELINES and the CI matrix. Four independent surfaces can drift again, recreating a promise the code does not keep.
+- **Decision**: Add a unit test that imports `MIN_PYTHON`, checks the README badge and prerequisites, the GUIDELINES wording and the CI matrix all say 3.13. It reads files only and spawns no process.
+- **Consequences**: Changing the floor without updating every declared surface fails the unit tier. The test pins the declaration, not the interpreter actually running the suite.
