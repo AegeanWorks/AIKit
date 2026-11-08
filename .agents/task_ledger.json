@@ -13,67 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "verify-57push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/2] Review the last 57 pushes: pin catalog-cased guard names and unsafe-name refusal",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146628.4242513,
-      "timestamp_str": "2026-11-08 17:03:48",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "Commit 45c571a allowed uppercase project names in the guard, but the tests only install lowercase names and do not assert that a spaced name is refused.",
-        "benefits": "The catalog-cased form cannot regress to a rejected name, and the unsafe-name boundary stays explicit.",
-        "risks": "contract: guard install names; dependency: stdlib; concurrency: none; state: tests, ADR, map",
-        "mitigation": "targeted guard tests, full unit tier, root scan and gates"
-      },
-      "plan_digest": "a12896717b80f520c0f918c1cea2e67a3729ccf589bd542a496658470f0d2ad5"
-    },
-    {
-      "task_id": "verify-57push-v2",
-      "phase": "in_progress",
-      "phase_num": 4,
-      "description": "[2/2] Catalog-cased and unsafe guard names pinned; 995 unit tests, clean root scan, map, reachability and secrets pass; timing budgets and dogfood skipped (host load)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146726.6849182,
-      "timestamp_str": "2026-11-08 17:05:26",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-57push-v2",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-57push-v2' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794146726.9389377,
-      "timestamp_str": "2026-11-08 17:05:26",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 50",
-      "phase_num": 3,
-      "description": "Reforge stage 50: stage 50 host review reviewed; run active; coverage 13/13",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146867.1495924,
-      "timestamp_str": "2026-11-08 17:07:47",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 50",
-      "phase_num": 3,
-      "description": "Reforge stage 50: stage 50 host review reviewed; run active; coverage 13/13",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794146878.5968196,
-      "timestamp_str": "2026-11-08 17:07:58",
-      "agent": "opencode"
-    },
-    {
       "task_id": "verify-60push-v2",
       "phase": "in_progress",
       "phase_num": 2,
@@ -116,7 +55,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 51",
       "phase_num": 3,
-      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794147835.5456438,
@@ -127,7 +66,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 51",
       "phase_num": 3,
-      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 51: window 153, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794147836.3087568,
@@ -160,7 +99,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 52",
       "phase_num": 3,
-      "description": "Reforge stage 52: window 156, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 52: window 156, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794148072.034182,
@@ -232,7 +171,7 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 53",
       "phase_num": 3,
-      "description": "Reforge stage 53: window 159, 3 commit(s), 18 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty — nothing to commit",
+      "description": "Reforge stage 53: window 159, 3 commit(s), 18 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
       "files_affected": [],
       "status": "in_progress",
       "timestamp": 1794148500.0939717,
@@ -288,6 +227,28 @@
       "timestamp": 1794149071.2479663,
       "timestamp_str": "2026-11-08 17:44:31",
       "agent": "opencode:goal"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 54",
+      "phase_num": 3,
+      "description": "Reforge stage 54: window 162, 4 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149364.0157068,
+      "timestamp_str": "2026-11-08 17:49:24",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 54",
+      "phase_num": 3,
+      "description": "Reforge stage 54: stage 54 host review reviewed; run active; coverage 23/23",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149393.239588,
+      "timestamp_str": "2026-11-08 17:49:53",
+      "agent": "opencode"
     }
   ]
 }
