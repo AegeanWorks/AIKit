@@ -69,28 +69,6 @@
     },
     {
       "task_id": "reforge:run-2",
-      "phase": "reforge stage 118",
-      "phase_num": 3,
-      "description": "Reforge stage 118: window 354, 3 commit(s), 7 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150329.3370898,
-      "timestamp_str": "2026-11-08 18:05:29",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 118",
-      "phase_num": 3,
-      "description": "Reforge stage 118: stage 118 host review reviewed; run active; coverage 11/11",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794150332.1225424,
-      "timestamp_str": "2026-11-08 18:05:32",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
       "phase": "reforge stage 119",
       "phase_num": 3,
       "description": "Reforge stage 119: window 357, 3 commit(s), 8 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
@@ -241,6 +219,28 @@
       "status": "in_progress",
       "timestamp": 1794150389.0700207,
       "timestamp_str": "2026-11-08 18:06:29",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 126",
+      "phase_num": 3,
+      "description": "Reforge stage 126: window 378, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150394.7637393,
+      "timestamp_str": "2026-11-08 18:06:34",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 126",
+      "phase_num": 3,
+      "description": "Reforge stage 126: stage 126 host review reviewed; run active; coverage 18/18",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794150397.0208077,
+      "timestamp_str": "2026-11-08 18:06:37",
       "agent": "opencode"
     }
   ]
