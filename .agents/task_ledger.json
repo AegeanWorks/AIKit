@@ -55,28 +55,6 @@
       "task_id": "reforge:run-2",
       "phase": "reforge stage 59",
       "phase_num": 3,
-      "description": "Reforge stage 59: window 177, 3 commit(s), 5 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149580.8669214,
-      "timestamp_str": "2026-11-08 17:53:00",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 59",
-      "phase_num": 3,
-      "description": "Reforge stage 59: stage 59 host review reviewed; run active; coverage 19/19",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794149635.7806196,
-      "timestamp_str": "2026-11-08 17:53:55",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 59",
-      "phase_num": 3,
       "description": "Reforge stage 59: stage 59 host review reviewed; run active; coverage 19/19",
       "files_affected": [],
       "status": "in_progress",
@@ -236,6 +214,28 @@
       "status": "in_progress",
       "timestamp": 1794149749.2946656,
       "timestamp_str": "2026-11-08 17:55:49",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 67",
+      "phase_num": 3,
+      "description": "Reforge stage 67: window 201, 1 commit(s), 0 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149752.932485,
+      "timestamp_str": "2026-11-08 17:55:52",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 67",
+      "phase_num": 3,
+      "description": "Reforge stage 67: stage 67 host review reviewed; run active; coverage 0/0",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149753.1638682,
+      "timestamp_str": "2026-11-08 17:55:53",
       "agent": "opencode"
     }
   ]
