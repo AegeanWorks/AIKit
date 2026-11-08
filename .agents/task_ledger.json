@@ -13,28 +13,6 @@
   },
   "checkpoints": [
     {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 52",
-      "phase_num": 3,
-      "description": "Reforge stage 52: window 156, 3 commit(s), 6 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794148072.034182,
-      "timestamp_str": "2026-11-08 17:27:52",
-      "agent": "opencode"
-    },
-    {
-      "task_id": "reforge:run-2",
-      "phase": "reforge stage 52",
-      "phase_num": 3,
-      "description": "Reforge stage 52: stage 52 host review reviewed; run active; coverage 9/9",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794148096.5804243,
-      "timestamp_str": "2026-11-08 17:28:16",
-      "agent": "opencode"
-    },
-    {
       "task_id": "verify-63push-v2",
       "phase": "in_progress",
       "phase_num": 2,
@@ -242,6 +220,28 @@
       "status": "in_progress",
       "timestamp": 1794149555.5133438,
       "timestamp_str": "2026-11-08 17:52:35",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 58",
+      "phase_num": 3,
+      "description": "Reforge stage 58: window 174, 3 commit(s), 12 file(s) reviewed (unreviewed), 0 finding(s), 0 repaired, empty \u2014 nothing to commit",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149567.0855446,
+      "timestamp_str": "2026-11-08 17:52:47",
+      "agent": "opencode"
+    },
+    {
+      "task_id": "reforge:run-2",
+      "phase": "reforge stage 58",
+      "phase_num": 3,
+      "description": "Reforge stage 58: stage 58 host review reviewed; run active; coverage 45/45",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794149573.70567,
+      "timestamp_str": "2026-11-08 17:52:53",
       "agent": "opencode"
     }
   ]
