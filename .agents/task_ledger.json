@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-21push-v2",
+    "task_id": "verify-24push-v2",
     "last_phase": "in_progress",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794133395.948096,
+    "updated_at": 1794135400.0799742,
     "owner": "opencode:goal",
     "started_by": "opencode:goal",
     "continuations": [],
-    "completed_at": 1794133396.3062522
+    "completed_at": 1794135403.794963
   },
   "checkpoints": [
-    {
-      "task_id": "verify-19push-followup",
-      "phase": "implementation",
-      "phase_num": 4,
-      "description": "[2/2] Short gate names accepted; unit test and direct read-only gates pass; dogfood timed out under host load",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794114479.190646,
-      "timestamp_str": "2026-11-08 08:07:59",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-19push-followup",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-19push-followup' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794114995.5176504,
-      "timestamp_str": "2026-11-08 08:16:35",
-      "agent": "opencode:goal"
-    },
-    {
-      "task_id": "verify-6push-v2",
-      "phase": "in_progress",
-      "phase_num": 2,
-      "description": "[1/3] Review the last 6 pushes: cut every labeled principle clause, not only colon labels",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794126185.5536425,
-      "timestamp_str": "2026-11-08 11:23:05",
-      "agent": "opencode:goal",
-      "impact_assessment": {
-        "why": "The per-clause fix still only cuts at PRINCIPLE-NNN: labels, while the same validator accepts and the ADR documents PRINCIPLE-NNN (...); a bare clause can borrow the next parenthesized clause's evidence.",
-        "benefits": "A bare first clause fails even when the next clause is parenthesized or carries an R-number label; grouped bare-ID verdicts keep working.",
-        "risks": "contract: cross-principle reasoning check; dependency: stdlib re; concurrency: none; state: sync_principles.py, tests, ADR, codebase map",
-        "mitigation": "failing-first boundary tests, targeted unit run, knowledge and read-only gates, verify_commit before push"
-      },
-      "plan_digest": "6c51e3dfe31762f004ca7a376d2ef31aef0534c3f2bb23636df81bf962db6277"
-    },
     {
       "task_id": "verify-6push-v2",
       "phase": "in_progress",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794133396.3062549,
       "timestamp_str": "2026-11-08 13:23:16",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-24push-v2",
+      "phase": "in_progress",
+      "phase_num": 2,
+      "description": "[1/2] Review the last 24 pushes: ignore local article drafts in Git, not only in the hygiene scan",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794135025.453693,
+      "timestamp_str": "2026-11-08 13:50:25",
+      "agent": "opencode:goal",
+      "impact_assessment": {
+        "why": "The last change skips articles in check_project_hygiene but leaves the folder untracked, so strict delivery and git status still see local drafts; a future .py there would also enter the map.",
+        "benefits": "Local article drafts are invisible to Git and the map walker, while the hygiene skip remains as defense in depth.",
+        "risks": "contract: local draft boundary; dependency: none; concurrency: another agent owns articles/; state: .gitignore, tests, ADR, codebase map",
+        "mitigation": "failing-first .gitignore pin, targeted discovery test, map and reachability checks, commit and push"
+      },
+      "plan_digest": "8ac9dad8b9eb13bdbb17ebdc36caa118749b5c7ce995d65e765268489aa8d977"
+    },
+    {
+      "task_id": "verify-24push-v2",
+      "phase": "in_progress",
+      "phase_num": 4,
+      "description": "[2/2] /articles/ ignored by Git; 967 unit tests, map, reachability and secrets pass; root hygiene scan and dogfood skipped (host load); timing budgets skipped",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794135400.0799742,
+      "timestamp_str": "2026-11-08 13:56:40",
+      "agent": "opencode:goal"
+    },
+    {
+      "task_id": "verify-24push-v2",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-24push-v2' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794135403.794965,
+      "timestamp_str": "2026-11-08 13:56:43",
       "agent": "opencode:goal"
     }
   ]

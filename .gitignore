@@ -79,3 +79,7 @@ screenshot-*.png
 # The lifecycle README stays tracked so fresh clones know the triage rule.
 /reports/*
 !/reports/README.md
+
+# Local article drafts: kept out of Git and the map; the hygiene scan also skips
+# the folder. Draft tooling is local-only, like the reports inbox.
+/articles/

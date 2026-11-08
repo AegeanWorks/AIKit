@@ -1443,6 +1443,11 @@ class TestPythonFileDiscovery(unittest.TestCase):
     def test_this_repository_ignores_references(self):
         self.assertIn("references/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
 
+    def test_this_repository_ignores_article_drafts(self):
+        # Local drafts are evidence like reports; skipping the hygiene scan alone
+        # still leaves them as untracked delivery changes.
+        self.assertIn("/articles/", (ROOT_DIR / ".gitignore").read_text(encoding="utf-8").splitlines())
+
     def test_this_repository_ignores_kilo_state(self):
         # Kilo's Agent Manager keeps worktrees, plans and UI state in .kilo/: IDE state,
         # not AIKit memory (same precedent as /.aikit/). Untracked checkouts must stay out

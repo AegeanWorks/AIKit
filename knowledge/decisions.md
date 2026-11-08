@@ -3682,3 +3682,11 @@ Record all significant architectural decisions, trade-offs, and rationale here.
 - **Decision**: On Windows, search the ancestors of `shutil.which("git")` for `etc/gitconfig`; keep `/etc/gitconfig` elsewhere. Drop `PROGRAMDATA` from the reachability allowlist.
 - **Consequences**: Standard Git for Windows installs are found without depending on an environment variable Git itself may not use. The Windows-only test mocks `shutil.which` and runs on the Windows CI leg.
 - **Cross-principle check**: PRINCIPLE-003: no conflict because `shutil.which` is standard library and the path work uses `pathlib`; PRINCIPLE-009: no conflict because no subprocess is added; PRINCIPLE-014: no conflict because the Windows test is retained and rewritten; PRINCIPLE-018: no conflict because the guard's purpose is unchanged.
+
+### ADR-359: Local article drafts are ignored by Git, not only by the scan
+- **Date**: 2026-11-08
+- **Status**: Accepted
+- **Context**: Commit `0242172` added `articles` to `check_project_hygiene.py`'s `SKIP_DIRS`, but `git status` and `check --strict` still saw the untracked drafts, and a future `.py` under the folder would enter the code map. The stage-17 reforge then removed the scan-level skip as too broad.
+- **Decision**: Add `/articles/` to `.gitignore` as local-only evidence, matching the reports inbox. Do not rely on a scan-level name skip; the scan reads only recognized code and asset files.
+- **Consequences**: Draft files stay out of Git, `check --strict` no longer sees them, and `find_python_files` prunes the folder through `gitignored_top_dirs`. The hygiene scan still inspects draft assets, so a draft with a real hygiene defect is caught before publication.
+- **Cross-principle check**: PRINCIPLE-016: no conflict because drafts are local evidence like `reports/`; PRINCIPLE-014: no conflict because a unit test pins the ignore; PRINCIPLE-005: no conflict because no tracked path or documented command changes.

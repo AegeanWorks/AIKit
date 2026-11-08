@@ -9,8 +9,8 @@
 - **Total Python Modules**: `70`
 - **Total Classes**: `163`
 - **Total Top-Level Functions**: `1006`
-- **Total Class Methods**: `1217`
-- **Total Source Lines**: `46094`
+- **Total Class Methods**: `1218`
+- **Total Source Lines**: `46099`
 
 ---
 
@@ -725,7 +725,7 @@
 ### [`scripts/check_project_hygiene.py`](scripts/check_project_hygiene.py)
 > *Project hygiene scan (PRINCIPLE-003 R4, PRINCIPLE-010, PRINCIPLE-011 R3, PRINCIPLE-000 R5).*
 
-**Size**: `794` lines (`38732` bytes)
+**Size**: `794` lines (`38720` bytes)
 
 **Classes:**
 - `class Finding` - *One violation, addressed to the line a developer must change.*
@@ -1896,7 +1896,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `14885` lines (`810694` bytes)
+**Size**: `14890` lines (`810999` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2010,6 +2010,7 @@
   - Method `.test_top_level_wildcard_gitignore_prunes_the_directory()`
   - Method `.test_negated_python_file_under_ignored_dir_is_kept()`
   - Method `.test_this_repository_ignores_references()`
+  - Method `.test_this_repository_ignores_article_drafts()`
   - Method `.test_this_repository_ignores_kilo_state()`
   - Method `.test_temporary_python_buffers_are_not_catalogued()`
 - `class TestOpenCodePermissionBoundaries` - *PRINCIPLE-008 R6 / PRINCIPLE-009 R6 (ADR-116): replay OpenCode v2's documented evaluation*
