@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-105tx",
+    "task_id": "verify-106replay",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794258701.8904648,
+    "updated_at": 1794260244.1486292,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
     "continuations": [],
-    "completed_at": 1794258708.3623362
+    "completed_at": 1794260255.540861
   },
   "checkpoints": [
-    {
-      "task_id": "verify-99p6",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Refuse publish on an archived project (P6, publish half only)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794249229.59444,
-      "timestamp_str": "2026-11-09 21:33:49",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "The state-machine inventory's Project row recorded 'publish/check never refuse an archived project'. Verified live: cmd_publish never called is_archived, so `publish` on an archived project ran the whole pipeline and reached a later gate (measured exit 1) instead of refusing. Archiving retires the project, moves it to projects/archive/ and archives the GitHub repository, so publishing one presents a retired project as live.",
-        "benefits": "A retired project can no longer be re-published by mistake, and the refusal names the real recovery path (move it out of projects/archive/ and clear the flag), consistent with ADR-400's archive remedy.",
-        "risks": "contract: publish gains a refusal, exit 2, before any disk change; check is deliberately unchanged because a read-only audit of an archived project may be legitimate; dependency: none; concurrency: none; state: aikit_cli.py, one test",
-        "mitigation": "the guard runs before the pre-push hook is installed, so a refused publish writes nothing; the full TestProjectRegistry class (123 tests) was run to prove no existing publish path regressed"
-      },
-      "plan_digest": "e0598d0cc1a05f12d8f5d07e637d0d905030d10958440bd970f9d61bd252024c"
-    },
-    {
-      "task_id": "verify-99p6",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] cmd_publish refuses an archived project (exit 2, triad) before installing the hook; check deliberately unchanged; test fails first at exit 1 with the pipeline reached; 123 TestProjectRegistry tests pass; 1048 unit + 89 integration green; all gates incl dogfood 5/5; my test costs 23ms vs 51ms for the neighbouring publish test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794249537.499087,
-      "timestamp_str": "2026-11-09 21:38:57",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-99p6",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-99p6' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794249557.8333611,
-      "timestamp_str": "2026-11-09 21:39:17",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-100p12",
       "phase": "planning",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794258708.3623374,
       "timestamp_str": "2026-11-10 00:11:48",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-106replay",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Make proof_corpus.replay honour its documented never-raises contract",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794259635.5359023,
+      "timestamp_str": "2026-11-10 00:27:15",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "replay's docstring says 'never raises', and it has an explicit isinstance(receipt, Mapping) guard whose message is 'entry has no receipt'. But receipt was read as entry.get('receipt') before the entry itself was checked, so a bare list, string, number or None raised AttributeError. Found by fuzzing the public entry points of the modules I own; measured 8 non-ValueError crashes.",
+        "benefits": "A malformed entry now returns the documented inconclusive outcome instead of a traceback, so 'never raises' becomes true and a caller iterating a corpus cannot be taken down by one bad file.",
+        "risks": "contract: replay return shape unchanged for valid mappings, inconclusive for a non-mapping; dependency: none; concurrency: none; state: proof_corpus.py, one test",
+        "mitigation": "one-line shape guard, the same pattern as ADR-395; the new test covers None/list/str/int/bool; all 8 TestProofCorpus tests pass"
+      },
+      "plan_digest": "cbfc817bcb04a263557491675adbacd808320b36f33ae1fcf132e6b05cac84f6"
+    },
+    {
+      "task_id": "verify-106replay",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] replay guards the entry before reading .get; ADR-409; 1 fail-first test; 8 TestProofCorpus + 6 TestProofEnvelope + 14 TestVerifyPushV4SafeFixes + 5 TestDelegateTranscript pass; verified at pushed HEAD e53bf4d in a clean worktree: 1057 unit + 89 integration, kb/reachability/secrets/dogfood green, budget green on rerun (19.38ms/876ms; first run over due to host load)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794260244.1486292,
+      "timestamp_str": "2026-11-10 00:37:24",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-106replay",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-106replay' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794260255.5408635,
+      "timestamp_str": "2026-11-10 00:37:35",
       "agent": "commandcode:goal"
     }
   ]
