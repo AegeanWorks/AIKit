@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `72`
-- **Total Classes**: `171`
+- **Total Classes**: `172`
 - **Total Top-Level Functions**: `1030`
-- **Total Class Methods**: `1312`
-- **Total Source Lines**: `48739`
+- **Total Class Methods**: `1314`
+- **Total Source Lines**: `48801`
 
 ---
 
@@ -1949,7 +1949,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16307` lines (`888196` bytes)
+**Size**: `16369` lines (`891195` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2648,6 +2648,8 @@
   - Method `.test_transcript_append_refuses_when_the_lock_times_out()`
   - Method `.test_replay_refuses_a_corrupt_transcript()`
 - `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
+  - Method `.test_a_tampered_transcript_cannot_replay_a_different_verdict()` - *The module docstring promises replay proves the identical verdict.*
+- `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
   - Method `.setUp()`
   - Method `.runner()`
   - Method `.test_overlong_prompt_is_refused_before_running()`
@@ -2669,6 +2671,7 @@
   - Method `.test_witness_key_is_stable_and_content_bound()`
   - Method `.test_witness_key_omits_empty_pass_to_pass_for_compat()`
   - Method `.test_store_lists_and_prunes_oldest_first()`
+  - Method `.test_a_failing_rerun_never_overwrites_a_stored_pass()` - *The docstring says a changed tree files elsewhere instead of overwriting history.*
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
   - Method `.test_replay_does_not_mask_unrelated_type_errors()`
   - Method `.test_store_works_when_the_module_is_run_as_a_file()` - *`prog` is `python scripts/proof_corpus.py`, so store must work in script mode.*
