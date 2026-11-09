@@ -9016,6 +9016,36 @@ class TestProofCorpus(unittest.TestCase):
         self.assertEqual(
             proof_corpus.replay(entry, prove_fn=accepts_p2p)["outcome"], "pass")
 
+    def test_store_works_when_the_module_is_run_as_a_file(self) -> None:
+        """`prog` is `python scripts/proof_corpus.py`, so store must work in script mode.
+
+        _atomic_write_json imported scripts.disruption_recovery unconditionally; under
+        `python scripts/proof_corpus.py` the scripts directory is sys.path[0] and the
+        package import raised ModuleNotFoundError, so store exited with a traceback.
+        This reproduces that import layout in-process rather than spawning a process.
+        """
+        from scripts import proof_corpus
+
+        root = Path(tempfile.mkdtemp(prefix="corpus_script_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+        saved_path = list(sys.path)
+        saved_module = sys.modules.get("scripts.disruption_recovery")
+        try:
+            # Script mode: the scripts directory is on sys.path, the package root is not.
+            sys.path.insert(0, scripts_dir)
+            sys.modules["scripts.disruption_recovery"] = None  # type: ignore[assignment]
+            dest = proof_corpus._atomic_write_json(root / "entry.json", {"a": 1})
+        finally:
+            sys.path[:] = saved_path
+            if saved_module is None:
+                sys.modules.pop("scripts.disruption_recovery", None)
+            else:
+                sys.modules["scripts.disruption_recovery"] = saved_module
+        self.assertIsNone(dest)
+        self.assertEqual(json.loads((root / "entry.json").read_text(encoding="utf-8")),
+                         {"a": 1})
+
 
 class TestStagedTree(unittest.TestCase):
     """IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree."""
@@ -13612,9 +13642,38 @@ class TestProofGateHelpers(unittest.TestCase):
         env = run.call_args.kwargs.get("env") or {}
         self.assertEqual(env.get("PYTHONHASHSEED"), proof_gate.PROOF_HASH_SEED)
 
-    def test_apply_mutation_uses_the_exact_operator_span(self) -> None:
+    def test_write_receipt_works_when_the_module_is_run_as_a_file(self) -> None:
+        """`prog` is `python scripts/proof_gate.py`, so --receipt must work in script mode.
+
+        write_receipt imported scripts.disruption_recovery unconditionally; under
+        `python scripts/proof_gate.py` the scripts directory is sys.path[0] and the
+        package import raised ModuleNotFoundError, so --receipt exited with a traceback.
+        """
         from scripts import proof_gate
 
+        root = Path(tempfile.mkdtemp(prefix="proof_receipt_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        scripts_dir = str(Path(__file__).resolve().parents[1] / "scripts")
+        saved_path = list(sys.path)
+        saved_module = sys.modules.get("scripts.disruption_recovery")
+        try:
+            sys.path.insert(0, scripts_dir)
+            sys.modules["scripts.disruption_recovery"] = None  # type: ignore[assignment]
+            dest = root / "receipt.json"
+            with mock.patch.object(proof_gate, "tree_manifest", return_value=[]), \
+                    mock.patch.object(proof_gate, "gate_digest", return_value={}), \
+                    mock.patch.object(proof_gate, "dirty_paths", return_value=[]):
+                proof_gate.write_receipt({"proof": True}, dest)
+        finally:
+            sys.path[:] = saved_path
+            if saved_module is None:
+                sys.modules.pop("scripts.disruption_recovery", None)
+            else:
+                sys.modules["scripts.disruption_recovery"] = saved_module
+        self.assertEqual(json.loads(dest.read_text(encoding="utf-8"))["proof"], True)
+
+    def test_apply_mutation_uses_the_exact_operator_span(self) -> None:
+        from scripts import proof_gate
         source = "def f(a, b):\n    return a + b\n"
         mutant = next(
             item for item in proof_gate.mutations_for_source(source, "app.py", 10)

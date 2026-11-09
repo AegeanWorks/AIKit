@@ -766,7 +766,10 @@ def write_receipt(result: Dict[str, object], dest: Path) -> Dict[str, object]:
     if dest.parent != Path(".") and str(dest.parent):
         dest.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(receipt, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
-    from scripts.disruption_recovery import atomic_write_text
+    try:  # package import when run as a module; sibling import under `python scripts/proof_gate.py`
+        from scripts.disruption_recovery import atomic_write_text
+    except ImportError:
+        from disruption_recovery import atomic_write_text  # type: ignore[import-not-found]
 
     atomic_write_text(dest, text, backup=False)
     return receipt

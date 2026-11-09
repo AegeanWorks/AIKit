@@ -101,7 +101,10 @@ def entry_path(corpus: Path, key: str) -> Path:
 
 def _atomic_write_json(path: Path, value: Any) -> None:
     """Write one corpus entry with the shared PRINCIPLE-013 durability contract."""
-    from scripts.disruption_recovery import atomic_write_text
+    try:  # package import when run as a module; sibling import under `python scripts/proof_corpus.py`
+        from scripts.disruption_recovery import atomic_write_text
+    except ImportError:
+        from disruption_recovery import atomic_write_text  # type: ignore[import-not-found]
 
     atomic_write_text(
         Path(path),

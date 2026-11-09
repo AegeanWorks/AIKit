@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1292`
-- **Total Source Lines**: `48012`
+- **Total Class Methods**: `1294`
+- **Total Source Lines**: `48077`
 
 ---
 
@@ -1416,7 +1416,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `342` lines (`15028` bytes)
+**Size**: `345` lines (`15251` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1458,7 +1458,7 @@
 ### [`scripts/proof_gate.py`](scripts/proof_gate.py)
 > *Prove that a declared test fails on the base tree and passes on the current tree.*
 
-**Size**: `877` lines (`36743` bytes)
+**Size**: `880` lines (`36964` bytes)
 
 **Classes:**
 - `class ProofError` - *The proof could not be set up; the exit code is 2.*
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15937` lines (`867777` bytes)
+**Size**: `15996` lines (`870989` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2638,6 +2638,7 @@
   - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
   - Method `.test_replay_does_not_mask_unrelated_type_errors()`
+  - Method `.test_store_works_when_the_module_is_run_as_a_file()` - *`prog` is `python scripts/proof_corpus.py`, so store must work in script mode.*
 - `class TestStagedTree` - *IDEA-1116: --staged proves the index via write-tree/commit-tree, never the tree.*
   - Method `._runner(staged, commit_tree_ok)`
   - Method `.test_staged_index_verifies_as_its_own_detached_commit()`
@@ -2984,6 +2985,7 @@
   - Method `.test_mutations_for_source_finds_supported_operators()`
   - Method `.test_mutant_key_is_stable_for_a_waiver()`
   - Method `.test_proof_runs_pin_pythonhashseed()`
+  - Method `.test_write_receipt_works_when_the_module_is_run_as_a_file()` - *`prog` is `python scripts/proof_gate.py`, so --receipt must work in script mode.*
   - Method `.test_apply_mutation_uses_the_exact_operator_span()`
   - Method `.test_mutations_skip_multiline_and_chained_expressions()`
   - Method `.test_copy_tests_refuses_missing_and_outside_paths()`
