@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-101p5",
+    "task_id": "verify-102pms",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794251349.8352714,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794251890.9535303,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794251374.5184026
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-95jsonshape",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] check_licenses returns a finding for a non-dict PIN.json; _upsert_jsonld returns False for a non-dict graph and skips non-dict nodes/items; 2 fail-first tests covering every non-object shape; 1041 unit + 89 integration green; budget 9.84ms/412ms",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794246801.6864536,
-      "timestamp_str": "2026-11-09 20:53:21",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-95jsonshape",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-95jsonshape' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794246822.9178889,
-      "timestamp_str": "2026-11-09 20:53:42",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-96uiabort",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794251374.5184047,
       "timestamp_str": "2026-11-09 22:09:34",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-102pms",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Pin the new machine-state reader's failure contract with a test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794251862.037561,
+      "timestamp_str": "2026-11-09 22:17:42",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "project_machine_states.py is the largest surface this session added and its contract was only verified by my own scratch probe, not by the suite. A fuzz of 40 cases (four state files x eight malformed shapes) found no reader crash, but the specific promise 'an unreadable file becomes a named error, not a guessed state, and the other machines are still reported' was untested.",
+        "benefits": "The failure contract is now pinned, so a future edit cannot turn a corrupt media.json into a made-up state or a blanked report.",
+        "risks": "contract: additive test only; dependency: none; concurrency: none; state: one test",
+        "mitigation": "the test asserts both halves (errors named, readable machines still present); 0.27s for the three status tests; budget gate green at 19.07ms after the host load eased"
+      },
+      "plan_digest": "118f369bb10cc9bc6c5670c871be0eea66ce18a5cc2e64bcec5e1f4398e01183"
+    },
+    {
+      "task_id": "verify-102pms",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] failure-contract test added and passing; 40-case fuzz found 0 reader problems; corrupt project.json verified to yield the ok:false envelope with no traceback; 1052 unit + 89 integration pass; budget 19.07ms/829ms green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794251890.9535303,
+      "timestamp_str": "2026-11-09 22:18:10",
       "agent": "commandcode:goal"
     }
   ]

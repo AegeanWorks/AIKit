@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1308`
-- **Total Source Lines**: `48568`
+- **Total Class Methods**: `1309`
+- **Total Source Lines**: `48588`
 
 ---
 
@@ -1947,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16233` lines (`884047` bytes)
+**Size**: `16253` lines (`885211` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2489,6 +2489,7 @@
   - Method `.test_status_treats_a_corrupt_ledger_as_unclean_on_both_surfaces()`
   - Method `.test_status_json_returns_the_error_envelope_for_an_unknown_project()`
   - Method `.test_status_json_reports_each_machine_it_can_read()` - *P11: a bare status string must be resolvable to its machine (ADR-394's --which).*
+  - Method `.test_a_corrupt_state_file_is_a_named_error_not_a_crash_or_a_guess()` - *A status report must never end in a traceback, and never invent a state.*
   - Method `.test_status_json_names_a_local_project_as_local_and_an_attached_one_as_attached()` - *project-lifecycle has two entry edges; the reported state must follow the real one.*
   - Method `.test_resume_json_carries_the_audit_and_the_guidelines_count()`
   - Method `.test_new_public_without_publish_is_a_usage_error()`

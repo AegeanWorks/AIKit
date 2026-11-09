@@ -6929,6 +6929,26 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertEqual(block["registry_count"], len(registry))
         self.assertEqual(block["read_count"], len(block["states"]))
 
+    def test_a_corrupt_state_file_is_a_named_error_not_a_crash_or_a_guess(self):
+        """A status report must never end in a traceback, and never invent a state."""
+        from scripts import project_machine_states as pms
+
+        folder = self.make_folder()
+        attach_project(folder, "corruptstates", workspace=self.kit)
+        (folder / ".aikit" / "media.json").write_text("{not json", encoding="utf-8")
+        (folder / ".aikit" / "ui_task.json").write_text("[1, 2]", encoding="utf-8")
+        project = find_project("corruptstates", workspace=self.kit)
+        result = pms.project_states(project, {"ledger_error": None}, ledger_exists=True)
+
+        # The two unreadable machines are named, not reported with a made-up state.
+        self.assertIn("media-asset", result["errors"])
+        self.assertIn("ui-task", result["errors"])
+        self.assertNotIn("media-asset", result["states"])
+        self.assertNotIn("ui-task", result["states"])
+        # The readable ones are still reported, so one bad file does not blank the report.
+        self.assertIn("license", result["states"])
+        self.assertIn("project-lifecycle", result["states"])
+
     def test_status_json_names_a_local_project_as_local_and_an_attached_one_as_attached(self):
         """project-lifecycle has two entry edges; the reported state must follow the real one."""
         outside = self.make_folder()
