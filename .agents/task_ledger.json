@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-99p6",
+    "task_id": "verify-100p12",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794249537.499087,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794249986.2009578,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794249557.83336
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-93scriptmode",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/3] both write imports wrapped in try/except ImportError sibling fallback; 2 hermetic fail-first tests; proof_corpus store and proof_gate --receipt verified end-to-end in real script mode; 1037 unit + 89 integration pass; budget 10.64ms/422ms",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794245981.5007024,
-      "timestamp_str": "2026-11-09 20:39:41",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-93scriptmode",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-93scriptmode' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794246005.1372576,
-      "timestamp_str": "2026-11-09 20:40:05",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-94p9",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794249557.8333611,
       "timestamp_str": "2026-11-09 21:39:17",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-100p12",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Publish the status vocabulary in top-level help as a pointer to the registry, not a copy",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794249705.402125,
+      "timestamp_str": "2026-11-09 21:41:45",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "P12 proposed copying each machine's states into every --help. Measured first: argparse already publishes ui-id's kinds and archive's flags via choices=, and idea_catcher publishes its statuses, so the premise was largely already delivered. What remained genuinely missing was discoverability of the seven derived vocabularies in status --json, which no --help names. Copying 88 state names into a generated, pinned help string would create a second source of truth for them, the exact drift this audit keeps fixing.",
+        "benefits": "One line in --help tells an agent where every vocabulary lives and how to resolve a bare status, without duplicating any of it; the pin also fails if a future change copies a machine's states into the help.",
+        "risks": "contract: top-level help text gains an epilog, so aikit_help.py must be regenerated or the ADR-180 pin fails; dependency: none; concurrency: none; state: aikit_parser.py, aikit_help.py, one test",
+        "mitigation": "the generated string was rebuilt from the grammar rather than hand-edited, so the pin still proves the fast path matches; the new test asserts the pointer exists and that no machine's states appear verbatim"
+      },
+      "plan_digest": "e9cb78a8d3fdb4717df09d0766f17ec1c9cc1a3875fb1e02ba72e2da56838381"
+    },
+    {
+      "task_id": "verify-100p12",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] epilog added to aikit_parser, aikit_help regenerated from the grammar (ADR-180 pin still exact), 1 fail-first test asserting the pointer exists and no machine's states are copied; live --help 123ms; 1049 unit + 89 integration green; all gates incl dogfood 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794249986.2009578,
+      "timestamp_str": "2026-11-09 21:46:26",
       "agent": "commandcode:goal"
     }
   ]

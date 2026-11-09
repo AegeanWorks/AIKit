@@ -8029,6 +8029,20 @@ class TestAikitHelpFastPath(unittest.TestCase):
         import scripts.sync_licenses as licenses
         self.assertEqual(licenses.TOP_LEVEL_HELP, licenses.build_parser().format_help())
 
+    def test_top_level_help_points_at_the_registry_instead_of_copying_it(self):
+        """P12: publish the vocabulary without creating a second source of truth for it."""
+        import scripts.aikit_help as generated
+        from scripts import state_machines as sm
+
+        text = generated.TOP_LEVEL_HELP
+        self.assertIn("state_machines.py --list", text)
+        self.assertIn("--which <state>", text)
+        # It must be a pointer, not a copy: no machine's state list may appear verbatim.
+        for machine in sm.MACHINES:
+            sequence = ", ".join(machine.states)
+            self.assertNotIn(sequence, text,
+                             f"the help copies {machine.name}'s states instead of pointing")
+
     def test_disruption_help_matches_the_module(self):
         import scripts.disruption_help as generated
         import scripts.disruption_recovery as ledger

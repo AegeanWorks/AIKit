@@ -54,4 +54,8 @@ options:
   -h, --help            show this help message and exit
   --workspace DIR       AIKit checkout whose projects/ to use (default: this
                         one; for sandboxes)
+
+Status vocabularies (project, license, UI, media, ledger) live in one place:
+`python scripts/state_machines.py --list`, and `--which <state>` names the
+machines that declare a status you found in a file.
 """

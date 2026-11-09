@@ -1,9 +1,9 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Seven proposals passed and are
-implemented (P1–P4, P6, P9, P11, plus P10 partly); P12's discoverability half is
-implemented as `--which` (ADR-394); the rest are deferred with the reason.
+`knowledge/state_machines.md` (ADR-388). Nine proposals passed and are
+implemented (P1–P4, P6, P9, P11, P12, plus P10 partly). P5, P7 and P8 remain
+deferred with the reason.
 
 ## Decision criteria
 
@@ -34,7 +34,7 @@ A proposal passes only when **all** hold:
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
 | P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
 | P11 | Complete `status --json` with every machine's state | Med | Med | High | Low | **PASS, bounded (ADR-401)** |
-| P12 | Publish the status vocabulary in every `--help` | High | Low | High | Low | Deferred |
+| P12 | Publish the status vocabulary in every `--help` | High | Low | High | Low | **PASS, as a pointer (ADR-403)** |
 
 ## Implemented proposals
 
@@ -137,8 +137,13 @@ the error and that no ledger file is created.
   snapshot. Reading the rest would open Reforge runs, the idea register,
   delegation transcripts and proof artifacts — work a cold-start status call
   must not do.
-- **P12 (help vocabulary).** The generated help copies are test-pinned; adding
-  the vocabulary means updating both copies and the README together. Follow-up.
+- **P12 (help vocabulary).** **Implemented as a pointer (ADR-403).** Measuring
+  first changed the answer: `argparse` already publishes `ui-id`'s kinds,
+  `archive`'s flags and Idea Catcher's statuses through `choices=`, so only the
+  seven derived vocabularies in `status --json` were undiscoverable. Top-level
+  help now names `state_machines.py --list` and `--which <state>` in one epilog
+  line, and a test fails if any machine's states are ever copied into that
+  string.
 
 ## Verification
 
@@ -156,3 +161,10 @@ the error and that no ledger file is created.
   integration tests pass after `proof_envelope.verify`, the two proof write
   paths, `sync_licenses.check_licenses` and `dossier_sync._upsert_jsonld` were
   made to fail closed on a non-object document instead of raising.
+- **Dead ends and refusals (ADR-399, ADR-400, ADR-402):** `ui abort` drops a
+  corrupt record instead of dead-ending on its own remedy; the already-archived
+  and archived-publish refusals name real actions; 1048 unit + 89 integration
+  tests pass.
+- **Machine visibility (ADR-401, ADR-403):** `status --json` reports 7 of 21
+  machine states and names the other 14; top-level help points at the registry
+  instead of copying it. 1048 unit + 89 integration tests pass, dogfood 5/5.

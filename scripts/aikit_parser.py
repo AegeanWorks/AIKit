@@ -49,6 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="python aikit.py",
         description="Create and manage the projects AIKit builds. Each project is its own folder "
                     "and git repository with its memory in .aikit/.",
+        # A pointer, never a copy: the vocabularies live in one registry, and copying 88 names
+        # into this string would be a second source of truth for them (ADR-403).
+        epilog="Status vocabularies (project, license, UI, media, ledger) live in one place: "
+               "`python scripts/state_machines.py --list`, and `--which <state>` names the "
+               "machines that declare a status you found in a file.",
     )
     # Explicit, never guessed from the working directory: a stray `projects/` folder elsewhere
     # must not become the registry (ADR-128).

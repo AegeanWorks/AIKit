@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1305`
-- **Total Source Lines**: `48485`
+- **Total Class Methods**: `1306`
+- **Total Source Lines**: `48508`
 
 ---
 
@@ -703,14 +703,14 @@
 ### [`scripts/aikit_help.py`](scripts/aikit_help.py)
 > *Generated top-level CLI help for the `--help` fast path (ADR-180).*
 
-**Size**: `57` lines (`3284` bytes)
+**Size**: `61` lines (`3489` bytes)
 
 ---
 
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `313` lines (`21778` bytes)
+**Size**: `318` lines (`22212` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -1947,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16184` lines (`881448` bytes)
+**Size**: `16198` lines (`882173` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2568,6 +2568,7 @@
   - Method `.test_parser_module_imports_only_the_standard_library_at_top_level()`
   - Method `.test_generated_help_matches_the_grammar()`
   - Method `.test_sync_licenses_generated_help_matches_its_parser()`
+  - Method `.test_top_level_help_points_at_the_registry_instead_of_copying_it()` - *P12: publish the vocabulary without creating a second source of truth for it.*
   - Method `.test_disruption_help_matches_the_module()`
   - Method `.test_cli_reexports_the_parser_so_existing_callers_keep_working()`
 - `class TestPushCommand` - *`aikit push` is a thin, discoverable alias for the gated `check --push`.*
