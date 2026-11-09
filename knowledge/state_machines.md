@@ -83,7 +83,7 @@ enforced. Each machine records its source and a known gap.
 | Publish / remote / guard | local-only, has-origin, unpushed, pushed, guard installed | `.git/config`, hook, GitHub | Guard installed before push; description/topics update only with `gh` auth; topics failure is a note, not a failure. |
 | Archive | active, archived, archived-offline, moved-unrecorded | `project.json.archived*`, folder, README, GitHub | Forward transition only; partial move/record leaves a discoverable but unflagged project. |
 | Topics | unrecorded, default-only, recorded, applied, drift | `project.json.topics*`, GitHub | `publish` rejects default-only; `check` only warns; no applied fingerprint. |
-| **UI identity** | unknown, detected, manual, required | `project.json.has_ui/ui_source/ui_required` | `fix`/`media init`/`new`/`attach` call `auto_ui` and discard a manual identity; `ui_required` is one-way (pinned by `tests/test_kit.py:11482`). |
+| **UI identity** | unknown, detected, manual, required | `project.json.has_ui/ui_source/ui_required` | `fix`/`media init` pass `respect_manual=True` so a manual identity survives (ADR-397); `new`/`attach` still call `auto_ui` on a fresh project where no manual choice exists; `ui_required` is one-way (pinned by `tests/test_kit.py:11512`). |
 | Compat scaffold | no scaffold, headless, ui, verified | `.aikit/compat.json`, evidence files | Built-in gate but deletable; `emit_evidence` is unlocked. |
 | **Media asset** | absent, pending, approved, rejected | `.aikit/media.json` | Only logo and social preview block publish; an unreviewed screenshot publishes. |
 | **Gate result** | not_run, pass, fail, refused, rewrite | `project_gates.py` | Timeout and start failure both report `-1`; `new --publish` skips all gates. |

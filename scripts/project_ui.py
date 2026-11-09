@@ -293,8 +293,14 @@ def set_ui_manual(project_root: Path, has_ui: bool, kind: Optional[str] = None) 
     return result
 
 
-def auto_ui(project_root: Path) -> Dict[str, object]:
-    result = detect_ui(project_root, respect_manual=False)
+def auto_ui(project_root: Path, *, respect_manual: bool = False) -> Dict[str, object]:
+    """Re-detect the interface and record it.
+
+    `respect_manual=False` (the default) overwrites a manual decision, which is what
+    `ui-id --set auto` means. Maintenance commands (`fix`, `media init`) pass True so a
+    human's `ui-id --set yes|no` survives them instead of being silently discarded.
+    """
+    result = detect_ui(project_root, respect_manual=respect_manual)
     write_ui_identity(project_root, result)
     return result
 
@@ -369,15 +375,17 @@ def _surface_paths(project_root: Path, evidence: List[str]) -> List[str]:
     return paths
 
 
-def adopt_ui(project_root: Path, test_command: str = "") -> Dict[str, object]:
+def adopt_ui(project_root: Path, test_command: str = "",
+             *, respect_manual: bool = False) -> Dict[str, object]:
     """Adopt a detected UI project into the bounded UI contract, without guessing a proof.
 
     A contract is written only when the project already has a test command to act as its fast
     proof; otherwise the caller gets the reason and can run `aikit ui init` with a real command.
-    Existing contracts are kept and only marked required.
+    Existing contracts are kept and only marked required. `respect_manual` is threaded to
+    `auto_ui` so a maintenance caller does not discard a human's explicit decision.
     """
     project_root = Path(project_root)
-    identity = auto_ui(project_root)
+    identity = auto_ui(project_root, respect_manual=respect_manual)
     if not identity.get("has_ui"):
         return {"adopted": False, "reason": "no UI detected"}
     from scripts import ui_contract

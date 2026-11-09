@@ -30,7 +30,7 @@ A proposal passes only when **all** hold:
 | P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Med | Deferred |
 | P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
-| P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Med | Deferred |
+| P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
 | P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
 | P11 | Complete `status --json` with every machine's state | Med | Med | High | Med | Deferred |
 | P12 | Publish the status vocabulary in every `--help` | High | Low | High | Low | Deferred |
@@ -112,10 +112,13 @@ the error and that no ledger file is created.
 - **P8 (license transaction).** Reordering five writes or adding a journal
   changes failure semantics across LICENSE, REUSE, README and GitHub; needs a
   migration and a rollback test.
-- **P9 (manual UI identity).** The overwrite is pinned by
-  `tests/test_kit.py:11482`. Changing it requires user approval and an ADR
-  naming the weakened test (PRINCIPLE-014); the proposal is correct but not
-  unilateral.
+- **P9 (manual UI identity).** **Implemented (ADR-397), without weakening the
+  pin.** The original claim was that the overwrite at `tests/test_kit.py` was a
+  product decision that had to be overridden. Re-reading it: the pin asserts
+  `auto_ui(root)` overwrites, which is exactly what `ui-id --set auto` means. The
+  defect was that `fix` and `media init` used that same unconditional path. So
+  `auto_ui` and `adopt_ui` gained a keyword-only `respect_manual=False`, and the
+  two maintenance callers pass `True`. The pin is untouched and still passes.
 - **P10 (read-only audit).** The quarantine rename on read is pinned by a test;
   making `--audit` non-mutating needs a separate recovery command. High value,
   but it changes a durability guarantee. **Partly implemented (ADR-393):** the

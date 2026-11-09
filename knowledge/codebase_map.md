@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1294`
-- **Total Source Lines**: `48077`
+- **Total Class Methods**: `1296`
+- **Total Source Lines**: `48117`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1580` lines (`79685` bytes)
+**Size**: `1580` lines (`79748` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1390,7 +1390,7 @@
 ### [`scripts/project_ui.py`](scripts/project_ui.py)
 > *Project UI identifier (ADR-233): does this project have a user interface a screenshot can show?*
 
-**Size**: `402` lines (`16324` bytes)
+**Size**: `410` lines (`16871` bytes)
 
 **Functions:**
 - `def _scan_files(root)`
@@ -1405,11 +1405,11 @@
 - `def detect_ui(project_root, respect_manual)` - *Classify a project's interface, with the marker files that justify the answer.*
 - `def write_ui_identity(project_root, result)` - *Persist the identifier atomically, preserving the rest of the project's memory.*
 - `def set_ui_manual(project_root, has_ui, kind)` - *Record an explicit human/agent decision; `auto` clears it on the next detection.*
-- `def auto_ui(project_root)`
+- `def auto_ui(project_root, *, respect_manual)` - *Re-detect the interface and record it.*
 - `def refresh_ui_identifier(project_root)` - *Re-detect after UI work; a UI command or capture proves a screenshotable surface exists.*
 - `def ui_payload(project_root)`
 - `def _surface_paths(project_root, evidence)` - *The smallest practical surface: detected entry files plus a source tree if one exists.*
-- `def adopt_ui(project_root, test_command)` - *Adopt a detected UI project into the bounded UI contract, without guessing a proof.*
+- `def adopt_ui(project_root, test_command, *, respect_manual)` - *Adopt a detected UI project into the bounded UI contract, without guessing a proof.*
 
 ---
 
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15996` lines (`870989` bytes)
+**Size**: `16028` lines (`872803` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2446,6 +2446,7 @@
   - Method `.stale(path)`
   - Method `.test_fix_restores_memory_and_readme_and_removes_only_stale_buffers()`
   - Method `.test_fix_adopts_a_detected_ui_contract()`
+  - Method `.test_fix_keeps_a_manual_ui_identity()` - *P9: fix must not discard `ui-id --set yes`, which is an explicit decision.*
   - Method `.test_fix_reconciles_omitted_tracked_files_in_readme_tree()`
   - Method `.test_fix_reconciles_a_name_that_is_a_substring_of_another_entry()`
   - Method `.test_fix_seeds_brand_media_candidates_and_warns_once_on_default_topics()`
@@ -2844,6 +2845,7 @@
   - Method `.test_ui_work_refreshes_the_identifier()`
   - Method `.test_refresh_keeps_the_checked_date_when_the_identifier_is_unchanged()`
   - Method `.test_ui_identity_can_be_set_manually_and_reported()`
+  - Method `.test_auto_ui_can_respect_a_manual_identity()` - *`ui-id --set auto` still overwrites; maintenance callers must not.*
   - Method `.test_the_ai_brief_supplies_evidence_but_chooses_nothing()`
   - Method `.test_ai_choice_is_added_on_top_and_never_auto_filled()`
   - Method `.test_every_catalog_project_has_a_unique_palette_and_artwork()`

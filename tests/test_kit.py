@@ -6527,6 +6527,26 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertTrue((folder / ".aikit" / "ui.json").is_file())
         self.assertTrue(load_config(folder)["ui_required"])
 
+    def test_fix_keeps_a_manual_ui_identity(self):
+        """P9: fix must not discard `ui-id --set yes`, which is an explicit decision."""
+        folder = self.make_folder(
+            ("index.html", "<html><body><main id='app'></main></body></html>"),
+            (".gitignore", ""))
+        attach_project(folder, "ui-manual", test_command="python -m unittest",
+                       workspace=self.kit)
+        config_file = folder / ".aikit" / "project.json"
+        with open(config_file, "r", encoding="utf-8") as handle:
+            raw = json.load(handle)
+        raw.update({"has_ui": True, "ui_kind": "desktop", "ui_source": "manual"})
+        with open(config_file, "w", encoding="utf-8") as handle:
+            json.dump(raw, handle, indent=2)
+        with mock.patch("scripts.aikit_cli.cmd_check", return_value=0):
+            code, out, _ = self.run_cli("fix", "ui-manual")
+        self.assertEqual(code, 0, out)
+        kept = load_config(folder)
+        self.assertEqual(kept["ui_source"], "manual")
+        self.assertEqual(kept["ui_kind"], "desktop")
+
     def test_fix_reconciles_omitted_tracked_files_in_readme_tree(self):
         folder = self.make_folder(
             ("README.md",
@@ -11518,6 +11538,18 @@ class TestReforgeCore(unittest.TestCase):
         (root / "index.html").write_text("<html><body></body></html>", encoding="utf-8")
         auto = project_ui.auto_ui(root)
         self.assertEqual((auto["kind"], auto["source"]), ("web", "detected"))
+
+    def test_auto_ui_can_respect_a_manual_identity(self):
+        """`ui-id --set auto` still overwrites; maintenance callers must not."""
+        root = self.project()
+        project_ui.set_ui_manual(root, True, "desktop")
+        (root / "index.html").write_text("<html><body></body></html>", encoding="utf-8")
+        kept = project_ui.auto_ui(root, respect_manual=True)
+        self.assertEqual((kept["kind"], kept["source"]), ("desktop", "manual"))
+        self.assertEqual(project_ui.ui_payload(root)["source"], "manual")
+        # The explicit `--set auto` path keeps its overwrite semantics.
+        overwritten = project_ui.auto_ui(root)
+        self.assertEqual((overwritten["kind"], overwritten["source"]), ("web", "detected"))
 
     def test_the_ai_brief_supplies_evidence_but_chooses_nothing(self):
         root = self.project(readme="A local-first AI agent with a CLI and research notes.")

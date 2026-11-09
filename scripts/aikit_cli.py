@@ -704,10 +704,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
     if find_python_files(project.path):
         write_generated_file(memory / "codebase_map.md", generate_codebase_map(root=project.path, strict=False))
         fixes.append("regenerated .aikit/codebase_map.md")
-    identity = project_ui.auto_ui(project.path)
+    identity = project_ui.auto_ui(project.path, respect_manual=True)
     fixes.append(f"refreshed UI identifier (has_ui={identity['has_ui']}, kind={identity['kind']})")
     test_command = project.test_command or str(load_config(project.path).get("test_command") or "")
-    adoption = project_ui.adopt_ui(project.path, test_command)
+    adoption = project_ui.adopt_ui(project.path, test_command, respect_manual=True)
     if adoption["adopted"]:
         fixes.append("wrote .aikit/ui.json and marked the UI contract required")
     elif identity["has_ui"]:
@@ -1274,7 +1274,7 @@ def cmd_media(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
     action = args.media_action
     if action == "init":
-        project_ui.auto_ui(project.path)
+        project_ui.auto_ui(project.path, respect_manual=True)
     elif action == "capture":
         project_ui.refresh_ui_identifier(project.path)
     if action == "init":
