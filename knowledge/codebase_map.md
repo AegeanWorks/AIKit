@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1291`
-- **Total Source Lines**: `48001`
+- **Total Class Methods**: `1292`
+- **Total Source Lines**: `48012`
 
 ---
 
@@ -1438,7 +1438,7 @@
 ### [`scripts/proof_envelope.py`](scripts/proof_envelope.py)
 > *Signed commit-proof envelope (IDEA-1168).*
 
-**Size**: `232` lines (`9939` bytes)
+**Size**: `233` lines (`10000` bytes)
 
 **Classes:**
 - `class EnvelopeError` - *The envelope could not be sealed or read.*
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15927` lines (`867296` bytes)
+**Size**: `15937` lines (`867777` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3059,6 +3059,7 @@
   - Method `.test_tampered_payload_fails_not_inconclusive()`
   - Method `.test_expired_and_unknown_key_are_inconclusive()`
   - Method `.test_empty_key_refuses_to_seal()`
+  - Method `.test_a_non_object_envelope_is_inconclusive_not_a_crash()` - *verify() documents 'never raises'; a JSON array crashed on .get(keyid).*
 - `class TestVerifyPushV4SafeFixes` - *Regression pins for the verify-push-v4 window (last-3-push review).*
   - Method `.test_evidence_sealed_without_keys_is_inconclusive()`
   - Method `.test_evidence_verifier_crash_is_fail()`

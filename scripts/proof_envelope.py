@@ -112,9 +112,10 @@ def verify(envelope: Mapping[str, Any], *, keys: Mapping[str, str],
     ``inconclusive`` means unverifiable (expired, unknown key, bad shape).
     """
     moment = int(now if now is not None else time.time())
+    shaped = envelope if isinstance(envelope, Mapping) else {}
 
     def refused(outcome: str, reason: str) -> Dict[str, Any]:
-        return {"outcome": outcome, "reason": reason, "keyid": envelope.get("keyid")}
+        return {"outcome": outcome, "reason": reason, "keyid": shaped.get("keyid")}
 
     if not isinstance(envelope, Mapping):
         return refused(OUTCOME_INCONCLUSIVE, "envelope is not a JSON object")

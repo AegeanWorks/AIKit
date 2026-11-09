@@ -14612,6 +14612,16 @@ class TestProofEnvelope(unittest.TestCase):
         with self.assertRaises(proof_envelope.EnvelopeError):
             proof_envelope.seal({"proof": True}, key="")
 
+    def test_a_non_object_envelope_is_inconclusive_not_a_crash(self) -> None:
+        """verify() documents 'never raises'; a JSON array crashed on .get(keyid)."""
+        from scripts import proof_envelope
+
+        for bad in ([1, 2, 3], "text", 42, None):
+            result = proof_envelope.verify(bad, keys={"local": "k" * 32}, now=1001)
+            self.assertEqual(result["outcome"], "inconclusive", repr(bad))
+            self.assertIsNone(result.get("keyid"), repr(bad))
+
+
 
 class TestVerifyPushV4SafeFixes(unittest.TestCase):
     """Regression pins for the verify-push-v4 window (last-3-push review)."""
