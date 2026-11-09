@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-101p5",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794251349.8352714,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794251374.5184026
   },
   "checkpoints": [
-    {
-      "task_id": "verify-95jsonshape",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Harden two more JSON readers that crash on a non-object document",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794246665.9134245,
-      "timestamp_str": "2026-11-09 20:51:05",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "sync_licenses.check_licenses (the default --check action) and dossier_sync._upsert_jsonld (the publish hook) call .get on json.loads output without checking it is an object. sync_licenses already guards the inner sha256 value but not the pin itself; dossier_sync guards nothing. Measured: check_licenses raised AttributeError for a JSON array/string/number/null/bool PIN.json, and _upsert_jsonld raised AttributeError('list' object has no attribute 'get') for a hand-edited JSON-LD array.",
-        "benefits": "A corrupt pinned copy surfaces as a named finding and a malformed dossier graph is skipped, so a read-only license audit and a publish report instead of leaving a traceback.",
-        "risks": "contract: check_licenses already returns list[str] and _upsert_jsonld already returns bool on every other path, so the shapes are unchanged; dependency: none; concurrency: none; state: two modules, two tests",
-        "mitigation": "guard at the boundary before any .get; each test covers every non-object JSON shape and was proven to raise on the old code; existing license and dossier tests must still pass"
-      },
-      "plan_digest": "4d555c97a56aadf5b78fbb694244b50a7f117f82f986c0074da8c9225b6d3c52"
-    },
     {
       "task_id": "verify-95jsonshape",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794251349.8352714,
       "timestamp_str": "2026-11-09 22:09:09",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-101p5",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-101p5' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794251374.5184047,
+      "timestamp_str": "2026-11-09 22:09:34",
       "agent": "commandcode:goal"
     }
   ]
