@@ -1,56 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-104p7",
+    "task_id": "verify-105tx",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794254864.9107158,
+    "updated_at": 1794258701.8904648,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
     "continuations": [],
-    "completed_at": 1794254871.4540753
+    "completed_at": 1794258708.3623362
   },
   "checkpoints": [
-    {
-      "task_id": "verify-98p11",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] status --json reports the seven project-level machine states it can read, and names the fourteen it did not sample",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794248903.604994,
-      "timestamp_str": "2026-11-09 21:28:23",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "P11 asked to complete status --json with every machine's state. Only 4 of 21 were visible before (license tier, disruption, ui_task_open, gate names) and a bare status string could not be resolved to a machine. Reading the other 14 would mean Reforge runs, the Idea Catcher register, delegation transcripts, upstream checks, compat proofs and proof artifacts - work a cold-start status call must not do.",
-        "benefits": "An agent holding a status string from a project's own state can now see which machine it belongs to and what the live value is, and the payload states its own coverage instead of implying a full snapshot, so nobody mistakes 7 of 21 for all 21.",
-        "risks": "contract: adds a machines key to the status --json payload, existing keys unchanged; dependency: one new module importing existing readers; concurrency: none; state: a new module, aikit_cli, tests, two docs",
-        "mitigation": "each reported state is asserted to be a declared state of its machine; read_count plus not_sampled is asserted to equal the registry exactly; a reader failure becomes a named error, never a traceback or a state outside the vocabulary; --help import graph verified to pull none of the new code"
-      },
-      "plan_digest": "ba87ae55ec0c70b0e292ca6950bbd72e079c3d9e95b684cc34370c4592a3d3c0"
-    },
-    {
-      "task_id": "verify-98p11",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] new project_machine_states module reads 7 machine states and names the 14 unsampled; status --json gains a machines key; 2 fail-first tests (KeyError: machines); live payload on brain shows 7/21 with exact coverage; --help import graph pulls none of it; 1047 unit + 89 integration green; all gates incl dogfood 5/5",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794249090.3136005,
-      "timestamp_str": "2026-11-09 21:31:30",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-98p11",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-98p11' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794249115.6724632,
-      "timestamp_str": "2026-11-09 21:31:55",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-99p6",
       "phase": "planning",
@@ -265,6 +226,45 @@
       "status": "completed",
       "timestamp": 1794254871.4540772,
       "timestamp_str": "2026-11-09 23:07:51",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-105tx",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Make verify_transcript recompute the recorded digests so a replay proves the verdict",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794257953.774146,
+      "timestamp_str": "2026-11-09 23:59:13",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "The module docstring promises 'a replay can prove the identical verdict', and the machine's own gap admitted verify_transcript never recomputed output_sha. Measured: editing the result output (or even exit_code) left verify_transcript reporting 'transcript ok', and replay_transcript returned a verdict the delegate never produced. The existing tests only covered corrupt JSON, not tampering.",
+        "benefits": "A hand-edited transcript now reads as invalid with a Why/Fix naming the field, so replay can no longer assert a verdict the run did not produce; the docstring's promise becomes true.",
+        "risks": "contract: verify_transcript gains a failure path; append_result records exit_sha, so a transcript written before it exists is refused as unprovable rather than silently trusted; no AIKit-authored transcript exists yet, so no data migration; dependency: none; concurrency: none; state: delegate_transcript.py, a test, two docs",
+        "mitigation": "digests are recomputed with the same _sha the writer used; a falsy-zero bug (exit code 0 hashing as empty) was found by my own test and fixed; all 8 delegate-related test classes pass"
+      },
+      "plan_digest": "4d31be5db6090ca64ecfbb42d4eab2cec1cb2e845c010c8918de4c103c6c5c6f"
+    },
+    {
+      "task_id": "verify-105tx",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] verify_transcript recomputes prompt_sha/output_sha/exit_sha and append_result records exit_sha (ADR-407); witness_key includes proof so a failing re-run cannot overwrite a stored pass (ADR-408); both tests fail first; 1056 unit + 89 integration green at pushed HEAD 271334d in a clean worktree, plus kb/reachability/secrets/dogfood/budget gates",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794258701.8904648,
+      "timestamp_str": "2026-11-10 00:11:41",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-105tx",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-105tx' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794258708.3623374,
+      "timestamp_str": "2026-11-10 00:11:48",
       "agent": "commandcode:goal"
     }
   ]
