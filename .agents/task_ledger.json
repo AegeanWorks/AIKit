@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-87docdrift",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794204203.1951802,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794204250.822482
   },
   "checkpoints": [
-    {
-      "task_id": "verify-84revisit",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/4] IDEA-955 fired (proof gate provably skips every AIKit commit); IDEA-199 fired (1 dangling ADR-1726 citation in dogfood.py); 512/377/301/086/053/271/308/548/556 did not fire",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794166613.6703289,
-      "timestamp_str": "2026-11-08 22:36:53",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-84revisit",
       "phase": "implementation",
@@ -247,6 +237,16 @@
       "status": "in_progress",
       "timestamp": 1794204203.1951802,
       "timestamp_str": "2026-11-09 09:03:23",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-87docdrift",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-87docdrift' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794204250.8224843,
+      "timestamp_str": "2026-11-09 09:04:10",
       "agent": "commandcode:goal"
     }
   ]
