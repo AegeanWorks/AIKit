@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-93scriptmode",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794245981.5007024,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794246005.1372561
   },
   "checkpoints": [
-    {
-      "task_id": "verify-87docdrift",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] Fixed: proof-verdict->shared-outcome rename + real proof-verdict machine (holds/failed/setup-error, measured); receipt/corpus states split persisted vs replay observations; doc-parity pin added; 1024 unit + 89 integration pass; budget gate now green (18.50ms/717ms)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794204203.1951802,
-      "timestamp_str": "2026-11-09 09:03:23",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-87docdrift",
       "phase": "completed",
@@ -265,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794245981.5007024,
       "timestamp_str": "2026-11-09 20:39:41",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-93scriptmode",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-93scriptmode' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794246005.1372576,
+      "timestamp_str": "2026-11-09 20:40:05",
       "agent": "commandcode:goal"
     }
   ]
