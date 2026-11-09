@@ -60,7 +60,7 @@ enforced. Each machine records its source and a known gap.
 | **Review** | none, unreviewed, partial, reviewed | `entry.review.status` | `review` refuses `partial`; `fix` accepts and persists it; a review older than `MAX_HISTORY` stops blocking completion. |
 | Finding | fixable/repaired/rejected, source/category | `entry.findings[]` | `mark_repairs` runs after the tree edit; a crash leaves repaired=False on a repaired tree. |
 | Repair | applied, left-for-review, not-repaired, dropped | `entry.repairs[]` | In-memory snapshots only; a crash mid-repair has no on-disk undo. |
-| **Delivery** | absent, empty, uncommitted, commit_failed, unpushed, pushed | `entry.delivery` | A crash between `git commit` and `mark_delivered` leaves a commit with no SHA; no `reforge delivery` command reconciles it. |
+| **Delivery** | absent, empty, uncommitted, commit_failed, unpushed, pushed | `entry.delivery` | A crash between `git commit` and `mark_delivered` leaves a commit with no SHA; `reforge status` now reports it as an orphaned stage from the deterministic commit subject (ADR-406), but no `reforge delivery` command reconciles it. |
 | Lock | absent, held, stale, contended | `.aikit/reforge.run.lock` | 3600 s stale window; `analyze`, `status`, `runs`, `report` read outside the lock. |
 | Ledger mirror | in_progress, suspended, completed | `reforge:<run-id>` checkpoints | A third copy of run status written outside the state transaction; never updates `active_task`. |
 | State schema | missing, 1 (migrated), 2 | `schema` | Read migration is not written back; `active_run`/`last_run` need not name a real run. |

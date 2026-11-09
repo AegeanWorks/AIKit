@@ -117,7 +117,8 @@ MACHINES: Tuple[Machine, ...] = (
         source="reforge/pipeline.py: _close_window, _publish_backlog; reforge/state.py: "
                "new_delivery, mark_delivered; reforge.json entry.delivery",
         gap="A crash between git commit and mark_delivered leaves a commit on disk with no "
-            "recorded SHA; no command reconciles that state.",
+            "recorded SHA; `reforge status` now reports it as an orphaned stage from the "
+            "deterministic commit subject (ADR-406), but no command reconciles it.",
     ),
     Machine(
         name="idea-status",

@@ -3,7 +3,7 @@
 import json
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 from reforge.errors import ReforgeError
 from reforge.model import Finding, Repair, StagePlan
@@ -408,6 +408,40 @@ def find_unpushed_verified(run: Dict[str, object]) -> List[Dict[str, object]]:
             continue
         pending.append(entry)
     return pending
+
+
+def delivery_message(run_id: str, stage: int, repaired: int) -> str:
+    """The conventional message for one window's commit; deterministic, so it identifies it.
+
+    Lives here rather than in `pipeline` because both the writer and the orphan detector
+    need it, and importing it from `pipeline` would close an import cycle (ADR-406).
+    """
+    if repaired:
+        return f"fix(reforge): repair {run_id} stage {stage} findings"
+    return f"chore(reforge): record {run_id} stage {stage} audit"
+
+
+def find_orphaned_commits(run: Dict[str, object], subjects: Sequence[str]) -> List[Dict[str, object]]:
+    """Stages whose window commit is on disk but whose record carries no SHA (P7, ADR-406).
+
+    The delivery message is deterministic, so a stage's commit subject identifies its
+    window without reading or writing state. This reports the crash window between
+    `git commit` and `mark_delivered` instead of leaving it invisible. It never mutates
+    anything and never guesses: a stage is reported only when its exact subject is
+    present in `subjects`.
+    """
+    orphaned: List[Dict[str, object]] = []
+    for entry in _stage_candidates(run):
+        if not _entry_verified(entry):
+            continue
+        delivery = _delivery_of(entry)
+        if delivery.get("empty") or delivery.get("commit"):
+            continue
+        stage = int(entry.get("stage") or 0)
+        expected = delivery_message(str(run.get("id") or ""), stage, _entry_applied(entry))
+        if expected in subjects:
+            orphaned.append({"stage": stage, "subject": expected})
+    return orphaned
 
 
 def find_uncommitted_verified(run: Dict[str, object]) -> List[Dict[str, object]]:

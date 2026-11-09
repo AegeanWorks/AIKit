@@ -322,6 +322,12 @@ def _workspace(args, root: Path, gate_runner: Optional[GateRunner]) -> int:
             if uncommitted:
                 print("Uncommitted: stage(s) " + ", ".join(str(stage) for stage in uncommitted)
                       + " (verified-but-uncommitted; publish with fix --commit)")
+            orphaned = payload.get("orphaned_stages") or []
+            if orphaned:
+                print("Orphaned:   stage(s) "
+                      + ", ".join(str(row.get("stage")) for row in orphaned)
+                      + " (the window commit is on disk but its record has no SHA; "
+                        "a crash between commit and record. Inspect `git log` for the subject)")
             review = payload.get("review") or {}
             if review:
                 packet = review.get("packet") or ""

@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Tuple
 from reforge.analyzer import run_analyzer
 from reforge.audit import audit_window, plan_next_stage, summarize, window_for_stage
 from reforge.errors import ReforgeError
-from reforge.git_history import commit_count, dirty_paths, head_sha
+from reforge.git_history import commit_count, commit_window, dirty_paths, head_sha
 from reforge.ledger import ledger_artifacts, record_event, stage_files
 from reforge.locking import LOCK_REL, run_lock
 from reforge.model import Finding, Repair, StagePlan
@@ -30,9 +30,11 @@ from reforge.state import (
     STATE_REL,
     create_run,
     current_run,
+    delivery_message,
     entry_from_stage,
     finalize_review,
     find_run,
+    find_orphaned_commits,
     find_unpushed_verified,
     is_reforge_artifact,
     load_state,
@@ -496,10 +498,12 @@ def _note_stage(root: Path, run: Dict[str, object], plan: StagePlan, entry: Dict
 
 
 def _delivery_message(run_id: str, stage: int, repaired: int) -> str:
-    """Conventional message shared by the stage-close hook (no caller variants)."""
-    if repaired:
-        return f"fix(reforge): repair {run_id} stage {stage} findings"
-    return f"chore(reforge): record {run_id} stage {stage} audit"
+    """Conventional message shared by the stage-close hook (no caller variants).
+
+    The implementation lives in `state` so the orphan detector can share it without an
+    import cycle (ADR-406); this alias keeps the existing call sites readable.
+    """
+    return delivery_message(run_id, stage, repaired)
 
 
 def _publish_backlog(root: Path, state: Dict[str, object],
@@ -1036,6 +1040,14 @@ def status_payload(root: Path) -> Dict[str, object]:
                                        _rst if type(_rst) is int and _rst != 0 else None)
     last = (run or {}).get("last_audit")
     review = (last.get("review") or last.get("ai") or {}) if isinstance(last, dict) else {}
+    # P7 read side (ADR-406): a crash between `git commit` and `mark_delivered` leaves the
+    # window on disk with no recorded SHA. The delivery subject is deterministic, so a
+    # bounded commit read tells us it happened. Read-only: nothing is repaired here.
+    orphaned: List[Dict[str, object]] = []
+    if run:
+        subjects = [commit.subject for commit in
+                    commit_window(root, max(20, int(run.get("step") or DEFAULT_STEP) * 4))]
+        orphaned = find_orphaned_commits(run, subjects)
     return {
         "root": str(root),
         "head": head_sha(root),
@@ -1047,6 +1059,7 @@ def status_payload(root: Path) -> Dict[str, object]:
         "review": review,
         "unreviewed_stages": [int(entry.get("stage") or 0)
                               for entry in pending_reviews(run)] if run else [],
+        "orphaned_stages": orphaned,
         "active_run": state.get("active_run"),
         "last_run": state.get("last_run"),
         "run": run_summary(run) if run else None,

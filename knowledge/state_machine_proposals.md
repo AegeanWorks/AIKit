@@ -1,9 +1,10 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Eleven proposals passed and are
-implemented (P1–P6, P8, P9, P11, P12, plus P10 partly). P7 and P8's write side
-remain open with the reason.
+`knowledge/state_machines.md` (ADR-388). All twelve proposals have a passing
+part implemented: P1–P6, P9, P11, P12 in full, P7 detection, P8 read side, and
+P10's `mkdir` half. P7's reconciler and P8's write transaction remain open with
+the reason.
 
 ## Decision criteria
 
@@ -29,7 +30,7 @@ A proposal passes only when **all** hold:
 | P4 | Refuse an unknown checkpoint status before writing | Med | High | High | Low | **PASS, implemented** |
 | P5 | Validate Idea Catcher status transitions in `validate_ideas` | Low | High | High | Low | **PASS, on write (ADR-404)** |
 | P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Low | **PASS, publish only (ADR-402)** |
-| P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
+| P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | Med | **PASS, detection (ADR-406)** |
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | Med | **PASS, read side (ADR-405)** |
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
 | P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
@@ -113,8 +114,12 @@ the error and that no ledger file is created.
   refuses with exit 2 before installing the pre-push hook. `check` is deliberately
   still allowed — auditing a retired project read-only is legitimate, and refusing
   it would remove the only way to learn whether the project is still sound.
-- **P7 (delivery reconciler).** A new command and a recovery rule for a crash
-  window; needs a design for "commit exists, no SHA" before code.
+- **P7 (delivery reconciler).** **Detection implemented (ADR-406).** The window
+  was silent because both pending helpers skip an entry with no SHA. `reforge
+  status` now reports an orphaned stage when the deterministic delivery subject
+  is in the commit log, verified end to end in a temp repository. What remains is
+  the write side — whether a reconciler should adopt the commit into the record or
+  roll it back — which is a product decision about which direction is safer.
 - **P8 (license transaction).** **Read side implemented (ADR-405).** The hazard —
   a half-restricted project published as public — is closed by reading a LICENSE
   that already carries the restricted notice as `restricted`, so `publish

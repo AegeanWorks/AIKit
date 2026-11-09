@@ -90,6 +90,8 @@ from scripts.disruption_recovery import (
     LEDGER_SCHEMA_VERSION,
     UnsupportedLedgerVersion,
     LedgerOwnershipError,
+    CompletedTaskError,
+    CompletionEvidenceError,
     agent_history,
     UNIDENTIFIED_AGENT,
     load_ledger,
@@ -197,7 +199,8 @@ import scripts.project_topics as project_topics
 import scripts.project_ui as project_ui
 
 
-from scripts.project_gates import Gate, _rewritten_paths, _tracked_snapshot, failure_tail, resolve_gates, run_gates
+from scripts.project_gates import (Gate, GateResult, _rewritten_paths, _tracked_snapshot,
+                                   failure_tail, resolve_gates, run_gates, verify_gate_warnings)
 from scripts.marked_blocks import block_span, fenced, replace_block
 from scripts.project_license import (
     _licensed_readme,
@@ -298,6 +301,8 @@ from scripts.update_knowledge_base import (
     parse_source,
     find_python_files,
     parse_readme_tree,
+    report_readme,
+    readme_budget_candidates,
     write_generated_file,
 )
 
@@ -6755,6 +6760,9 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertEqual((ledger["active_task"]["task_id"], ledger["active_task"]["active_phase"]),
                          ("task-alpha", 2))
         self.assertIn("setup database", self.run_cli("resume", "demo")[1])
+        code, _, err = self.run_cli("checkpoint", "demo", "--task", "task-alpha", "--phase-num", "4",
+                                    "--desc", "verified", "--checklists", "passed")
+        self.assertEqual(code, 0, err)
         self.assertEqual(self.run_cli("complete", "demo", "--task", "other")[0], 1)
         self.assertEqual(self.run_cli("complete", "demo", "--task", "task-alpha")[0], 0)
         self.assertEqual(load_ledger(folder / ".aikit" / "task_ledger.json")["active_task"]["status"], "completed")
@@ -7026,6 +7034,10 @@ class TestProjectRegistry(unittest.TestCase):
         attach_project(self.make_folder(), "owned", workspace=self.kit)
         code, _, err = self.run_cli("checkpoint", "owned", "--task", "t", "--phase-num", "1",
                                     "--desc", "start", "--agent", "kilo:1")
+        self.assertEqual(code, 0, err)
+        code, _, err = self.run_cli("checkpoint", "owned", "--task", "t", "--phase-num", "4",
+                                    "--desc", "verified", "--checklists", "passed",
+                                    "--agent", "kilo:1")
         self.assertEqual(code, 0, err)
         code, _, err = self.run_cli("complete", "owned", "--task", "t", "--agent", "gemini:3")
         self.assertEqual(code, 1)
@@ -7303,7 +7315,7 @@ class TestProjectRegistry(unittest.TestCase):
              mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=clean), \
              mock.patch("scripts.aikit_cli.auto_push_project", return_value=(0, "")) as push:
             code, out, _ = self.run_cli("check", "uiapp")
-            self.assertEqual(code, 0)
+            self.assertEqual(code, 3, "gates green but the UI contract is not delivery-ready")
             self.assertIn("UI contract not delivery-ready", out)
             push.assert_not_called()
 
@@ -12431,6 +12443,33 @@ class TestReforgeCore(unittest.TestCase):
         history = load_state(root)["runs"][0]["history"][-1]
         self.assertTrue(history["findings"][0]["repaired"],
                         "the history entry report reads must record the repair")
+
+    def test_an_orphaned_window_commit_is_reported_not_hidden(self):
+        """P7 read side: a crash between `git commit` and `mark_delivered` leaves no SHA.
+
+        The delivery subject is deterministic, so a bounded commit read identifies the
+        window. Measured before this fix: nothing detected it at all.
+        """
+        from reforge.pipeline import _delivery_message
+        from reforge.state import find_orphaned_commits
+
+        run = {"id": "run-7", "last_audit": {
+            "run": "run-7", "stage": 2, "window": 3, "commits": [], "new_commits": ["a"],
+            "prior_commits": [], "counts": {}, "findings": [],
+            "repairs": [{"code": "x", "path": "a.py", "line": 1, "summary": "s",
+                         "test_name": "", "applied": True}],
+            "tests": {"passed": True}, "gates": {}, "timestamp": "2026-10-28T00:00:00",
+            "delivery": {"commit": "", "short": "", "pushed": False, "empty": False},
+        }, "history": []}
+        subject = _delivery_message("run-7", 2, 1)
+        found = find_orphaned_commits(run, [subject])
+        self.assertEqual([row["stage"] for row in found], [2])
+
+        # It must not invent a match.
+        self.assertEqual(find_orphaned_commits(run, ["chore: something else"]), [])
+        # A recorded SHA means the delivery completed, so it is not orphaned.
+        run["last_audit"]["delivery"]["commit"] = "a" * 40
+        self.assertEqual(find_orphaned_commits(run, [subject]), [])
 
     def test_schema_one_migrates_to_an_independent_first_run(self):
         root = self.root()
