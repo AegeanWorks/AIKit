@@ -8204,6 +8204,41 @@ class TestUiContract(unittest.TestCase):
         self.assertIn("unreadable", str(caught.exception))
         self.assertIn("ui abort", caught.exception.fix)
 
+    def test_abort_drops_a_corrupt_task_record_instead_of_dead_ending(self):
+        """The remedy read_task names must actually work: abort re-reads the same file."""
+        self.write_contract()
+        record = self.root / ".aikit" / "ui_task.json"
+        record.write_text("{not json", encoding="utf-8")
+        result = ui_contract.abort(self.root)
+        self.addCleanup(shutil.rmtree, str(Path(result["backup"]).parent), True)
+        self.assertTrue(result.get("dropped_corrupt_record"))
+        self.assertFalse(record.exists())
+        self.assertEqual(Path(result["backup"]).read_text(encoding="utf-8"), "{not json")
+        # With the corrupt record gone, abort behaves like "no task open" again.
+        with self.assertRaises(ProjectError):
+            ui_contract.abort(self.root)
+
+    def test_abort_still_refuses_when_no_task_is_open(self):
+        self.write_contract()
+        with self.assertRaises(ProjectError) as caught:
+            ui_contract.abort(self.root)
+        self.assertIn("No UI task is open", str(caught.exception))
+        self.assertFalse((self.root / ".aikit" / "ui_task.json").exists())
+
+    def test_abort_reports_a_surface_that_left_the_contract(self):
+        """A renamed surface raised a bare KeyError; it must be a readable triad."""
+        self.write_contract()
+        fake = FakeGit(tracked=(".aikit/ui.json",))
+        runner = lambda command, cwd, timeout: (0, "")
+        ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=runner)
+        self.write_contract(surfaces={"app": {"paths": ["src/ui/**"]}})
+        with self.assertRaises(ProjectError) as caught:
+            ui_contract.abort(self.root, git_io=fake)
+        self.assertIn("no longer declares", str(caught.exception))
+        self.assertIn("ui_task.json", caught.exception.fix)
+        self.assertTrue((self.root / ".aikit" / "ui_task.json").is_file(),
+                        "a stale-but-valid record is kept, not dropped")
+
     def test_cli_parses_every_ui_action(self):
         parser = build_parser()
         begin = parser.parse_args(["ui", "begin", "app", "--surface", "menu"])

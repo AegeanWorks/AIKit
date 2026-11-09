@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1298`
-- **Total Source Lines**: `48170`
+- **Total Class Methods**: `1301`
+- **Total Source Lines**: `48231`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1580` lines (`79748` bytes)
+**Size**: `1585` lines (`80096` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1588,7 +1588,7 @@
 ### [`scripts/ui_contract.py`](scripts/ui_contract.py)
 > *Bounded UI-surface edits against a committed `.aikit/ui.json` contract (opt-in).*
 
-**Size**: `782` lines (`38517` bytes)
+**Size**: `803` lines (`39659` bytes)
 
 **Classes:**
 - `class UiContract` - *One project's committed UI contract: surfaces, protected paths, commands and limits.*
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16067` lines (`874816` bytes)
+**Size**: `16102` lines (`876773` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2571,6 +2571,9 @@
   - Method `.test_begin_refuses_a_failing_or_empty_snapshot()`
   - Method `.test_begin_refuses_an_unknown_surface_before_touching_git()`
   - Method `.test_corrupt_task_record_names_the_abort_remedy()`
+  - Method `.test_abort_drops_a_corrupt_task_record_instead_of_dead_ending()` - *The remedy read_task names must actually work: abort re-reads the same file.*
+  - Method `.test_abort_still_refuses_when_no_task_is_open()`
+  - Method `.test_abort_reports_a_surface_that_left_the_contract()` - *A renamed surface raised a bare KeyError; it must be a readable triad.*
   - Method `.test_cli_parses_every_ui_action()`
   - Method `.test_verify_flags_protected_paths_and_a_moved_baseline()`
   - Method `.test_finish_closes_only_a_green_task()`

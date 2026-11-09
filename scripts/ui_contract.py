@@ -731,12 +731,33 @@ def abort(root: Path, git_io: Optional[GitIo] = None) -> Dict[str, object]:
         if not acquired:
             raise _task_error("Another UI operation holds the task lock.",
                               "wait for it to finish, then retry.")
-        task = read_task(root)
+        record = _task_path(root)
+        try:
+            task = read_task(root)
+        except ProjectError:
+            if not record.is_file():
+                raise
+            # A corrupt or malformed record names no baseline, so nothing can be restored.
+            # Dropping it is the only way out of the dead end `read_task`'s own Fix names;
+            # keep the bytes so the unusable record is still auditable.
+            backup_dir = Path(tempfile.mkdtemp(prefix="aikit_ui_abort_"))
+            backup = backup_dir / "ui_task.json"
+            shutil.copy2(record, backup)
+            record.unlink(missing_ok=True)
+            record.with_suffix(".json.bak").unlink(missing_ok=True)
+            return {"backup": str(backup), "restored": [], "skipped": [],
+                    "dropped_corrupt_record": True}
         baseline = str(task["baseline_commit"])
         if _head(root, git_io) != baseline:
             raise _task_error("The baseline moved; refusing to restore over newer commits.",
                               "resolve the history by hand, then delete .aikit/ui_task.json.")
-        surface = contract.surfaces[str(task["surface"])]
+        surface = contract.surfaces.get(str(task["surface"]))
+        if surface is None:
+            raise _task_error(
+                f"The open task names surface {task['surface']!r}, which the contract no "
+                f"longer declares.",
+                "abort cannot restore paths it can no longer find; delete "
+                ".aikit/ui_task.json to drop the stale task, then begin again.")
         tracked = _tracked(root, git_io)
         restore: List[str] = []
         untracked: List[str] = []

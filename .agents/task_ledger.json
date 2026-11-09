@@ -1,45 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-95jsonshape",
+    "task_id": "verify-96uiabort",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794246801.6864536,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794247488.7639854,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794246822.9178872
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-89lease",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Pin the untested review-lease ledger",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794240675.3739648,
-      "timestamp_str": "2026-11-09 19:11:15",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "The idea-repo-review gap states the whole lease ledger has no tests; a grep confirmed zero references to release_expired, stale_reviews, reserved_ids, validate_reviews or _lease_expired in either tier. The lease decides which idea numbers parallel dossier sessions may claim, so an untested bug corrupts a shared register.",
-        "benefits": "Reservation, expiry, abandonment, idempotent release and forced takeover become pinned, so a later change cannot silently corrupt the register.",
-        "risks": "contract: none, tests only; dependency: none (stdlib only); concurrency: none; state: tests/test_kit.py, the registry gap text, an ADR",
-        "mitigation": "write each pin from the implementation, correct any assumption the first run contradicts, keep the gap text to what remains true, and run both tiers plus every gate"
-      },
-      "plan_digest": "478e66da49c98ed2fd08aba53708216836a5d4aad2066fe226a4d07d9154ce4f"
-    },
-    {
-      "task_id": "verify-89lease",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-89lease' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794240739.6348403,
-      "timestamp_str": "2026-11-09 19:12:19",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-90audit",
       "phase": "planning",
@@ -272,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794246822.9178889,
       "timestamp_str": "2026-11-09 20:53:42",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-96uiabort",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Make ui abort recover from a corrupt record and refuse a vanished surface with a triad",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794247348.9728212,
+      "timestamp_str": "2026-11-09 21:02:28",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "read_task names 'run ui abort' as the remedy for a corrupt record, but abort called read_task too, so the remedy raised the same error - a dead end. Measured with a valid contract and a corrupt ui_task.json: both read_task and abort raised 'The UI task record is unreadable'. Separately, abort did contract.surfaces[str(task['surface'])]; a surface removed from the contract raised a bare KeyError('app') instead of a Why/Fix triad.",
+        "benefits": "The remedy the guard prints now works: abort drops an unreadable record (keeping its bytes) and says nothing could be restored. A vanished surface produces a readable triad naming the surface and the file to delete, instead of a stack trace.",
+        "risks": "contract: abort's result gains dropped_corrupt_record only on the corrupt path; a missing record still raises 'No UI task is open'; the stale-but-valid record is kept; dependency: none; concurrency: none; state: ui_contract.py, aikit_cli.py, three tests",
+        "mitigation": "corrupt path returns before any git call; a missing record still raises because the file check distinguishes them; each new test fails first with the exact error"
+      },
+      "plan_digest": "2124c4e76f11b4ffbc7026b55f46c848083e70890f228bdaa31597c07ee5b196"
+    },
+    {
+      "task_id": "verify-96uiabort",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] abort drops a corrupt record (bytes preserved) and names a vanished surface in a triad; CLI prints the drop; 3 fail-first tests; 1044 unit + 89 integration green; budget 9.87ms/405ms",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794247488.7639854,
+      "timestamp_str": "2026-11-09 21:04:48",
       "agent": "commandcode:goal"
     }
   ]

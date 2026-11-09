@@ -127,8 +127,11 @@ enforced. Each machine records its source and a known gap.
    the identical verdict while the digest is never recomputed; the corpus
    docstring claims a changed tree files elsewhere while the witness omits the
    verdict and the pass can be overwritten.
-5. **Dead-end recovery.** A corrupt `ui_task.json` tells the operator to abort,
-   but abort reads the same file; a renamed surface makes abort raise `KeyError`.
+5. **Dead-end recovery.** A corrupt `ui_task.json` used to tell the operator to
+   abort, but abort read the same file; abort now drops an unreadable record
+   (keeping its bytes) and reports that nothing could be restored. A surface
+   removed from the contract used to raise a bare `KeyError`; abort now names it
+   in a triad and points at deleting the record (ADR-399).
 
 ## Cross-cutting findings (verified)
 

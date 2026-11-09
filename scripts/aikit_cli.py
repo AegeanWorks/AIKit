@@ -1520,7 +1520,12 @@ def cmd_ui(args: argparse.Namespace) -> int:
         return 0
     if args.ui_action == "abort":
         result = ui_contract.abort(project.path)
-        if result["backup"]:
+        if result.get("dropped_corrupt_record"):
+            print("[OK] Dropped an unreadable UI task record; nothing could be restored "
+                  "because it named no baseline.")
+            print(f"     Corrupt record kept at: {result['backup']}")
+            print("     Review any pending surface edits by hand, then begin again.")
+        elif result["backup"]:
             print(f"[OK] Restored {len(result['restored'])} path(s); backup: {result['backup']}")
         else:
             print("[OK] Restored 0 path(s); there was nothing to back up.")
