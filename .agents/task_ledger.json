@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-103p8",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794252535.29681,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794252578.0793576
   },
   "checkpoints": [
-    {
-      "task_id": "verify-97archive",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Replace the archive 'unarchive it first' remedy, which names a command that does not exist",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794247630.0210214,
-      "timestamp_str": "2026-11-09 21:07:10",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "archive_project's already-archived triad told the operator to 'unarchive it first', but AIKit has no unarchive command (confirmed against `aikit.py --help`: archive exists, unarchive does not). The remedy was unactionable. Archiving sets archived/archived_at/archive_reason in .aikit/project.json, moves the folder and rewrites the README, so revival is manual by design.",
-        "benefits": "The failure now names a real action (clear the archived flag in .aikit/project.json) instead of a command the operator cannot run, matching the honest 'no reverse transition' entry in the state-machine doc.",
-        "risks": "contract: message text only, exit code stays 1; dependency: none; concurrency: none; state: project_archive.py, one test",
-        "mitigation": "one string change; the test asserts the fix names project.json and not the phantom command, and the existing unarchived-JSON test still passes"
-      },
-      "plan_digest": "4576f21c034a4bae2f82e3927ad48787b5110b4f137e64a59cc62a2d7c0c0824"
-    },
     {
       "task_id": "verify-97archive",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794252535.29681,
       "timestamp_str": "2026-11-09 22:28:55",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-103p8",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-103p8' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794252578.07936,
+      "timestamp_str": "2026-11-09 22:29:38",
       "agent": "commandcode:goal"
     }
   ]
