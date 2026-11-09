@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-100p12",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794249986.2009578,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794250035.9274995
   },
   "checkpoints": [
-    {
-      "task_id": "verify-94p9",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Preserve a manual UI identity across fix and media init (P9)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794246283.8029041,
-      "timestamp_str": "2026-11-09 20:44:43",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "auto_ui called detect_ui(respect_manual=False) and wrote unconditionally, so `fix` and `media init` discarded a human's `ui-id --set yes|no`. The pinned test tests/test_kit.py test_ui_identity_can_be_set_manually_and_reported asserts auto_ui() with no argument overwrites, which is the correct meaning for `ui-id --set auto`; the defect is that maintenance callers used the same unconditional path. Measured: after a manual identity, `fix` rewrote ui_source=detected.",
-        "benefits": "A human's explicit UI decision survives routine repair, so the recorded identity matches what the user chose; `ui-id --set auto` keeps its documented overwrite so an agent can still force a re-detect.",
-        "risks": "contract: auto_ui and adopt_ui gain a keyword-only respect_manual defaulting to False, so every existing caller and the pinned test are unchanged; dependency: none; concurrency: none; state: project_ui.py, aikit_cli.py, two tests",
-        "mitigation": "default False preserves the pinned overwrite; fix and media init pass True; three tests (direct auto_ui, fix via CLI, and the existing pinned test) prove both directions"
-      },
-      "plan_digest": "9bd659937c45d47bf55269977c514f8c132ffb1c6745a3e9545d5196921a78fe"
-    },
     {
       "task_id": "verify-94p9",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794249986.2009578,
       "timestamp_str": "2026-11-09 21:46:26",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-100p12",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-100p12' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794250035.9275012,
+      "timestamp_str": "2026-11-09 21:47:15",
       "agent": "commandcode:goal"
     }
   ]
