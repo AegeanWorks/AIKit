@@ -1,39 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-94p9",
+    "task_id": "verify-95jsonshape",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794246431.3244834,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794246801.6864536,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794246454.0907245
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-88gaps",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] Fixed 2 stale gaps (reforge-run, dossier-catalogue) in registry and doc; added gap-liveness pin; 1025 unit + 89 integration pass; all gates green incl budget (12.42ms/627ms)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794239892.8766646,
-      "timestamp_str": "2026-11-09 18:58:12",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-89lease",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[4/4] Added 5 lease-ledger tests (reservation, expiry, abandonment, idempotent release, forced takeover); closed the 'no tests' half of the idea-repo-review gap; 1030 unit + 89 integration pass; all gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794240622.7451835,
-      "timestamp_str": "2026-11-09 19:10:22",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-88gaps",
       "phase": "superseded",
@@ -265,6 +242,35 @@
       "status": "completed",
       "timestamp": 1794246454.0907257,
       "timestamp_str": "2026-11-09 20:47:34",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-95jsonshape",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Harden two more JSON readers that crash on a non-object document",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794246665.9134245,
+      "timestamp_str": "2026-11-09 20:51:05",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "sync_licenses.check_licenses (the default --check action) and dossier_sync._upsert_jsonld (the publish hook) call .get on json.loads output without checking it is an object. sync_licenses already guards the inner sha256 value but not the pin itself; dossier_sync guards nothing. Measured: check_licenses raised AttributeError for a JSON array/string/number/null/bool PIN.json, and _upsert_jsonld raised AttributeError('list' object has no attribute 'get') for a hand-edited JSON-LD array.",
+        "benefits": "A corrupt pinned copy surfaces as a named finding and a malformed dossier graph is skipped, so a read-only license audit and a publish report instead of leaving a traceback.",
+        "risks": "contract: check_licenses already returns list[str] and _upsert_jsonld already returns bool on every other path, so the shapes are unchanged; dependency: none; concurrency: none; state: two modules, two tests",
+        "mitigation": "guard at the boundary before any .get; each test covers every non-object JSON shape and was proven to raise on the old code; existing license and dossier tests must still pass"
+      },
+      "plan_digest": "4d555c97a56aadf5b78fbb694244b50a7f117f82f986c0074da8c9225b6d3c52"
+    },
+    {
+      "task_id": "verify-95jsonshape",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] check_licenses returns a finding for a non-dict PIN.json; _upsert_jsonld returns False for a non-dict graph and skips non-dict nodes/items; 2 fail-first tests covering every non-object shape; 1041 unit + 89 integration green; budget 9.84ms/412ms",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794246801.6864536,
+      "timestamp_str": "2026-11-09 20:53:21",
       "agent": "commandcode:goal"
     }
   ]

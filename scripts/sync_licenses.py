@@ -109,6 +109,8 @@ def check_licenses(source: Path | None = None, target: Path = TARGET_DIR) -> lis
         pin = json.loads(pin_path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return [f"{pin_path}: {exc}"]
+    if not isinstance(pin, dict):
+        return [f"{pin_path}: PIN.json must be a JSON object, found {type(pin).__name__}"]
     recorded = pin.get("sha256")
     if not isinstance(recorded, dict):
         errors.append(f"{pin_path}: missing sha256 map")

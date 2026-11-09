@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1296`
-- **Total Source Lines**: `48117`
+- **Total Class Methods**: `1298`
+- **Total Source Lines**: `48170`
 
 ---
 
@@ -983,7 +983,7 @@
 ### [`scripts/dossier_sync.py`](scripts/dossier_sync.py)
 > *Keep the AegeanWorks dossier catalogue in step with a published project (PRINCIPLE-016).*
 
-**Size**: `467` lines (`20216` bytes)
+**Size**: `479` lines (`20586` bytes)
 
 **Functions:**
 - `def dossier_root(explicit)` - *The dossier checkout, or None when this workspace does not carry one.*
@@ -1534,7 +1534,7 @@
 ### [`scripts/sync_licenses.py`](scripts/sync_licenses.py)
 > *Synchronize AIKit's pinned license copies with the canonical aegean-licensing repository.*
 
-**Size**: `211` lines (`8188` bytes)
+**Size**: `213` lines (`8313` bytes)
 
 **Functions:**
 - `def _normalize(text)`
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16028` lines (`872803` bytes)
+**Size**: `16067` lines (`874816` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2760,6 +2760,7 @@
   - Method `._source(source)`
   - Method `.test_sync_records_text_and_catalog_digests_and_check_detects_drift()`
   - Method `.test_sync_preserves_crlf_line_endings()`
+  - Method `.test_a_non_object_pin_is_a_finding_not_a_crash()` - *--check is the default read-only action; a corrupt PIN.json must report, not raise.*
 - `class TestTestTierBudgetGate` - *PRINCIPLE-010 R6: both tier budgets are measured by a gate instead of assumed.*
   - Method `.fake_runner(table)`
   - Method `.ok(tests, seconds)`
@@ -3037,6 +3038,7 @@
   - Method `._write(relative, text)`
   - Method `._write_fixture()`
   - Method `._entry(name, **changes)`
+  - Method `.test_a_malformed_jsonld_graph_is_skipped_not_a_crash()` - *A hand-edited index.html must not crash the publish hook.*
   - Method `._snapshot()`
   - Method `.test_sync_entry_writes_every_catalogue_artifact()`
   - Method `.test_sync_entry_is_idempotent_and_updates_metadata_in_place()`

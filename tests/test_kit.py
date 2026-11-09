@@ -10625,6 +10625,15 @@ class TestLicenseSync(unittest.TestCase):
             self.assertIn(b"\r\n", raw, "a canonical CRLF text must stay CRLF")
             self.assertEqual(check_licenses(source, target), [])
 
+    def test_a_non_object_pin_is_a_finding_not_a_crash(self):
+        """--check is the default read-only action; a corrupt PIN.json must report, not raise."""
+        for body in ("[1,2,3]", '"text"', "42", "null", "true"):
+            with tempfile.TemporaryDirectory() as tmp:
+                target = Path(tmp)
+                (target / "PIN.json").write_text(body, encoding="utf-8")
+                findings = check_licenses(None, target)
+                self.assertTrue(any("PIN.json" in item for item in findings), body)
+
 
 class TestTestTierBudgetGate(unittest.TestCase):
     """PRINCIPLE-010 R6: both tier budgets are measured by a gate instead of assumed."""
@@ -14403,6 +14412,36 @@ class TestDossierCatalogueSync(unittest.TestCase):
         }
         entry.update(changes)
         return entry
+
+    def test_a_malformed_jsonld_graph_is_skipped_not_a_crash(self):
+        """A hand-edited index.html must not crash the publish hook."""
+        from scripts import dossier_sync
+
+        entry = self._entry()
+        bodies = (
+            "[1,2,3]",
+            '"text"',
+            "null",
+            '{"@graph": "not-a-list"}',
+            '{"@graph": [1, "x"]}',
+            '{"@graph": [{"@type": "ItemList", "itemListElement": "nope"}]}',
+            '{"@graph": [{"@type": "ItemList", "itemListElement": ["not-a-dict"]}]}',
+        )
+        path = self.dossier / "docs" / "index.html"
+        for body in bodies:
+            path.write_text('<script type="application/ld+json">' + body + "</script>",
+                            encoding="utf-8")
+            try:
+                result = dossier_sync._upsert_jsonld(self.dossier, entry, "AL", "tools")
+            except (AttributeError, TypeError, KeyError) as exc:
+                self.fail(f"a malformed graph crashed the sync on {body}: {exc!r}")
+            self.assertIsInstance(result, bool, body)
+        # A graph that cannot be read at all is skipped, not rewritten.
+        for body in ("[1,2,3]", '"text"', "null", '{"@graph": "not-a-list"}'):
+            path.write_text('<script type="application/ld+json">' + body + "</script>",
+                            encoding="utf-8")
+            self.assertFalse(dossier_sync._upsert_jsonld(self.dossier, entry, "AL", "tools"),
+                             body)
 
     def _snapshot(self):
         return {

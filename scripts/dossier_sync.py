@@ -312,13 +312,21 @@ def _upsert_jsonld(dossier: Path, entry: Dict[str, object], family: str,
     if match is None:
         return False
     data = json.loads(match.group(2))
-    item_lists = [node for node in data.get("@graph", []) if node.get("@type") == "ItemList"]
+    if not isinstance(data, dict):
+        return False
+    graph = data.get("@graph", [])
+    if not isinstance(graph, list):
+        return False
+    item_lists = [node for node in graph
+                  if isinstance(node, dict) and node.get("@type") == "ItemList"]
     if not item_lists:
         return False
     item_list = item_lists[0]
     name = str(entry["name"])
     url = f"https://github.com/{OWNER}/{name}"
     items = item_list.get("itemListElement") or []
+    if not isinstance(items, list):
+        return False
     item = {
         "@type": "ListItem",
         "position": len(items) + 1,
@@ -332,7 +340,11 @@ def _upsert_jsonld(dossier: Path, entry: Dict[str, object], family: str,
         },
     }
     for index, existing in enumerate(items):
-        if str(existing.get("item", {}).get("codeRepository", "")).lower() == url.lower():
+        if not isinstance(existing, dict):
+            continue
+        inner = existing.get("item")
+        repo = inner.get("codeRepository", "") if isinstance(inner, dict) else ""
+        if str(repo).lower() == url.lower():
             item["position"] = existing.get("position", index + 1)
             items[index] = item
             break
