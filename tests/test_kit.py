@@ -13473,6 +13473,82 @@ class TestIdeaCatcherBlockedPolicy(unittest.TestCase):
             )
 
 
+class TestIdeaCatcherLeaseLedger(unittest.TestCase):
+    """The review-lease ledger: expiry, id reservation and abandonment.
+
+    ADR-391 records that this machine had zero test coverage; these pin the four
+    behaviours the `idea-repo-review` gap names.
+    """
+
+    def _reviews(self) -> Path:
+        root = Path(tempfile.mkdtemp(prefix="idea_reviews_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        (root / "reviews.json").write_text(
+            '{"schema": 1, "repos": {}, "reviews": []}', encoding="utf-8")
+        # Reserving numbers reads the register, so the fixture needs one.
+        (root / "ideas.json").write_text(json.dumps({
+            "schema": 1,
+            "ideas": [{"id": "IDEA-001", "concept": "seed", "target": "aikit",
+                       "status": "Proposed", "tags": [], "dossier": "dossiers/x.md"}],
+        }), encoding="utf-8")
+        return root
+
+    def _start(self, root: Path, slug: str = "owner/repo", **kw) -> dict:
+        return idea_registry.review_start(root, slug=slug, agent="tester", **kw)
+
+    def test_an_active_lease_reserves_its_numbers(self) -> None:
+        root = self._reviews()
+        started = self._start(root, reserve=3)
+        held = idea_registry.reserved_ids(idea_registry.load_reviews(root))
+        self.assertEqual(len(held), 3)
+        self.assertTrue(all(owner == started["review_id"] for owner in held.values()))
+
+    def test_a_finished_review_stops_reserving(self) -> None:
+        root = self._reviews()
+        started = self._start(root, reserve=2)
+        self.assertEqual(len(idea_registry.reserved_ids(idea_registry.load_reviews(root))), 2)
+        idea_registry.review_abandon(root, started["review_id"],
+                                     reason="tester cleanup of an abandoned review")
+        self.assertEqual(idea_registry.reserved_ids(idea_registry.load_reviews(root)), {})
+
+    def test_release_expired_abandons_only_past_lease_reviews(self) -> None:
+        root = self._reviews()
+        live = self._start(root, slug="owner/live", reserve=1,
+                           now="2026-01-01T00:00", lease_minutes=600)
+        dead = self._start(root, slug="owner/dead", reserve=1,
+                           now="2026-01-01T00:00", lease_minutes=1)
+        # The live lease runs to 2026-01-01T10:00; the dead one to 00:01.
+        released = idea_registry.release_expired(root, now="2026-01-01T01:00")
+        self.assertEqual(released, [dead["review_id"]])
+        statuses = {r["review_id"]: r["status"]
+                    for r in idea_registry.load_reviews(root)["reviews"]}
+        self.assertEqual(statuses[dead["review_id"]], "abandoned")
+        self.assertEqual(statuses[live["review_id"]], "active")
+
+    def test_release_expired_is_idempotent(self) -> None:
+        root = self._reviews()
+        self._start(root, reserve=1, now="2026-01-01T00:00", lease_minutes=1)
+        first = idea_registry.release_expired(root, now="2026-01-01T02:00")
+        second = idea_registry.release_expired(root, now="2026-01-01T02:00")
+        self.assertEqual(len(first), 1)
+        self.assertEqual(second, [], "an abandoned review must not be released twice")
+
+    def test_a_live_lease_blocks_a_second_claim_and_takeover_is_explicit(self) -> None:
+        root = self._reviews()
+        first = self._start(root, reserve=1, now="2026-01-01T00:00", lease_minutes=600)
+        with self.assertRaises(idea_registry.RegistryError):
+            self._start(root, reserve=1, now="2026-01-01T00:00", lease_minutes=600)
+        forced = self._start(root, reserve=1, now="2026-01-01T00:00", lease_minutes=600,
+                             force=True)
+        self.assertNotEqual(first["review_id"], forced["review_id"],
+                            "a forced takeover opens a new review, not the same one")
+        reviews = {r["review_id"]: r for r in idea_registry.load_reviews(root)["reviews"]}
+        self.assertEqual(reviews[first["review_id"]]["status"], "abandoned")
+        self.assertEqual(reviews[first["review_id"]]["closed_reason"],
+                         "superseded by --force")
+        self.assertEqual(reviews[forced["review_id"]]["status"], "active")
+
+
 class TestProofGateHelpers(unittest.TestCase):
     """IDEA-956: the fail-to-pass classifier and path helpers are deterministic."""
 

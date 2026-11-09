@@ -63,7 +63,7 @@ enforced. Each machine records its source and a known gap.
 | Review verdict | adopt, confirmed, defer, duplicate, implemented, obsolete, reject, blocked | `ideas[].review_log[]` | Verdict vocabulary closed; `set-status --status Deferred` also appends a defer review. |
 | Deferral counter | 0, 1, 2+ | derived with `max()` from review log, history and status | Second deferral coerces to Blocked; three records can disagree and `max()` hides it. |
 | Tags | verification tags + flags | `ideas[].tags` | One verification tag; adding silently evicts the old one; display uses stored tags while filters use effective tags. |
-| **Repo review** | idle, active, stale, finished, abandoned | `.idea-catcher/reviews.json` | Lease expiry is lazy; `MATRIX.md` can call an expired lease active; no tests cover the ledger. |
+| **Repo review** | idle, active, stale, finished, abandoned | `.idea-catcher/reviews.json` | Expiry is lazy: only `--release-expired` abandons a past lease, so `MATRIX.md` can call an expired lease active. Reservation, expiry, abandonment and forced takeover are now pinned by `TestIdeaCatcherLeaseLedger`. |
 | Number reservation | free, reserved, registered, released | `reviews[].reserved_ids`, `consumed_ids` | Gaps legal only while reserved; `consumed_ids` is written but never validated. |
 | Dossier routing | in-sync, retargeted, orphaned, missing, duplicate | dossier headings + `retargeted_from` | Validation catches drift; there is no command to edit a dossier. |
 | Freshness | current, aged, unknown, superseded | derived (`classify_freshness`) | Name collision with idea status `Superseded`; never persisted. |

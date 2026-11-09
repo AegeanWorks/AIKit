@@ -156,8 +156,10 @@ MACHINES: Tuple[Machine, ...] = (
         },
         source="idea_catcher/registry.py: review_start, review_finish, review_abandon, "
                "release_expired, review_rows; .idea-catcher/reviews.json",
-        gap="Lease expiry is lazy; MATRIX.md can advertise an expired lease as active, and the "
-            "whole ledger machine has no tests.",
+        gap="Lease expiry is lazy: only the explicit --release-expired flag abandons a past "
+            "lease, so MATRIX.md can advertise an expired lease as active until someone runs "
+            "it. The reservation, expiry, abandonment and forced-takeover paths are now pinned "
+            "by TestIdeaCatcherLeaseLedger.",
     ),
     Machine(
         name="project-lifecycle",

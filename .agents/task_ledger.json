@@ -1,55 +1,22 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-88gaps",
-    "last_phase": "verification",
-    "active_phase": 4,
+    "task_id": "verify-89lease",
+    "last_phase": "planning",
+    "active_phase": 2,
     "status": "in_progress",
-    "updated_at": 1794239892.8766646,
+    "updated_at": 1794240675.3739648,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "impact_assessment": {
+      "why": "The idea-repo-review gap states the whole lease ledger has no tests; a grep confirmed zero references to release_expired, stale_reviews, reserved_ids, validate_reviews or _lease_expired in either tier. The lease decides which idea numbers parallel dossier sessions may claim, so an untested bug corrupts a shared register.",
+      "benefits": "Reservation, expiry, abandonment, idempotent release and forced takeover become pinned, so a later change cannot silently corrupt the register.",
+      "risks": "contract: none, tests only; dependency: none (stdlib only); concurrency: none; state: tests/test_kit.py, the registry gap text, an ADR",
+      "mitigation": "write each pin from the implementation, correct any assumption the first run contradicts, keep the gap text to what remains true, and run both tiers plus every gate"
+    }
   },
   "checkpoints": [
-    {
-      "task_id": "verify-84revisit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-84revisit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794169232.9698815,
-      "timestamp_str": "2026-11-08 23:20:32",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-85nonblocked",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Deep-verify non-Blocked ideas: subsumption claims, not just symbol presence",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794170037.379471,
-      "timestamp_str": "2026-11-08 23:33:57",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "The previous pass tagged 138 non-blocked aikit ideas by symbol existence and status. That is too weak: a Superseded idea can point at a successor that only half-covers it, and a Rejected 'already implemented' claim can drift. Two subsumption claims are now proven partial.",
-        "benefits": "Superseded and Rejected rows carry a verdict grounded in exercised behaviour, so the register stops asserting coverage it does not have.",
-        "risks": "contract: .idea-catcher tags and history; dependency: none (stdlib only); concurrency: another session holds Track C edits in tests/ and the map; state: ideas.json and the task ledger",
-        "mitigation": "probe each claim by running the mechanism; write only under .idea-catcher/; keep disputed where a successor covers only part of the idea"
-      },
-      "plan_digest": "82f6e2e2e2c7efc6f9039e1d86fe08dc39f349b0a8c19e9c82d2651a9ecced57"
-    },
-    {
-      "task_id": "verify-85nonblocked",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/3] Supersession claims probed: 21 of 24 Superseded now disputed (orphaned or partial successors), 3 verified genuine (221, 754, 880); 6 Deferred premises re-measured and all hold",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794170608.1294005,
-      "timestamp_str": "2026-11-08 23:43:28",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-85nonblocked",
       "phase": "completed",
@@ -254,6 +221,45 @@
       "timestamp": 1794239892.8766646,
       "timestamp_str": "2026-11-09 18:58:12",
       "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-89lease",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[4/4] Added 5 lease-ledger tests (reservation, expiry, abandonment, idempotent release, forced takeover); closed the 'no tests' half of the idea-repo-review gap; 1030 unit + 89 integration pass; all gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794240622.7451835,
+      "timestamp_str": "2026-11-09 19:10:22",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-88gaps",
+      "phase": "superseded",
+      "phase_num": 4,
+      "description": "Superseded by 'verify-89lease' without --complete or --reset",
+      "status": "superseded",
+      "timestamp": 1794240622.7451835,
+      "timestamp_str": "2026-11-09 19:10:22",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-89lease",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Pin the untested review-lease ledger",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794240675.3739648,
+      "timestamp_str": "2026-11-09 19:11:15",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "The idea-repo-review gap states the whole lease ledger has no tests; a grep confirmed zero references to release_expired, stale_reviews, reserved_ids, validate_reviews or _lease_expired in either tier. The lease decides which idea numbers parallel dossier sessions may claim, so an untested bug corrupts a shared register.",
+        "benefits": "Reservation, expiry, abandonment, idempotent release and forced takeover become pinned, so a later change cannot silently corrupt the register.",
+        "risks": "contract: none, tests only; dependency: none (stdlib only); concurrency: none; state: tests/test_kit.py, the registry gap text, an ADR",
+        "mitigation": "write each pin from the implementation, correct any assumption the first run contradicts, keep the gap text to what remains true, and run both tiers plus every gate"
+      },
+      "plan_digest": "478e66da49c98ed2fd08aba53708216836a5d4aad2066fe226a4d07d9154ce4f"
     }
   ]
 }

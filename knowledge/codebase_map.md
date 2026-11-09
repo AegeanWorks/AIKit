@@ -7,10 +7,10 @@
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `71`
-- **Total Classes**: `169`
+- **Total Classes**: `170`
 - **Total Top-Level Functions**: `1018`
-- **Total Class Methods**: `1280`
-- **Total Source Lines**: `47836`
+- **Total Class Methods**: `1287`
+- **Total Source Lines**: `47914`
 
 ---
 
@@ -1495,7 +1495,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `507` lines (`23925` bytes)
+**Size**: `509` lines (`24110` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1925,7 +1925,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15797` lines (`859989` bytes)
+**Size**: `15873` lines (`864158` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2967,6 +2967,14 @@
   - Method `.test_cli_ideas_can_include_blocked()`
   - Method `.test_auto_registration_does_not_reopen_a_blocked_idea()`
   - Method `.test_review_idea_requires_evidence()`
+- `class TestIdeaCatcherLeaseLedger` - *The review-lease ledger: expiry, id reservation and abandonment.*
+  - Method `._reviews()`
+  - Method `._start(root, slug, **kw)`
+  - Method `.test_an_active_lease_reserves_its_numbers()`
+  - Method `.test_a_finished_review_stops_reserving()`
+  - Method `.test_release_expired_abandons_only_past_lease_reviews()`
+  - Method `.test_release_expired_is_idempotent()`
+  - Method `.test_a_live_lease_blocks_a_second_claim_and_takeover_is_explicit()`
 - `class TestProofGateHelpers` - *IDEA-956: the fail-to-pass classifier and path helpers are deterministic.*
   - Method `.test_classify_run_distinguishes_assertions_from_errors()`
   - Method `.test_test_argv_names_one_test_module()`
