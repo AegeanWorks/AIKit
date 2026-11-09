@@ -102,6 +102,12 @@ def license_state(project_root: Path) -> LicenseState:
         first = (project_root / "LICENSE").read_text(encoding="utf-8").lstrip().split("\n", 1)[0]
     except OSError:
         return LicenseState(TIER_UNRECORDED)
+    # A crash between the LICENSE write and the config record leaves half a restriction on disk.
+    # The notice itself is authoritative evidence, so read it as restricted rather than
+    # unrecorded: reading unrecorded would let `publish --public` hand out an All-Rights-Reserved
+    # project (P8, ADR-405). A missing cutoff simply means the half is not yet complete.
+    if first.startswith(RESTRICTED_LICENSE_HEADER):
+        return LicenseState(TIER_RESTRICTED)
     match = license_header_match(first)
     if not match:
         return LicenseState(TIER_UNRECORDED)

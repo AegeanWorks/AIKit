@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-102pms",
+    "task_id": "verify-103p8",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794251890.9535303,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794252535.29681,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794251929.834414
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-96uiabort",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] abort drops a corrupt record (bytes preserved) and names a vanished surface in a triad; CLI prints the drop; 3 fail-first tests; 1044 unit + 89 integration green; budget 9.87ms/405ms",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794247488.7639854,
-      "timestamp_str": "2026-11-09 21:04:48",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-96uiabort",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-96uiabort' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794247512.1025581,
-      "timestamp_str": "2026-11-09 21:05:12",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-97archive",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794251929.8344162,
       "timestamp_str": "2026-11-09 22:18:49",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-103p8",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Read a half-restricted project as restricted (P8 read side) so publish --public cannot hand it out",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794252184.299249,
+      "timestamp_str": "2026-11-09 22:23:04",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "The inventory recorded 'a crash between LICENSE and config reads as unrecorded, and a half-restricted project can be published'. Verified: with the canonical RESTRICTED notice already written to LICENSE and the config record missing, license_state returned unrecorded, and cmd_publish's only restriction check is license_state(...).tier == restricted, so publish --public saw no restriction. The write side of P8 needs a five-write transaction with a migration and rollback test; the read side closes the actual hazard without touching write order.",
+        "benefits": "A crash mid-restriction now fails safe: the project reads restricted, so publish --public is refused and status reports the truth instead of 'unrecorded'.",
+        "risks": "contract: license_state gains one branch for a LICENSE beginning with the canonical notice header; a blank or third-party LICENSE still reads unrecorded; dependency: none; concurrency: the write path is untouched; state: project_license.py, two tests",
+        "mitigation": "the discriminator is the existing RESTRICTED_LICENSE_HEADER constant, not a fuzzy match; all 126 TestProjectRegistry tests and all 11 license-touching classes (348 tests) pass, including the two pins that assert a blank or foreign LICENSE stays unrecorded"
+      },
+      "plan_digest": "e81b75027edf3c179a5b40039fa1434f1cb1a0d7c414fad8b0114b3997ba1dcf"
+    },
+    {
+      "task_id": "verify-103p8",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] license_state reads a LICENSE carrying RESTRICTED_LICENSE_HEADER as restricted; publish --public now refuses a half-restricted project; 2 fail-first tests; 126 TestProjectRegistry + 348 license-touching tests pass; 1054 unit + 89 integration green; budget 16.78ms/789ms; all gates incl dogfood 5/5",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794252535.29681,
+      "timestamp_str": "2026-11-09 22:28:55",
       "agent": "commandcode:goal"
     }
   ]

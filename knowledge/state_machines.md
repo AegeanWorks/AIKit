@@ -85,7 +85,7 @@ enforced. Each machine records its source and a known gap.
 | Machine | States | Source | Enforcement / gap |
 |---|---|---|---|
 | **Project** | unregistered, local, attached, missing, archived | `projects/<n>/.aikit/project.json`, `attached.json`, folder | Create/attach guards are real; no detach or unarchive command; `publish` refuses an archived project (ADR-402) while `check` stays allowed as a read-only audit. |
-| **License** | unrecorded, personal, restricted | `project.json.license`, LICENSE first line | `restricted` is one-way; a crash between LICENSE and config reads as `unrecorded`, and a half-restricted project can be published. |
+| **License** | unrecorded, personal, restricted | `project.json.license`, LICENSE first line | `restricted` is one-way; a crash between LICENSE and config now reads as `restricted` because the notice itself is evidence, so a half-restricted project cannot be published `--public` (ADR-405). |
 | Gate set | detected, configured, disabled, built-in, absent | `project.json.gates`, markers | Built-ins cannot be overridden; the compat gate disappears if `.aikit/compat.json` is deleted; `-1` means start-failure or timeout. |
 | Delivery readiness | clean, dirty, git_missing, ledger_error, ui_task_open, required errors | derived | Three different cleanliness definitions (`project_is_clean`, `project_baseline_errors`, archive's porcelain test). |
 | Publish / remote / guard | local-only, has-origin, unpushed, pushed, guard installed | `.git/config`, hook, GitHub | Guard installed before push; description/topics update only with `gh` auth; topics failure is a note, not a failure. |

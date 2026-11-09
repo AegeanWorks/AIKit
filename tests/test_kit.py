@@ -6125,6 +6125,33 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertTrue(readme.startswith("# Tool\n\nWhat it does.\n"))
         self.assertIn("## 📜 License", readme)
 
+    def test_a_half_restricted_project_reads_as_restricted_not_unrecorded(self):
+        """P8: a crash between the LICENSE write and the config record must fail safe.
+
+        Measured before this fix: with the RESTRICTED notice already in LICENSE and the
+        config not yet recording the tier, `license_state` returned `unrecorded`, so
+        `publish --public` saw no restriction to refuse.
+        """
+        folder = self.make_folder()
+        attach_project(folder, "halfway", workspace=self.kit)
+        notice = (ROOT_DIR / "licenses" / "RESTRICTED-NOTICE.md").read_text(encoding="utf-8")
+        (folder / "LICENSE").write_text(notice, encoding="utf-8")
+        state = license_state(folder)
+        self.assertEqual(state.tier, "restricted",
+                         "the LICENSE already says All Rights Reserved")
+        self.assertTrue(state.since_commit is None or state.since_commit == "")
+
+    def test_publish_public_refuses_a_half_restricted_project(self):
+        folder = self.make_licensed_project("halfpub")
+        self.approve_media(folder, "halfpub")
+        notice = (ROOT_DIR / "licenses" / "RESTRICTED-NOTICE.md").read_text(encoding="utf-8")
+        (folder / "LICENSE").write_text(notice, encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.publish_project") as publish:
+            code, _, err = self.run_cli("publish", "halfpub", "--public")
+        self.assertEqual(code, 2, err)
+        self.assertIn("restricted", err)
+        publish.assert_not_called()
+
     def test_restrict_rewrites_a_license_entry_that_is_last_in_the_tree(self):
         # A tree's last entry uses `└──`; matching only `├──` left that LICENSE line describing AL-1.0.
         folder = self.make_licensed_project()

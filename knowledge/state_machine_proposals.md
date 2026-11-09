@@ -1,9 +1,9 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Ten proposals passed and are
-implemented (P1–P6, P9, P11, P12, plus P10 partly). P7 and P8 remain deferred
-with the reason.
+`knowledge/state_machines.md` (ADR-388). Eleven proposals passed and are
+implemented (P1–P6, P8, P9, P11, P12, plus P10 partly). P7 and P8's write side
+remain open with the reason.
 
 ## Decision criteria
 
@@ -30,7 +30,7 @@ A proposal passes only when **all** hold:
 | P5 | Validate Idea Catcher status transitions in `validate_ideas` | Low | High | High | Low | **PASS, on write (ADR-404)** |
 | P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Low | **PASS, publish only (ADR-402)** |
 | P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
-| P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
+| P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | Med | **PASS, read side (ADR-405)** |
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
 | P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
 | P11 | Complete `status --json` with every machine's state | Med | Med | High | Low | **PASS, bounded (ADR-401)** |
@@ -115,9 +115,12 @@ the error and that no ledger file is created.
   it would remove the only way to learn whether the project is still sound.
 - **P7 (delivery reconciler).** A new command and a recovery rule for a crash
   window; needs a design for "commit exists, no SHA" before code.
-- **P8 (license transaction).** Reordering five writes or adding a journal
-  changes failure semantics across LICENSE, REUSE, README and GitHub; needs a
-  migration and a rollback test.
+- **P8 (license transaction).** **Read side implemented (ADR-405).** The hazard —
+  a half-restricted project published as public — is closed by reading a LICENSE
+  that already carries the restricted notice as `restricted`, so `publish
+  --public` refuses. The write side (reordering five writes or adding a journal
+  across LICENSE, REUSE, README and GitHub) still changes failure semantics and
+  needs a migration and a rollback test, so it remains open.
 - **P9 (manual UI identity).** **Implemented (ADR-397), without weakening the
   pin.** The original claim was that the overwrite at `tests/test_kit.py` was a
   product decision that had to be overridden. Re-reading it: the pin asserts

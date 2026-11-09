@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1309`
-- **Total Source Lines**: `48588`
+- **Total Class Methods**: `1311`
+- **Total Source Lines**: `48621`
 
 ---
 
@@ -1210,7 +1210,7 @@
 ### [`scripts/project_license.py`](scripts/project_license.py)
 > *Project license tiers (ADR-214).*
 
-**Size**: `323` lines (`15908` bytes)
+**Size**: `329` lines (`16377` bytes)
 
 **Classes:**
 - `class LicenseState`
@@ -1947,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16253` lines (`885211` bytes)
+**Size**: `16280` lines (`886717` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2437,6 +2437,8 @@
   - Method `.test_restrict_twice_keeps_the_first_cutoff()`
   - Method `.test_restrict_without_a_commit_changes_nothing()`
   - Method `.test_restrict_appends_a_license_section_to_a_readme_without_one()`
+  - Method `.test_a_half_restricted_project_reads_as_restricted_not_unrecorded()` - *P8: a crash between the LICENSE write and the config record must fail safe.*
+  - Method `.test_publish_public_refuses_a_half_restricted_project()`
   - Method `.test_restrict_rewrites_a_license_entry_that_is_last_in_the_tree()`
   - Method `.test_cli_license_reports_then_restricts_with_a_checklist()`
   - Method `.test_published_topics_are_the_ai_choice_not_an_inference()`
