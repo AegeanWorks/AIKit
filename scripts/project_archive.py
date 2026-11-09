@@ -293,7 +293,8 @@ def archive_project(project_path: Path, name: str, reason: str, workspace: Path 
     if is_archived(src):
         return 1, _triad(f"'{name}' is already archived.",
                          "the project record already marks it archived.",
-                         "unarchive it first, or archive another project; nothing was moved.")
+                         "AIKit has no unarchive command; clear \"archived\" in "
+                         ".aikit/project.json by hand, then retry; nothing was moved.")
     reason = (reason or "").strip()
     if not reason:
         return 1, _triad(f"archiving '{name}' needs a reason.",

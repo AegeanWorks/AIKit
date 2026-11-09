@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-96uiabort",
+    "task_id": "verify-97archive",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794247488.7639854,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794247763.344572,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794247512.1025572
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-90audit",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/3] --audit no longer creates .agents when the ledger is absent; quarantine-on-corrupt kept and pinned; 2 new tests (one fails first); 1032 unit + 89 integration pass; all gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794241671.7203307,
-      "timestamp_str": "2026-11-09 19:27:51",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-90audit",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-90audit' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794241727.5041008,
-      "timestamp_str": "2026-11-09 19:28:47",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-91resolve",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794247512.1025581,
       "timestamp_str": "2026-11-09 21:05:12",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-97archive",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Replace the archive 'unarchive it first' remedy, which names a command that does not exist",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794247630.0210214,
+      "timestamp_str": "2026-11-09 21:07:10",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "archive_project's already-archived triad told the operator to 'unarchive it first', but AIKit has no unarchive command (confirmed against `aikit.py --help`: archive exists, unarchive does not). The remedy was unactionable. Archiving sets archived/archived_at/archive_reason in .aikit/project.json, moves the folder and rewrites the README, so revival is manual by design.",
+        "benefits": "The failure now names a real action (clear the archived flag in .aikit/project.json) instead of a command the operator cannot run, matching the honest 'no reverse transition' entry in the state-machine doc.",
+        "risks": "contract: message text only, exit code stays 1; dependency: none; concurrency: none; state: project_archive.py, one test",
+        "mitigation": "one string change; the test asserts the fix names project.json and not the phantom command, and the existing unarchived-JSON test still passes"
+      },
+      "plan_digest": "4576f21c034a4bae2f82e3927ad48787b5110b4f137e64a59cc62a2d7c0c0824"
+    },
+    {
+      "task_id": "verify-97archive",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] already-archived Fix names clearing project.json instead of the phantom unarchive command; 1 fail-first test + existing test green; 1045 unit + 89 integration pass; budget 9.30ms/400ms",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794247763.344572,
+      "timestamp_str": "2026-11-09 21:09:23",
       "agent": "commandcode:goal"
     }
   ]

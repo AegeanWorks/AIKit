@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1301`
-- **Total Source Lines**: `48231`
+- **Total Class Methods**: `1302`
+- **Total Source Lines**: `48252`
 
 ---
 
@@ -1080,7 +1080,7 @@
 ### [`scripts/project_archive.py`](scripts/project_archive.py)
 > *Archive a project: move it to ``projects/archive/`` and mark its GitHub repository archived.*
 
-**Size**: `574` lines (`29928` bytes)
+**Size**: `575` lines (`30003` bytes)
 
 **Functions:**
 - `def _is_archive_banner(line)` - *Whether a line is the notice this module inserts, not a project description.*
@@ -1927,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16102` lines (`876773` bytes)
+**Size**: `16122` lines (`877788` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3124,6 +3124,7 @@
   - Method `.test_update_settings_normalizes_zero_string_forms()`
   - Method `.test_update_settings_fails_closed_on_corrupt_start()`
   - Method `.test_bool_stop_never_counts_as_bounded()`
+  - Method `.test_archive_already_archived_names_a_real_remedy()` - *The old Fix said 'unarchive it first', but no unarchive command exists.*
   - Method `.test_archive_unarchived_json_not_swallowed()`
   - Method `.test_ui_fixed_paths_reject_symlink_escape()`
   - Method `.test_mutable_default_repair_has_no_priority_field()`

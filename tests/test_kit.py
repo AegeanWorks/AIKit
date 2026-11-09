@@ -15581,6 +15581,26 @@ class TestVerifyFollowupHardening(unittest.TestCase):
         plan = pl._plan_from_last({"id": "run-1", "start": 3, "step": 3, "stop": True}, last)
         self.assertIsNone(plan.stop)
 
+    def test_archive_already_archived_names_a_real_remedy(self) -> None:
+        """The old Fix said 'unarchive it first', but no unarchive command exists."""
+        from scripts import project_archive
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "demo"
+            (src / ".aikit").mkdir(parents=True)
+            (src / "README.md").write_text(
+                "# Demo\n\nA usable description sentence here.\n", encoding="utf-8")
+            (src / ".aikit" / "project.json").write_text(
+                '{"schema": 1, "name": "demo", "archived": true}', encoding="utf-8")
+            code, report = project_archive.archive_project(
+                src, "demo", "retired", workspace=Path(tmp), offline=True)
+            self.assertEqual(code, 1)
+            self.assertIn("already archived", report.lower())
+            self.assertIn("project.json", report)
+            self.assertNotIn("unarchive it first", report)
+
     def test_archive_unarchived_json_not_swallowed(self) -> None:
         from scripts import project_archive
         import tempfile
