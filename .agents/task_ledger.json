@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-97archive",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794247763.344572,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794247779.6542366
   },
   "checkpoints": [
-    {
-      "task_id": "verify-91resolve",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] Add a reverse lookup from a bare state name to the machines that own it",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794243855.3874006,
-      "timestamp_str": "2026-11-09 20:04:15",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "88 distinct state names exist across 21 machines and 19 of them are shared (absent in five machines, missing in four). An agent holding a bare status string read from a JSON file has no way to learn which machine it belongs to: --check-status requires --machine, so the name must already be known. Measured: --check-status killed exits 2 with 'requires --machine'.",
-        "benefits": "An agent can resolve a status it found in the wild to the machine that defines it, and see every machine when the name is shared; this is the discoverability half P12 asked for without duplicating vocabularies into twenty help texts.",
-        "risks": "contract: state_machines.py CLI gains one flag, existing flags unchanged; dependency: none (stdlib only); concurrency: none; state: state_machines.py, tests, the doc, an ADR",
-        "mitigation": "additive flag only; unknown state still exits 1 like --check-status; pin shared-name and unknown-name cases; run both tiers and every gate"
-      },
-      "plan_digest": "988f6bc2109566b0813d3ad546007f291ada459edf8d0ac37796f8be1cca1b16"
-    },
     {
       "task_id": "verify-91resolve",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794247763.344572,
       "timestamp_str": "2026-11-09 21:09:23",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-97archive",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-97archive' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794247779.6542382,
+      "timestamp_str": "2026-11-09 21:09:39",
       "agent": "commandcode:goal"
     }
   ]
