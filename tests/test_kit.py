@@ -15895,6 +15895,33 @@ class TestStateMachines(unittest.TestCase):
             self.assertTrue(existing,
                             f"{machine.name}: gap source {modules} names no readable module")
 
+    def test_a_bare_state_name_resolves_to_its_machines(self) -> None:
+        """An agent that found a status string must be able to learn which machine owns it."""
+        from scripts import state_machines as sm
+
+        # A shared name reports every machine that declares it.
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(sm.main(["--which", "absent"]), 0)
+        text = out.getvalue()
+        for name in ("media-asset", "proof-corpus", "reforge-delivery"):
+            self.assertIn(name, text)
+        # A unique name reports exactly one.
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(sm.main(["--which", "quarantined"]), 0)
+        self.assertIn("ledger-generation", out.getvalue())
+        self.assertNotIn("media-asset", out.getvalue())
+        # An unknown name is refused like --check-status refuses one.
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sm.main(["--which", "ghost"]), 1)
+
+    def test_which_reports_every_machine_for_an_ambiguous_name(self) -> None:
+        from scripts import state_machines as sm
+        for machine in sm.MACHINES:
+            for state in machine.states:
+                owners = [m.name for m in sm.machines_declaring(state)]
+                self.assertIn(machine.name, owners,
+                              f"machines_declaring({state!r}) omitted {machine.name}")
+
 
 if __name__ == "__main__":
     unittest.main()

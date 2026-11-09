@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
-- **Total Top-Level Functions**: `1018`
-- **Total Class Methods**: `1289`
-- **Total Source Lines**: `47942`
+- **Total Top-Level Functions**: `1020`
+- **Total Class Methods**: `1291`
+- **Total Source Lines**: `48001`
 
 ---
 
@@ -1495,7 +1495,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `509` lines (`24110` bytes)
+**Size**: `541` lines (`25382` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1504,6 +1504,8 @@
 **Functions:**
 - `def as_dict()` - *A deterministic JSON-ready view; useful to agents and documentation tests.*
 - `def run_transition(machine, source, target)`
+- `def machines_declaring(state)` - *Every machine whose states include `state`, in registry order. Pure.*
+- `def run_which(state)` - *Name every machine that declares `state`; 1 when no machine does.*
 - `def print_machine(machine)`
 - `def main(argv)`
 
@@ -1925,7 +1927,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15900` lines (`865807` bytes)
+**Size**: `15927` lines (`867296` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3145,6 +3147,8 @@
   - Method `.test_registry_names_a_readable_source_for_every_machine()` - *A drift alarm, not a proof: each machine must point at code that exists.*
   - Method `.test_registry_machine_names_match_the_doc_rows()` - *A registry machine and its doc row must describe one vocabulary, not two.*
   - Method `.test_registry_gaps_name_no_retired_defect()` - *A gap that describes a fixed defect sends the next reader to the wrong place.*
+  - Method `.test_a_bare_state_name_resolves_to_its_machines()` - *An agent that found a status string must be able to learn which machine owns it.*
+  - Method `.test_which_reports_every_machine_for_an_ambiguous_name()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

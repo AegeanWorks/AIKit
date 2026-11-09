@@ -1,39 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-90audit",
+    "task_id": "verify-91resolve",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794241671.7203307,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794244595.9465973,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794241727.5040996
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-86states",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[4/5] Proposals: P1 add upstream-check machine, P2 add mutation-record machine, P3 add project-publish machine, P4 add --check-any-state cross-machine lookup, P5 add a registry/doc parity test",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794173791.573989,
-      "timestamp_str": "2026-11-09 00:36:31",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-86states",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[5/5] PASSED P1 (upstream-check machine, 8 states, verified). REJECTED P2/P3 (already documented in prose). P5 found a real doc defect: mutation row lists 6 states, code has 4 ('waived' is a counter, 'not-generated' never exists in code)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794174121.8564508,
-      "timestamp_str": "2026-11-09 00:42:01",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-86states",
       "phase": "verification",
@@ -253,6 +230,35 @@
       "status": "completed",
       "timestamp": 1794241727.5041008,
       "timestamp_str": "2026-11-09 19:28:47",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-91resolve",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/3] Add a reverse lookup from a bare state name to the machines that own it",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794243855.3874006,
+      "timestamp_str": "2026-11-09 20:04:15",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "88 distinct state names exist across 21 machines and 19 of them are shared (absent in five machines, missing in four). An agent holding a bare status string read from a JSON file has no way to learn which machine it belongs to: --check-status requires --machine, so the name must already be known. Measured: --check-status killed exits 2 with 'requires --machine'.",
+        "benefits": "An agent can resolve a status it found in the wild to the machine that defines it, and see every machine when the name is shared; this is the discoverability half P12 asked for without duplicating vocabularies into twenty help texts.",
+        "risks": "contract: state_machines.py CLI gains one flag, existing flags unchanged; dependency: none (stdlib only); concurrency: none; state: state_machines.py, tests, the doc, an ADR",
+        "mitigation": "additive flag only; unknown state still exits 1 like --check-status; pin shared-name and unknown-name cases; run both tiers and every gate"
+      },
+      "plan_digest": "988f6bc2109566b0813d3ad546007f291ada459edf8d0ac37796f8be1cca1b16"
+    },
+    {
+      "task_id": "verify-91resolve",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/3] --which added (pure machines_declaring + CLI flag); 2 tests fail-first; doc header records 19 shared names of 88; 1034 unit + 89 integration pass; all gates green incl budget (18.21ms/571ms)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794244595.9465973,
+      "timestamp_str": "2026-11-09 20:16:35",
       "agent": "commandcode:goal"
     }
   ]

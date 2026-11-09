@@ -442,6 +442,32 @@ def run_transition(machine: Machine, source: str, target: str) -> int:
     return 1
 
 
+def machines_declaring(state: str) -> list[Machine]:
+    """Every machine whose states include `state`, in registry order. Pure."""
+    return [machine for machine in MACHINES if state in machine.states]
+
+
+def run_which(state: str) -> int:
+    """Name every machine that declares `state`; 1 when no machine does.
+
+    Nineteen of the 88 state names are shared, so a status read from a file cannot
+    identify its machine on its own. This is the reverse lookup: given a bare name,
+    say who owns it.
+    """
+    owners = machines_declaring(state)
+    if not owners:
+        print(f"unknown: {state!r} is not a state of any machine", file=sys.stderr)
+        print(f"Fix: run --list, or --which with a name one of them declares.", file=sys.stderr)
+        return 1
+    if len(owners) == 1:
+        print(f"{state}: declared by {owners[0].name}")
+        return 0
+    print(f"{state}: declared by {len(owners)} machines")
+    for machine in owners:
+        print(f"  {machine.name}: {machine.purpose}")
+    return 0
+
+
 def print_machine(machine: Machine) -> None:
     print(f"{machine.name} - {machine.purpose}")
     print(f"Source: {machine.source}")
@@ -462,7 +488,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--from", dest="source", help="transition source state")
     parser.add_argument("--to", dest="target", help="transition target state")
     parser.add_argument("--check-status", dest="status", help="check whether a state is known")
+    parser.add_argument("--which", dest="which",
+                        help="list the machines that declare this state name")
     args = parser.parse_args(argv)
+
+    if args.which is not None:
+        return run_which(args.which)
 
     if args.source is not None or args.target is not None:
         if not (args.machine and args.source is not None and args.target is not None):
@@ -501,7 +532,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(f"{len(MACHINES)} explicit state machines (read-only):")
     for machine in MACHINES:
         print(f"  {machine.name:<20} {len(machine.states):>2} states  {machine.purpose}")
-    print("Use --machine <name>, --json, or --machine <name> --from <state> --to <state>.")
+    print("Use --machine <name>, --json, --machine <name> --from <state> --to <state>, "
+          "or --which <state> to find a state's machines.")
     return 0
 
 

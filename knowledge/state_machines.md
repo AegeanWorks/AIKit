@@ -2,7 +2,9 @@
 
 Status: verified inventory (ADR-388). This is the list requested before any fix;
 the explicit subset lives in `scripts/state_machines.py` and is readable with
-`python scripts/state_machines.py --list`.
+`python scripts/state_machines.py --list`. Nineteen of the 88 state names are
+shared by more than one machine, so `--which <state>` names the machines that
+declare a bare status read from a file.
 
 An **implicit state machine** is a set of states encoded in JSON fields, status
 strings, files or flags, with transitions enforced (or merely assumed) by code.
