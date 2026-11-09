@@ -1,38 +1,17 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-103p8",
+    "task_id": "verify-104p7",
     "last_phase": "verification",
     "active_phase": 5,
     "status": "completed",
-    "updated_at": 1794252535.29681,
+    "updated_at": 1794254864.9107158,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
     "continuations": [],
-    "completed_at": 1794252578.0793576
+    "completed_at": 1794254871.4540753
   },
   "checkpoints": [
-    {
-      "task_id": "verify-97archive",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] already-archived Fix names clearing project.json instead of the phantom unarchive command; 1 fail-first test + existing test green; 1045 unit + 89 integration pass; budget 9.30ms/400ms",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794247763.344572,
-      "timestamp_str": "2026-11-09 21:09:23",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-97archive",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-97archive' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794247779.6542382,
-      "timestamp_str": "2026-11-09 21:09:39",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-98p11",
       "phase": "planning",
@@ -265,6 +244,27 @@
       "status": "completed",
       "timestamp": 1794252578.07936,
       "timestamp_str": "2026-11-09 22:29:38",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-104p7",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] find_orphaned_commits + delivery_message in state.py; status_payload exposes orphaned_stages; reforge status prints Orphaned; detection verified end-to-end in a temp repo; 36 isolated tests and full 1055+89 suite green at HEAD; ADR-406",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794254864.9107158,
+      "timestamp_str": "2026-11-09 23:07:44",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-104p7",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-104p7' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794254871.4540772,
+      "timestamp_str": "2026-11-09 23:07:51",
       "agent": "commandcode:goal"
     }
   ]
