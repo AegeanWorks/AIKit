@@ -31,7 +31,7 @@ A proposal passes only when **all** hold:
 | P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Med | Deferred |
-| P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | Deferred |
+| P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
 | P11 | Complete `status --json` with every machine's state | Med | Med | High | Med | Deferred |
 | P12 | Publish the status vocabulary in every `--help` | High | Low | High | Low | Deferred |
 
@@ -118,7 +118,10 @@ the error and that no ledger file is created.
   unilateral.
 - **P10 (read-only audit).** The quarantine rename on read is pinned by a test;
   making `--audit` non-mutating needs a separate recovery command. High value,
-  but it changes a durability guarantee.
+  but it changes a durability guarantee. **Partly implemented (ADR-393):** the
+  `mkdir` half is fixed — `--audit` no longer creates `.agents` when the ledger
+  is absent — while the quarantine of a corrupt ledger stays, because that is
+  lossless recovery rather than a side effect.
 - **P11 (complete status JSON).** Additive, but it touches three command
   payloads; the registry now gives the machine data, so this is a follow-up.
 - **P12 (help vocabulary).** The generated help copies are test-pinned; adding

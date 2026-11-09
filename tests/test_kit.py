@@ -15677,6 +15677,33 @@ class TestStateMachines(unittest.TestCase):
             self.assertFalse(audit["clean_shutdown"])
             self.assertIn("Unknown Task Status", format_audit_report(audit))
 
+    def test_audit_creates_nothing_when_no_ledger_exists(self) -> None:
+        """A read-only audit must not create the memory directory it was asked to inspect."""
+        from scripts.disruption_recovery import run_disruption_audit
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            self.assertFalse((workspace / ".agents").exists())
+            audit = run_disruption_audit(workspace_dir=workspace, git_status=not_a_git_repo)
+            self.assertFalse((workspace / ".agents").exists(),
+                             "--audit created .agents in a workspace that had none")
+            self.assertIsNone(audit.get("last_checkpoint"))
+            self.assertTrue(audit["clean_shutdown"])
+
+    def test_audit_still_quarantines_a_corrupt_ledger(self) -> None:
+        """Recovery of damaged data is the one write an audit keeps."""
+        from scripts.disruption_recovery import run_disruption_audit
+        with tempfile.TemporaryDirectory() as tmp:
+            agents = Path(tmp) / ".agents"
+            agents.mkdir()
+            (agents / "task_ledger.json").write_text("{not json", encoding="utf-8")
+            with contextlib.redirect_stderr(io.StringIO()):
+                audit = run_disruption_audit(workspace_dir=Path(tmp),
+                                             git_status=not_a_git_repo)
+            quarantined = list(agents.glob("task_ledger.json.corrupt_*"))
+            self.assertEqual(len(quarantined), 1,
+                             "a corrupt ledger is still quarantined, not left in place")
+            self.assertIsNotNone(audit.get("quarantined_files") or quarantined)
+
 
     def test_every_machine_renders_and_checks_every_state(self) -> None:
         from scripts import state_machines as sm

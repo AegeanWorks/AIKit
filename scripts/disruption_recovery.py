@@ -1263,8 +1263,9 @@ def run_disruption_audit(
     ledger_path = workspace_ledger_path(ws)
     if not ledger_path.exists() and (ws / "task_ledger.json").exists():
         ledger_path = ws / "task_ledger.json"
-    elif not ledger_path.exists():
-        ledger_path = get_ledger_path(ledger_path.parent)
+    # No fallback path is invented here: get_ledger_path() mkdirs the memory directory, and an
+    # audit must never create the workspace it was asked to inspect (ADR-393). load_ledger()
+    # already returns an empty ledger for a missing file.
     try:
         ledger = load_ledger(ledger_path)
     except UnsupportedLedgerVersion as error:

@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `170`
 - **Total Top-Level Functions**: `1018`
-- **Total Class Methods**: `1287`
-- **Total Source Lines**: `47914`
+- **Total Class Methods**: `1289`
+- **Total Source Lines**: `47942`
 
 ---
 
@@ -877,7 +877,7 @@
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2213` lines (`105731` bytes)
+**Size**: `2214` lines (`105884` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -1925,7 +1925,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15873` lines (`864158` bytes)
+**Size**: `15900` lines (`865807` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3134,6 +3134,8 @@
   - Method `.test_a_new_task_can_follow_a_completed_one()`
   - Method `.test_audit_reports_a_suspended_task()`
   - Method `.test_audit_reports_an_unknown_task_status()`
+  - Method `.test_audit_creates_nothing_when_no_ledger_exists()` - *A read-only audit must not create the memory directory it was asked to inspect.*
+  - Method `.test_audit_still_quarantines_a_corrupt_ledger()` - *Recovery of damaged data is the one write an audit keeps.*
   - Method `.test_every_machine_renders_and_checks_every_state()`
   - Method `.test_cli_matches_the_transition_table_for_every_machine()`
   - Method `.test_representative_cross_machine_transitions()`

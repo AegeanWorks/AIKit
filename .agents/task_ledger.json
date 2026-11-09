@@ -1,61 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-89lease",
-    "last_phase": "planning",
-    "active_phase": 2,
+    "task_id": "verify-90audit",
+    "last_phase": "verification",
+    "active_phase": 4,
     "status": "in_progress",
-    "updated_at": 1794240675.3739648,
+    "updated_at": 1794241671.7203307,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "impact_assessment": {
-      "why": "The idea-repo-review gap states the whole lease ledger has no tests; a grep confirmed zero references to release_expired, stale_reviews, reserved_ids, validate_reviews or _lease_expired in either tier. The lease decides which idea numbers parallel dossier sessions may claim, so an untested bug corrupts a shared register.",
-      "benefits": "Reservation, expiry, abandonment, idempotent release and forced takeover become pinned, so a later change cannot silently corrupt the register.",
-      "risks": "contract: none, tests only; dependency: none (stdlib only); concurrency: none; state: tests/test_kit.py, the registry gap text, an ADR",
-      "mitigation": "write each pin from the implementation, correct any assumption the first run contradicts, keep the gap text to what remains true, and run both tiers plus every gate"
-    }
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-85nonblocked",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-85nonblocked' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794171118.2848291,
-      "timestamp_str": "2026-11-08 23:51:58",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-86states",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/5] Discover implicit state machines the 19-machine registry misses",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794173403.7910578,
-      "timestamp_str": "2026-11-09 00:30:03",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "scripts/state_machines.py already encodes 19 lifecycles as data, but implicit machines remain wherever a lifecycle is tracked in JSON fields, strings or files without an entry. A registry that claims to be the readable list while missing machines is worse than none: a reader trusts it as complete.",
-        "benefits": "The registry becomes the actual inventory, so the same lifecycle cannot be re-derived differently in a second module; the gaps the entries record become visible to UX/DX/AX at once.",
-        "risks": "contract: scripts/state_machines.py data, the --check-status CLI, knowledge/state_machines.md; dependency: none (stdlib only); concurrency: another session holds uncommitted tests/ and codebase_map.md edits; state: state_machines.py, its tests, the knowledge page, the map",
-        "mitigation": "discover by scanning for status vocabularies and compare against the registry; add entries as data only; prove each new entry against the real code; run the full gate set and both tiers before commit"
-      },
-      "plan_digest": "ebc3b1518eedffcd6bd7f685907645c7b98dc79bd758613f9f92a2383762f934"
-    },
-    {
-      "task_id": "verify-86states",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[2/5] Found 3 registry gaps: upstream-check freshness (8 states), mutation-record verdict (4 states), project-publish visibility (derived from origin remote)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794173669.557295,
-      "timestamp_str": "2026-11-09 00:34:29",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-86states",
       "phase": "implementation",
@@ -260,6 +215,45 @@
         "mitigation": "write each pin from the implementation, correct any assumption the first run contradicts, keep the gap text to what remains true, and run both tiers plus every gate"
       },
       "plan_digest": "478e66da49c98ed2fd08aba53708216836a5d4aad2066fe226a4d07d9154ce4f"
+    },
+    {
+      "task_id": "verify-89lease",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-89lease' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794240739.6348403,
+      "timestamp_str": "2026-11-09 19:12:19",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-90audit",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/3] Make --audit create no directory when the ledger is absent",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794241063.7753491,
+      "timestamp_str": "2026-11-09 19:17:43",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "run_disruption_audit calls get_ledger_path solely to compute a path when no ledger exists, and that helper unconditionally mkdirs the memory directory. Measured with --workspace on an empty dir: the audit creates .agents (empty). A read-only audit that writes a directory is an AX and DX defect: a probe, a health check or an agent's first look mutates the workspace it was asked to inspect.",
+        "benefits": "An absent ledger no longer causes a write, so any caller can probe a workspace without changing it; the quarantine-on-corrupt behaviour stays, because that is lossless recovery of damaged data.",
+        "risks": "contract: run_disruption_audit return values and the --audit CLI; dependency: none (stdlib only); concurrency: none; state: disruption_recovery.py, tests, an ADR",
+        "mitigation": "compute the path without the mkdir side effect instead of changing get_ledger_path itself, which write paths rely on; pin both the absent-ledger and corrupt-ledger cases; run both tiers and every gate"
+      },
+      "plan_digest": "53d0374b6f1b6a0b9e31fba9e6e51553ce2b3127762923a902120f7bc4e0eee5"
+    },
+    {
+      "task_id": "verify-90audit",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[3/3] --audit no longer creates .agents when the ledger is absent; quarantine-on-corrupt kept and pinned; 2 new tests (one fails first); 1032 unit + 89 integration pass; all gates green",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794241671.7203307,
+      "timestamp_str": "2026-11-09 19:27:51",
+      "agent": "commandcode:goal"
     }
   ]
 }
