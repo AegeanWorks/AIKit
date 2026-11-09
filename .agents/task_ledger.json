@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-102pms",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794251890.9535303,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794251929.834414
   },
   "checkpoints": [
-    {
-      "task_id": "verify-96uiabort",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Make ui abort recover from a corrupt record and refuse a vanished surface with a triad",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794247348.9728212,
-      "timestamp_str": "2026-11-09 21:02:28",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "read_task names 'run ui abort' as the remedy for a corrupt record, but abort called read_task too, so the remedy raised the same error - a dead end. Measured with a valid contract and a corrupt ui_task.json: both read_task and abort raised 'The UI task record is unreadable'. Separately, abort did contract.surfaces[str(task['surface'])]; a surface removed from the contract raised a bare KeyError('app') instead of a Why/Fix triad.",
-        "benefits": "The remedy the guard prints now works: abort drops an unreadable record (keeping its bytes) and says nothing could be restored. A vanished surface produces a readable triad naming the surface and the file to delete, instead of a stack trace.",
-        "risks": "contract: abort's result gains dropped_corrupt_record only on the corrupt path; a missing record still raises 'No UI task is open'; the stale-but-valid record is kept; dependency: none; concurrency: none; state: ui_contract.py, aikit_cli.py, three tests",
-        "mitigation": "corrupt path returns before any git call; a missing record still raises because the file check distinguishes them; each new test fails first with the exact error"
-      },
-      "plan_digest": "2124c4e76f11b4ffbc7026b55f46c848083e70890f228bdaa31597c07ee5b196"
-    },
     {
       "task_id": "verify-96uiabort",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794251890.9535303,
       "timestamp_str": "2026-11-09 22:18:10",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-102pms",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-102pms' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794251929.8344162,
+      "timestamp_str": "2026-11-09 22:18:49",
       "agent": "commandcode:goal"
     }
   ]
