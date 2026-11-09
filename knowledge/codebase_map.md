@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
-- **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1311`
-- **Total Source Lines**: `48621`
+- **Total Top-Level Functions**: `1030`
+- **Total Class Methods**: `1312`
+- **Total Source Lines**: `48702`
 
 ---
 
@@ -268,7 +268,7 @@
 ### [`reforge/cli.py`](reforge/cli.py)
 > *The Reforge command grammar, shared by `python -m reforge` and `aikit.py reforge`.*
 
-**Size**: `479` lines (`23927` bytes)
+**Size**: `485` lines (`24317` bytes)
 
 **Classes:**
 - `class ReforgeArgumentParser` - *argparse whose usage errors carry the AIKit What/Why/Fix triad (PRINCIPLE-011).*
@@ -444,7 +444,7 @@
 ### [`reforge/pipeline.py`](reforge/pipeline.py)
 > *Orchestrates one independent audit run, its safe repairs and their verification.*
 
-**Size**: `1067` lines (`53221` bytes)
+**Size**: `1080` lines (`53908` bytes)
 
 **Functions:**
 - `def finding_from_dict(item)`
@@ -555,7 +555,7 @@
 ### [`reforge/state.py`](reforge/state.py)
 > *Persistent audit runs, written atomically and isolated per project.*
 
-**Size**: `807` lines (`33329` bytes)
+**Size**: `841` lines (`34934` bytes)
 
 **Functions:**
 - `def state_path(root)`
@@ -580,6 +580,8 @@
 - `def _delivery_of(entry)`
 - `def _stage_candidates(run)` - *History plus last_audit deduplicated by stage; last_audit wins on collision.*
 - `def find_unpushed_verified(run)` - *Verified stages with applied repairs that were committed but never pushed.*
+- `def delivery_message(run_id, stage, repaired)` - *The conventional message for one window's commit; deterministic, so it identifies it.*
+- `def find_orphaned_commits(run, subjects)` - *Stages whose window commit is on disk but whose record carries no SHA (P7, ADR-406).*
 - `def find_uncommitted_verified(run)` - *Verified stages with applied repairs that were never committed.*
 - `def mark_delivered(root, state, run, stage, delivery)` - *Record one stage's push hash in history and last_audit, then persist.*
 - `def run_complete(run, window, total_commits)`
@@ -1515,7 +1517,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `541` lines (`25424` bytes)
+**Size**: `542` lines (`25537` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1947,7 +1949,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16280` lines (`886717` bytes)
+**Size**: `16307` lines (`888196` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2922,6 +2924,7 @@
   - Method `.test_update_settings_keeps_a_completed_unlimited_run_at_the_end_of_history()`
   - Method `.test_live_completion_total_wins_over_the_stored_count()`
   - Method `.test_a_later_fix_refreshes_the_history_entry_too()`
+  - Method `.test_an_orphaned_window_commit_is_reported_not_hidden()` - *P7 read side: a crash between `git commit` and `mark_delivered` leaves no SHA.*
   - Method `.test_schema_one_migrates_to_an_independent_first_run()`
   - Method `.test_only_fixable_unrepaired_findings_block_the_next_stage()`
   - Method `.test_an_unreviewed_stage_blocks_progress_and_completion()`
