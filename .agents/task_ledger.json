@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-91resolve",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794244595.9465973,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794244646.4611328
   },
   "checkpoints": [
-    {
-      "task_id": "verify-86states",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[5/5] Implemented P1 (upstream-check, 20th machine) + doc fix (mutation 6->4 states) + 3 pins; 1023 unit + 89 integration pass; all gates green",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794174890.8777542,
-      "timestamp_str": "2026-11-09 00:54:50",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-86states",
       "phase": "verification",
@@ -259,6 +249,16 @@
       "status": "in_progress",
       "timestamp": 1794244595.9465973,
       "timestamp_str": "2026-11-09 20:16:35",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-91resolve",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-91resolve' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794244646.461135,
+      "timestamp_str": "2026-11-09 20:17:26",
       "agent": "commandcode:goal"
     }
   ]
