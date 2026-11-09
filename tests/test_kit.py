@@ -9186,6 +9186,15 @@ class TestProofCorpus(unittest.TestCase):
         with self.assertRaises(ValueError):
             proof_corpus.prune(corpus, keep=-1)
 
+    def test_replay_never_raises_on_a_non_mapping_entry(self) -> None:
+        """replay's docstring says "never raises"; a bare list/None raised AttributeError."""
+        from scripts import proof_corpus
+
+        for bad in (None, [1, 2], "text", 42, True):
+            result = proof_corpus.replay(bad, prove_fn=lambda **kwargs: {"proof": True})
+            self.assertEqual(result["outcome"], "inconclusive", repr(bad))
+            self.assertTrue(result["reason"], repr(bad))
+
     def test_a_failing_rerun_never_overwrites_a_stored_pass(self) -> None:
         """The docstring says a changed tree files elsewhere instead of overwriting history.
 

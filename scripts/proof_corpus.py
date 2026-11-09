@@ -228,7 +228,7 @@ def replay(entry: Mapping[str, Any], *,
     inject a double (PRINCIPLE-009 R4). Missing evidence is inconclusive,
     a changed verdict is fail, an identical verdict is pass.
     """
-    receipt = entry.get("receipt")
+    receipt = entry.get("receipt") if isinstance(entry, Mapping) else None
     if not isinstance(receipt, Mapping):
         return {"outcome": OUTCOME_INCONCLUSIVE, "reason": "entry has no receipt"}
     if prove_fn is None:
