@@ -3,24 +3,15 @@
   "active_task": {
     "task_id": "verify-95jsonshape",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794246801.6864536,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794246822.9178872
   },
   "checkpoints": [
-    {
-      "task_id": "verify-88gaps",
-      "phase": "superseded",
-      "phase_num": 4,
-      "description": "Superseded by 'verify-89lease' without --complete or --reset",
-      "status": "superseded",
-      "timestamp": 1794240622.7451835,
-      "timestamp_str": "2026-11-09 19:10:22",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-89lease",
       "phase": "planning",
@@ -271,6 +262,16 @@
       "status": "in_progress",
       "timestamp": 1794246801.6864536,
       "timestamp_str": "2026-11-09 20:53:21",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-95jsonshape",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-95jsonshape' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794246822.9178889,
+      "timestamp_str": "2026-11-09 20:53:42",
       "agent": "commandcode:goal"
     }
   ]
