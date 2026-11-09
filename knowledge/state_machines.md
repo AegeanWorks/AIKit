@@ -69,7 +69,7 @@ enforced. Each machine records its source and a known gap.
 
 | Machine | States | Source | Enforcement / gap |
 |---|---|---|---|
-| **Idea status** | Proposed, Approved, Integrating, Integrated, Deferred, Blocked, Rejected, Superseded | `ideas[].status` | Terminal guards exist in `_apply_status`; **`validate_ideas` has no transition table**, so a hand-edited register can reopen a terminal row. |
+| **Idea status** | Proposed, Approved, Integrating, Integrated, Deferred, Blocked, Rejected, Superseded | `ideas[].status` | `_apply_status` refuses a move outside `STATUS_TRANSITIONS` with the legal targets named (ADR-404); six historical rows predate the guard and are not rewritten, and `validate_ideas` still has no retroactive check by design. |
 | Review verdict | adopt, confirmed, defer, duplicate, implemented, obsolete, reject, blocked | `ideas[].review_log[]` | Verdict vocabulary closed; `set-status --status Deferred` also appends a defer review. |
 | Deferral counter | 0, 1, 2+ | derived with `max()` from review log, history and status | Second deferral coerces to Blocked; three records can disagree and `max()` hides it. |
 | Tags | verification tags + flags | `ideas[].tags` | One verification tag; adding silently evicts the old one; display uses stored tags while filters use effective tags. |

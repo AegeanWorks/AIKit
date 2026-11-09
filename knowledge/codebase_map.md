@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1306`
-- **Total Source Lines**: `48508`
+- **Total Class Methods**: `1308`
+- **Total Source Lines**: `48568`
 
 ---
 
@@ -98,7 +98,7 @@
 ### [`idea_catcher/registry.py`](idea_catcher/registry.py)
 > *Generate and validate the Idea Catcher register.*
 
-**Size**: `2563` lines (`111408` bytes)
+**Size**: `2588` lines (`112723` bytes)
 
 **Classes:**
 - `class StatusSpec` - *One decision state: how it renders and what a recorded decision must carry.*
@@ -1947,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16198` lines (`882173` bytes)
+**Size**: `16233` lines (`884047` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2982,10 +2982,12 @@
   - Method `._idea(idea_id, status, *, superseded_by)`
   - Method `._register()`
   - Method `.test_blocked_is_part_of_the_status_vocabulary()`
+  - Method `.test_the_write_table_matches_the_registry()` - *ADR-404: idea_catcher declares its own table; it must equal the documented machine.*
   - Method `.test_a_second_direct_deferral_blocks_and_keeps_the_audit_trail()`
   - Method `.test_a_legacy_deferred_idea_blocks_on_its_second_deferral()`
   - Method `.test_a_blocked_idea_refuses_review()`
   - Method `.test_a_blocked_idea_refuses_a_status_change()`
+  - Method `.test_a_rejected_idea_refuses_a_move_its_machine_forbids()` - *ADR-404: the status machine is enforced on write, not only for the terminals.*
   - Method `.test_a_superseded_idea_refuses_review()`
   - Method `.test_a_superseded_idea_refuses_a_status_change()`
   - Method `.test_a_superseded_idea_accepts_repointing_to_another_canonical()`

@@ -137,6 +137,25 @@ STATUS_SPECS: dict[str, StatusSpec] = {
     ),
 }
 
+
+# The transitions a write may make (ADR-404). Declared here rather than imported from
+# scripts.state_machines because idea_catcher depends on nothing under scripts/; a test pins
+# this table to the registry so the two cannot drift.
+STATUS_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "Proposed": ("Approved", "Integrating", "Integrated", "Deferred", "Rejected",
+                 "Superseded", "Blocked"),
+    "Approved": ("Approved", "Integrating", "Integrated", "Deferred", "Rejected",
+                 "Superseded", "Blocked"),
+    "Integrating": ("Integrating", "Integrated", "Deferred", "Rejected", "Superseded",
+                    "Blocked"),
+    "Integrated": ("Integrated", "Deferred", "Rejected", "Superseded", "Blocked"),
+    "Deferred": ("Deferred", "Blocked", "Approved", "Integrating", "Integrated", "Rejected",
+                 "Superseded"),
+    "Blocked": ("Blocked",),
+    "Rejected": ("Rejected", "Proposed"),
+    "Superseded": ("Superseded",),
+}
+
 @dataclasses.dataclass(frozen=True)
 class TagSpec:
     """One analysis tag: what it asserts and whether it competes with other verification tags."""
@@ -1172,6 +1191,12 @@ def _apply_status(
         follow = f" by {replacement}" if replacement else ""
         raise RegistryError(
             f"{idea.get('id')} is Superseded{follow} and will not be reviewed again"
+        )
+    if previous != status and status not in STATUS_TRANSITIONS.get(previous, ()):
+        allowed = ", ".join(STATUS_TRANSITIONS.get(previous, ()))
+        raise RegistryError(
+            f"{idea.get('id')} cannot move from {previous} to {status}; "
+            f"from {previous} the register allows only: {allowed or 'no change'}."
         )
     at = decided_at or datetime.date.today().isoformat()
     effective_deferrals = deferrals_before + (1 if new_deferral else 0)

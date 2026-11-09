@@ -1,9 +1,9 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Nine proposals passed and are
-implemented (P1–P4, P6, P9, P11, P12, plus P10 partly). P5, P7 and P8 remain
-deferred with the reason.
+`knowledge/state_machines.md` (ADR-388). Ten proposals passed and are
+implemented (P1–P6, P9, P11, P12, plus P10 partly). P7 and P8 remain deferred
+with the reason.
 
 ## Decision criteria
 
@@ -27,7 +27,7 @@ A proposal passes only when **all** hold:
 | P2 | `--audit` reports a suspended task and an unknown task status | High | Med | High | Low | **PASS, implemented** |
 | P3 | Refuse reopening a completed task through `--checkpoint` | High | High | High | Low | **PASS, implemented** |
 | P4 | Refuse an unknown checkpoint status before writing | Med | High | High | Low | **PASS, implemented** |
-| P5 | Validate Idea Catcher status transitions in `validate_ideas` | Low | High | High | Med | Deferred |
+| P5 | Validate Idea Catcher status transitions in `validate_ideas` | Low | High | High | Low | **PASS, on write (ADR-404)** |
 | P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Low | **PASS, publish only (ADR-402)** |
 | P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
@@ -101,10 +101,12 @@ the error and that no ledger file is created.
 
 ## Deferred proposals and why
 
-- **P5 (idea transitions).** The register is being edited by a concurrent goal
-  during this change; a validation pass needs a quiescent `ideas.json` and a
-  decision on `Integrated -> Proposed`. The transition table is identified but
-  not wired. AX gain is real; blast radius is the whole register.
+- **P5 (idea transitions).** **Implemented on the write path (ADR-404).** Measuring
+  first changed the shape: 641 real transitions exist, and exactly 6 violate the
+  documented machine — all historical rows. A retroactive `validate_ideas` check
+  would fail a register whose history cannot be rewritten, so the table is
+  enforced where writes happen instead: `set-status` refuses a forbidden move and
+  names the legal targets. The six historical rows are left untouched.
 - **P6 (archived project guard).** **Implemented for `publish` only (ADR-402).**
   Verified live that `cmd_publish` never called `is_archived`: publish on an
   archived project ran the whole pipeline and reached a downstream gate. It now

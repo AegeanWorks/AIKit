@@ -13461,6 +13461,17 @@ class TestIdeaCatcherBlockedPolicy(unittest.TestCase):
             idea_registry.STATUS_SPECS["Blocked"].requires, ("reason", "decided_by")
         )
 
+    def test_the_write_table_matches_the_registry(self) -> None:
+        """ADR-404: idea_catcher declares its own table; it must equal the documented machine."""
+        from scripts import state_machines as sm
+        declared = {name: tuple(dest) for name, dest in idea_registry.STATUS_TRANSITIONS.items()}
+        documented = {name: tuple(dest)
+                      for name, dest in sm.BY_NAME["idea-status"].transitions.items()}
+        self.assertEqual(declared, documented,
+                         "idea_catcher.STATUS_TRANSITIONS drifted from state_machines")
+        # And it must cover exactly the declared statuses, so no status is silently unchecked.
+        self.assertEqual(set(declared), set(idea_registry.STATUS_SPECS))
+
     def test_a_second_direct_deferral_blocks_and_keeps_the_audit_trail(self) -> None:
         root = self._register()
         idea = idea_registry.set_status(
@@ -13503,6 +13514,30 @@ class TestIdeaCatcherBlockedPolicy(unittest.TestCase):
                 reason="A later review claims the mechanism is now useful.",
                 decided_by="tester",
             )
+
+    def test_a_rejected_idea_refuses_a_move_its_machine_forbids(self) -> None:
+        """ADR-404: the status machine is enforced on write, not only for the terminals.
+
+        `Rejected` may only go back to `Proposed`; the live register holds six rows whose
+        history already violates this (measured), so the check is on new writes and leaves
+        existing history untouched.
+        """
+        root = self._register()
+        with self.assertRaises(idea_registry.RegistryError) as caught:
+            idea_registry.set_status(
+                root, "IDEA-006", status="Deferred",
+                reason="Parking a rejected idea without going through Proposed.",
+                decided_by="tester",
+            )
+        self.assertIn("Rejected", str(caught.exception))
+        self.assertIn("Proposed", str(caught.exception))
+        # The legal edge still works.
+        idea = idea_registry.set_status(
+            root, "IDEA-006", status="Proposed",
+            reason="Reopened deliberately after a second analysis.",
+            decided_by="tester",
+        )
+        self.assertEqual(idea["status"], "Proposed")
 
     def test_a_superseded_idea_refuses_review(self) -> None:
         root = self._register()
