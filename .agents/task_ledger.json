@@ -3,25 +3,15 @@
   "active_task": {
     "task_id": "verify-90audit",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794241671.7203307,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794241727.5040996
   },
   "checkpoints": [
-    {
-      "task_id": "verify-86states",
-      "phase": "implementation",
-      "phase_num": 3,
-      "description": "[3/5] Verified 3 state-machine gaps + 2 registry self-gaps; registry is data-only documentation (1 production import, does not enforce)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794173765.9128745,
-      "timestamp_str": "2026-11-09 00:36:05",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-86states",
       "phase": "implementation",
@@ -253,6 +243,16 @@
       "status": "in_progress",
       "timestamp": 1794241671.7203307,
       "timestamp_str": "2026-11-09 19:27:51",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-90audit",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-90audit' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794241727.5041008,
+      "timestamp_str": "2026-11-09 19:28:47",
       "agent": "commandcode:goal"
     }
   ]
