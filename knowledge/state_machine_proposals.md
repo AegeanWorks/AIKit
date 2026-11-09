@@ -1,8 +1,9 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Four proposals passed and are
-implemented; the rest are deferred with the reason.
+`knowledge/state_machines.md` (ADR-388). Five proposals passed and are
+implemented (P1–P4, P9, plus P10 partly); P12's discoverability half is
+implemented as `--which` (ADR-394); the rest are deferred with the reason.
 
 ## Decision criteria
 
@@ -136,5 +137,13 @@ the error and that no ledger file is created.
 - `python -m unittest discover tests` after edits: **1118 tests, OK** (one
   skipped).
 - `python scripts/update_knowledge_base.py`: map regenerated, every audit passes.
-- Registry CLI contract: `--list` 12 machines, `--json` parses, allowed exit 0,
-  refused exit 1, unknown flag exit 2, `--help` 134 ms.
+- Registry CLI contract: `--list` 21 machines, `--json` parses, allowed exit 0,
+  refused exit 1, unknown flag exit 2.
+- **P9 and the discoverability half of P12 (ADR-394, ADR-397):** 1039 unit +
+  89 integration tests pass; `state_machines.py --which <state>` resolves a bare
+  status to its machines (19 of 88 names are shared), and `fix` / `media init`
+  preserve a manual UI identity while `ui-id --set auto` still overwrites.
+- **JSON-shape hardening (ADR-395, ADR-396, ADR-398):** 1041 unit + 89
+  integration tests pass after `proof_envelope.verify`, the two proof write
+  paths, `sync_licenses.check_licenses` and `dossier_sync._upsert_jsonld` were
+  made to fail closed on a non-object document instead of raising.
