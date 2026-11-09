@@ -84,8 +84,12 @@ def witness_key(receipt: Mapping[str, Any]) -> str:
         raw_p2p = []
     tests = sorted(str(value) for value in list(raw_tests))
     p2p = sorted(str(value) for value in list(raw_p2p))
+    # `proof` is part of the witness: without it a failing re-run of the same tree shared
+    # the key and overwrote a stored pass, so the corpus quietly lost the fact that the
+    # tree had ever passed (ADR-408).
     witness: Dict[str, Any] = {"base": str(receipt.get("base", "")), "tests": tests,
-                               "tree_manifest": manifest, "gate_digest": gates}
+                               "tree_manifest": manifest, "gate_digest": gates,
+                               "proof": bool(receipt.get("proof", False))}
     if p2p:
         witness["pass_to_pass"] = p2p
     return hashlib.sha256(canonical_bytes(witness)).hexdigest()

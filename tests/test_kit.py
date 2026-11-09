@@ -8866,6 +8866,41 @@ class TestDelegateTranscript(unittest.TestCase):
 class TestDelegateBudgets(unittest.TestCase):
     """S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern)."""
 
+    def test_a_tampered_transcript_cannot_replay_a_different_verdict(self):
+        """The module docstring promises replay proves the identical verdict.
+
+        Measured before this fix: editing `output` (and even `exit_code`) left
+        verify_transcript reporting "transcript ok", so a replay returned a verdict the
+        delegate never produced.
+        """
+        from scripts import delegate_transcript as dt
+
+        path = self.kit / "tamper.jsonl"
+        dt.append_request(path, "worker", "summarize", None, None, 30)
+        dt.append_result(path, 0, "VERDICT: pass", 1.5)
+        self.assertTrue(dt.verify_transcript(path)[0], "the honest transcript is valid")
+
+        def rewrite(**changes):
+            events = [json.loads(line) for line in
+                      path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            events[-1]["data"].update(changes)
+            path.write_text("\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8")
+
+        rewrite(output="VERDICT: fail")
+        ok, detail = dt.verify_transcript(path)
+        self.assertFalse(ok, "a changed output must not read as ok")
+        self.assertIn("output", detail)
+        with self.assertRaises(ValueError):
+            dt.replay_transcript(path)
+
+        rewrite(output="VERDICT: pass", exit_code=7)
+        self.assertFalse(dt.verify_transcript(path)[0],
+                         "a changed exit code must not read as ok")
+
+
+class TestDelegateBudgets(unittest.TestCase):
+    """S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern)."""
+
     def setUp(self):
         self.kit = Path(tempfile.mkdtemp(prefix="test_budget_kit_"))
         self.addCleanup(shutil.rmtree, self.kit, ignore_errors=True)
@@ -9150,6 +9185,33 @@ class TestProofCorpus(unittest.TestCase):
         self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
         with self.assertRaises(ValueError):
             proof_corpus.prune(corpus, keep=-1)
+
+    def test_a_failing_rerun_never_overwrites_a_stored_pass(self) -> None:
+        """The docstring says a changed tree files elsewhere instead of overwriting history.
+
+        Measured before this fix: `witness_key` omitted `proof`, so a failing re-run of the
+        same tree shared the key and replaced the stored pass — the corpus then held the
+        failure as though the pass had never happened.
+        """
+        from scripts import proof_corpus
+
+        root = Path(tempfile.mkdtemp(prefix="corpus_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        corpus = root / "corpus"
+        passed = self._receipt(proof=True)
+        failed = self._receipt(proof=False)
+
+        first, _ = proof_corpus.store(passed, corpus, now=1000)
+        second, _ = proof_corpus.store(failed, corpus, now=2000)
+        self.assertNotEqual(first, second, "a different verdict must file under its own key")
+        self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
+        self.assertTrue(proof_corpus.load(corpus, first)["receipt"]["proof"],
+                        "the stored pass must survive a failing re-run")
+
+        # An identical verdict and tree is still idempotent: no duplicate entry.
+        third, _ = proof_corpus.store(passed, corpus, now=3000)
+        self.assertEqual(third, first)
+        self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
 
     def test_replay_matches_verdicts_and_refuses_without_evidence(self) -> None:
         from scripts import proof_corpus

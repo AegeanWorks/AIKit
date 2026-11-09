@@ -103,7 +103,7 @@ enforced. Each machine records its source and a known gap.
 | **Shared outcome** | not_run, pass, fail, inconclusive | `evidence_outcome.py` | Zero observations -> inconclusive; an unknown string is a refusal but is never validated. |
 | **Proof verdict** | not-run, holds, failed, setup-error | `proof_gate.py: main` | Exit 0 holds / 1 failed / 2 setup, measured. The returned record carries only a boolean `proof`, so a setup failure is visible in the exit code, not the record. Each test run is classed separately as passed/assertion/error/timeout. |
 | Mutation scoring | killed, survived, timeout, error | `proof_gate.py` | Only `assertion` kills; the threshold shrinks to the number generated; an empty mutation set fails even when optional. `waived` is a summary count of unrun mutants, not a per-record state; a record with no mutant generated is simply absent from `records`. |
-| Receipt / corpus | absent, stored, replay-pass, replay-fail, replay-inconclusive, pruned, corrupt | `proof_gate.write_receipt`, `proof_corpus.py` | Replay is read-only: it returns the shared three outcomes without changing the stored entry, so replay-* is an observation, not a persisted state. A failing re-run of the same witness key overwrites a stored pass; corrupt entries are skipped and never pruned. |
+| Receipt / corpus | absent, stored, replay-pass, replay-fail, replay-inconclusive, pruned, corrupt | `proof_gate.write_receipt`, `proof_corpus.py` | Replay is read-only: it returns the shared three outcomes without changing the stored entry, so replay-* is an observation, not a persisted state. The witness now includes the verdict, so a failing re-run files under its own key instead of overwriting a stored pass (ADR-408); corrupt entries are skipped and never pruned. |
 | Sealed envelope | unsealed, sealed, expired, tampered, unknown-key | `proof_envelope.py` | Check order masks tamper behind unknown-key/expiry; `--keyid` is effectively single-entry. |
 | Evidence policy | pass, fail, inconclusive | `evidence_policy.py` | A `fail` is never outvoted; a quorum shortfall is inconclusive; the sealed branch is unreachable from `verify_commit`. |
 | Commit verification | pass, fail, inconclusive, skipped | `verify_commit.py` | Missing `.aikit/proof.json` silently skips the proof step; `inconclusive` and `fail` share exit 1; `quorum:N` counts `project-files`. |
@@ -113,7 +113,7 @@ enforced. Each machine records its source and a known gap.
 | Machine | States | Source | Enforcement / gap |
 |---|---|---|---|
 | **Delegate run** | ready, refused, blocked, ran-ok, ran-failed, timed-out, spawn-failed, ledger-violation | `subagent_delegate.py` | Refusals are pre-spawn; the sub-agent's exit 2 collides with AIKit's refusal; a refused run writes no transcript. |
-| **Delegate transcript** | absent, in-flight, complete, invalid, replay-pass/fail/inconclusive | `delegate_transcript.py` | `verify_transcript` never recomputes the output digest, so replay does not prove identical text; no CLI path selects a transcript. |
+| **Delegate transcript** | absent, in-flight, complete, invalid, replay-pass/fail/inconclusive | `delegate_transcript.py` | `verify_transcript` now recomputes `prompt_sha`, `output_sha` and `exit_sha`, so an edited event reads as `invalid` instead of replaying a verdict the delegate never produced (ADR-407); a transcript written before `exit_sha` existed cannot prove its exit code, and no CLI path selects a transcript. |
 | **UI task** | none, open, verified, stale, finished, aborted | `ui_contract.py` | A corrupt task advises `ui abort`, which needs the same unreadable file; abort drops allowed removals and records no history. |
 | UI finding codes | 11 codes + `ui.other` escape | `ui_contract.py`, `ui_proof.py` | Prefix matching, no enum at the raise site; `ui.error` is outside the vocabulary. |
 | UI inventory / style proof | baselined, allowed, lost, empty, lint-off | `ui_proof.py` | A renamed locator reports a loss; a missing snapshot command disables the layer; only added lines are linted. |
@@ -131,10 +131,11 @@ enforced. Each machine records its source and a known gap.
 3. **Exit-code overloading.** Delegate exit 2 is both a refusal and a worker
    failure; compat 124/127 are both sentinels and real codes; `verify_commit`
    maps fail and inconclusive to the same exit 1.
-4. **Fabricated integrity claims.** The transcript docstring claims replay proves
-   the identical verdict while the digest is never recomputed; the corpus
-   docstring claims a changed tree files elsewhere while the witness omits the
-   verdict and the pass can be overwritten.
+4. **Fabricated integrity claims.** Both halves are now fixed. The transcript
+   docstring claimed replay proves the identical verdict while the digest was
+   never recomputed (ADR-407); the corpus witness omitted the verdict, so a
+   failing re-run overwrote a stored pass (ADR-408). Each promise is now backed
+   by a check, and each check has a test that failed first.
 5. **Dead-end recovery.** A corrupt `ui_task.json` used to tell the operator to
    abort, but abort read the same file; abort now drops an unreadable record
    (keeping its bytes) and reports that nothing could be restored. A surface

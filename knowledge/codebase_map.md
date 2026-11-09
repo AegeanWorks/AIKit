@@ -10,7 +10,7 @@
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1030`
 - **Total Class Methods**: `1312`
-- **Total Source Lines**: `48702`
+- **Total Source Lines**: `48739`
 
 ---
 
@@ -855,7 +855,7 @@
 ### [`scripts/delegate_transcript.py`](scripts/delegate_transcript.py)
 > *Append-only JSONL transcript for sub-agent delegation (S-E).*
 
-**Size**: `208` lines (`9375` bytes)
+**Size**: `238` lines (`11482` bytes)
 
 **Functions:**
 - `def _scrub_data(obj)` - *Scrub every string inside `obj` (keys are ours, values may be theirs).*
@@ -1438,7 +1438,7 @@
 ### [`scripts/proof_corpus.py`](scripts/proof_corpus.py)
 > *Witness-keyed proof corpus with replay and pruning (IDEA-1156).*
 
-**Size**: `345` lines (`15251` bytes)
+**Size**: `349` lines (`15542` bytes)
 
 **Functions:**
 - `def canonical_bytes(payload)` - *One canonical byte form for any JSON payload (matches the envelope).*
@@ -1517,7 +1517,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `542` lines (`25537` bytes)
+**Size**: `545` lines (`25720` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*

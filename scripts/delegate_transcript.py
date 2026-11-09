@@ -104,6 +104,7 @@ def append_result(path: Path, exit_code: int, output: str,
     cleaned, _ = scrub_text(output or "")
     return append_event(path, "result", {
         "exit_code": exit_code,
+        "exit_sha": _sha(str(exit_code)),
         "output": cleaned,
         "output_len": len(cleaned),
         "output_sha": _sha(cleaned),
@@ -192,6 +193,35 @@ def verify_transcript(path: Path) -> Tuple[bool, str]:
                        "Fix: delete the transcript and re-run; prompts are scrubbed on write.")
     last = next(event for event in reversed(events) if event.get("kind") == "result")
     data = last.get("data", {})
+    # The module promises a replay proves the identical verdict, which is only true if the
+    # recorded digests still match the recorded content. Without this check a hand-edited
+    # output or exit code replayed as a verdict the delegate never produced (ADR-407).
+    for index, event in enumerate(events, start=1):
+        payload = event.get("data")
+        if not isinstance(payload, dict):
+            return False, (f"transcript line {index} has no data object\n"
+                           "Why: every event carries the payload it proves.\n"
+                           "Fix: re-run the delegate with transcript_path to rewrite it.")
+        for field, key in (("prompt", "prompt_sha"), ("output", "output_sha"),
+                           ("exit_code", "exit_sha")):
+            if field not in payload:
+                continue
+            recorded = payload.get(key)
+            if field == "exit_code" and recorded is None:
+                # A transcript written before `exit_sha` existed cannot prove its exit code.
+                # Say so rather than reporting a clean verdict nobody can verify.
+                return False, (f"transcript line {index} records no exit_sha\n"
+                               "Why: without it a replay cannot prove the exit code it "
+                               "returns; an older transcript cannot be trusted as proof.\n"
+                               "Fix: re-run the delegate with transcript_path to rewrite it.")
+            value = payload.get(field)
+            # Never `value or ""`: exit code 0 is falsy and would hash as empty text.
+            text = "" if value is None else str(value)
+            if recorded != _sha(text):
+                return False, (f"transcript line {index} {field} does not match its {key}\n"
+                               "Why: the digest is what makes a replay prove the identical "
+                               "verdict; a mismatch means the event was edited after the run.\n"
+                               "Fix: re-run the delegate with transcript_path to rewrite it.")
     return True, (f"transcript ok: {len(events)} events, "
                   f"exit {data.get('exit_code')}, "
                   f"output_sha {str(data.get('output_sha', ''))[:12]}")

@@ -273,8 +273,10 @@ MACHINES: Tuple[Machine, ...] = (
         },
         source="scripts/delegate_transcript.py: append_event, verify_transcript, "
                "replay_transcript",
-        gap="verify_transcript never recomputes output_sha, so replay does not prove the "
-            "identical text; no shipped CLI passes transcript_path.",
+        gap="verify_transcript recomputes prompt_sha, output_sha and exit_sha, so an edited "
+            "event now reads as invalid (ADR-407); a transcript written before exit_sha "
+            "existed cannot prove its exit code, and no shipped CLI passes "
+            "transcript_path.",
     ),
     Machine(
         name="ui-task",
@@ -381,8 +383,9 @@ MACHINES: Tuple[Machine, ...] = (
                "seal, verify; .aikit/proof_corpus/witness_<sha>.json",
         gap="Replay is read-only: it returns the shared three outcomes (pass/fail/inconclusive) "
             "without changing the stored entry, so replay-* is an observation, not a persisted "
-            "state. A failing re-run of the same tree overwrites the stored pass (the witness "
-            "omits the verdict); corrupt entries are invisible and never pruned.",
+            "state. The witness now includes the verdict, so a failing re-run files under its "
+            "own key instead of overwriting a stored pass (ADR-408); corrupt entries are "
+            "invisible and never pruned.",
     ),
     Machine(
         name="dossier-catalogue",
