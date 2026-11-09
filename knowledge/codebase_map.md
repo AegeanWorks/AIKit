@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `172`
 - **Total Top-Level Functions**: `1030`
-- **Total Class Methods**: `1314`
-- **Total Source Lines**: `48801`
+- **Total Class Methods**: `1315`
+- **Total Source Lines**: `48810`
 
 ---
 
@@ -1949,7 +1949,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16369` lines (`891195` bytes)
+**Size**: `16378` lines (`891677` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2671,6 +2671,7 @@
   - Method `.test_witness_key_is_stable_and_content_bound()`
   - Method `.test_witness_key_omits_empty_pass_to_pass_for_compat()`
   - Method `.test_store_lists_and_prunes_oldest_first()`
+  - Method `.test_replay_never_raises_on_a_non_mapping_entry()` - *replay's docstring says "never raises"; a bare list/None raised AttributeError.*
   - Method `.test_a_failing_rerun_never_overwrites_a_stored_pass()` - *The docstring says a changed tree files elsewhere instead of overwriting history.*
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
   - Method `.test_replay_does_not_mask_unrelated_type_errors()`
