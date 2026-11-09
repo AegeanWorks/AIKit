@@ -1,8 +1,8 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Six proposals passed and are
-implemented (P1–P4, P9, P11, plus P10 partly); P12's discoverability half is
+`knowledge/state_machines.md` (ADR-388). Seven proposals passed and are
+implemented (P1–P4, P6, P9, P11, plus P10 partly); P12's discoverability half is
 implemented as `--which` (ADR-394); the rest are deferred with the reason.
 
 ## Decision criteria
@@ -28,7 +28,7 @@ A proposal passes only when **all** hold:
 | P3 | Refuse reopening a completed task through `--checkpoint` | High | High | High | Low | **PASS, implemented** |
 | P4 | Refuse an unknown checkpoint status before writing | Med | High | High | Low | **PASS, implemented** |
 | P5 | Validate Idea Catcher status transitions in `validate_ideas` | Low | High | High | Med | Deferred |
-| P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Med | Deferred |
+| P6 | Refuse `publish`/`check` on an archived project | High | Med | Med | Low | **PASS, publish only (ADR-402)** |
 | P7 | Add a Reforge delivery reconciler for the commit-without-SHA crash | Med | High | High | High | Deferred |
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
@@ -105,9 +105,12 @@ the error and that no ledger file is created.
   during this change; a validation pass needs a quiescent `ideas.json` and a
   decision on `Integrated -> Proposed`. The transition table is identified but
   not wired. AX gain is real; blast radius is the whole register.
-- **P6 (archived project guard).** `publish` on an archived project is clearly
-  wrong, but `check` on one may be a legitimate read-only audit. The refusal
-  boundary is a product decision, so it is not changed unilaterally.
+- **P6 (archived project guard).** **Implemented for `publish` only (ADR-402).**
+  Verified live that `cmd_publish` never called `is_archived`: publish on an
+  archived project ran the whole pipeline and reached a downstream gate. It now
+  refuses with exit 2 before installing the pre-push hook. `check` is deliberately
+  still allowed — auditing a retired project read-only is legitimate, and refusing
+  it would remove the only way to learn whether the project is still sound.
 - **P7 (delivery reconciler).** A new command and a recovery rule for a crash
   window; needs a design for "commit exists, no SHA" before code.
 - **P8 (license transaction).** Reordering five writes or adding a journal

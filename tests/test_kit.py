@@ -6361,6 +6361,21 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("Why:", err)
         publish.assert_not_called()
 
+    def test_publish_refuses_an_archived_project(self):
+        """P6: publishing an archived project resurrects it as a live repository."""
+        folder = self.make_licensed_project("retired")
+        config_file = folder / ".aikit" / "project.json"
+        config = json.loads(config_file.read_text(encoding="utf-8"))
+        config["archived"] = True
+        config_file.write_text(json.dumps(config), encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.publish_project") as publish:
+            code, _, err = self.run_cli("publish", "retired")
+        self.assertEqual(code, 2)
+        self.assertIn("archived", err)
+        self.assertIn("Why:", err)
+        self.assertIn("Fix:", err)
+        publish.assert_not_called()
+
     def test_cli_new_takes_a_description_and_topics(self):
         with mock.patch("scripts.project_registry._git_start"):
             code, out, err = self.run_cli("new", "tagged", "--description",

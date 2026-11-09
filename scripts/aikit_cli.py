@@ -748,6 +748,18 @@ def cmd_fix(args: argparse.Namespace) -> int:
 
 def cmd_publish(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
+    # An archived project is retired and its repository archived; publishing one would put a
+    # retired project back in front of the public (P6, ADR-402). Refused before the guard is
+    # installed so a refusal changes nothing on disk.
+    if is_archived(project.path):
+        return report_error(ProjectError(
+            f"'{project.name}' is archived; publish is refused.",
+            "an archived project is retired and its GitHub repository is archived, so "
+            "publishing it would present a retired project as live.",
+            "AIKit has no unarchive command: move it out of projects/archive/, clear "
+            "\"archived\" in .aikit/project.json, then publish.",
+            exit_code=2,
+        ))
     # Install the local guard before any refusal: even a failed publish must block a raw retry.
     try:
         guard = install_pre_push_hook(project.path, project.name)

@@ -1,38 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "verify-98p11",
+    "task_id": "verify-99p6",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794249090.3136005,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794249537.499087,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794249115.6724596
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-92envelope",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[3/3] refused() reads keyid from a shaped mapping; non-object envelope now returns inconclusive with a null keyid; 1 fail-first test, 6 TestProofEnvelope pass, 1035 unit + 89 integration green; all gates incl dogfood 5/5 and budget",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794245431.7773829,
-      "timestamp_str": "2026-11-09 20:30:31",
-      "agent": "commandcode:goal"
-    },
-    {
-      "task_id": "verify-92envelope",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-92envelope' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794245455.5468175,
-      "timestamp_str": "2026-11-09 20:30:55",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-93scriptmode",
       "phase": "planning",
@@ -265,6 +243,35 @@
       "status": "completed",
       "timestamp": 1794249115.6724632,
       "timestamp_str": "2026-11-09 21:31:55",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-99p6",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Refuse publish on an archived project (P6, publish half only)",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794249229.59444,
+      "timestamp_str": "2026-11-09 21:33:49",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "The state-machine inventory's Project row recorded 'publish/check never refuse an archived project'. Verified live: cmd_publish never called is_archived, so `publish` on an archived project ran the whole pipeline and reached a later gate (measured exit 1) instead of refusing. Archiving retires the project, moves it to projects/archive/ and archives the GitHub repository, so publishing one presents a retired project as live.",
+        "benefits": "A retired project can no longer be re-published by mistake, and the refusal names the real recovery path (move it out of projects/archive/ and clear the flag), consistent with ADR-400's archive remedy.",
+        "risks": "contract: publish gains a refusal, exit 2, before any disk change; check is deliberately unchanged because a read-only audit of an archived project may be legitimate; dependency: none; concurrency: none; state: aikit_cli.py, one test",
+        "mitigation": "the guard runs before the pre-push hook is installed, so a refused publish writes nothing; the full TestProjectRegistry class (123 tests) was run to prove no existing publish path regressed"
+      },
+      "plan_digest": "e0598d0cc1a05f12d8f5d07e637d0d905030d10958440bd970f9d61bd252024c"
+    },
+    {
+      "task_id": "verify-99p6",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] cmd_publish refuses an archived project (exit 2, triad) before installing the hook; check deliberately unchanged; test fails first at exit 1 with the pipeline reached; 123 TestProjectRegistry tests pass; 1048 unit + 89 integration green; all gates incl dogfood 5/5; my test costs 23ms vs 51ms for the neighbouring publish test",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794249537.499087,
+      "timestamp_str": "2026-11-09 21:38:57",
       "agent": "commandcode:goal"
     }
   ]

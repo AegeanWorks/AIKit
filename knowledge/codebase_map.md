@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `171`
 - **Total Top-Level Functions**: `1028`
-- **Total Class Methods**: `1304`
-- **Total Source Lines**: `48458`
+- **Total Class Methods**: `1305`
+- **Total Source Lines**: `48485`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1588` lines (`80282` bytes)
+**Size**: `1600` lines (`81011` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1515,7 +1515,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `541` lines (`25382` bytes)
+**Size**: `541` lines (`25424` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1947,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16169` lines (`880708` bytes)
+**Size**: `16184` lines (`881448` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2452,6 +2452,7 @@
   - Method `.test_a_restricted_project_pushes_only_to_a_private_remote()`
   - Method `.test_check_push_refuses_a_restricted_project_with_a_public_origin()`
   - Method `.test_publish_public_refuses_a_restricted_project()`
+  - Method `.test_publish_refuses_an_archived_project()` - *P6: publishing an archived project resurrects it as a live repository.*
   - Method `.test_cli_new_takes_a_description_and_topics()`
   - Method `.test_new_project_ignores_bytecode_and_has_a_clean_adr_template()`
   - Method `.test_git_identity_failure_is_an_error_not_a_warning()`

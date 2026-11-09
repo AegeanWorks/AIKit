@@ -174,8 +174,8 @@ MACHINES: Tuple[Machine, ...] = (
         },
         source="scripts/project_registry.py: create_project, attach_project, _build_project; "
                "scripts/project_archive.py: archive_project; .aikit/project.json",
-        gap="No detach or unarchive transition exists; publish and check never refuse an "
-            "archived project.",
+        gap="No detach or unarchive transition exists; publish refuses an archived project "
+            "(ADR-402) while check stays allowed as a read-only audit.",
     ),
     Machine(
         name="license",

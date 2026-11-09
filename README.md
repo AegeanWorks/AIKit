@@ -152,6 +152,7 @@ portable_agent_kit/
 │   ├── project_ui.py             <- Durable has_ui/ui_kind identifier (ADR-233)
 │   ├── project_topics.py         <- AI topic brief and validator, max 20 (ADR-236)
 │   ├── project_media.py          <- logo/social/screenshot pipeline (ADR-235)
+│   ├── project_machine_states.py <- Live project-level state machines (ADR-401)
 │   ├── project_brand.py          <- motif, palette and social composition (ADR-238)
 │   ├── project_artwork.py        <- image-model hero art + text overlay (ADR-239)
 │   ├── brand_catalog.json        <- Authored unique project identities
