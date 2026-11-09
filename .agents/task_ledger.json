@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-99p6",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794249537.499087,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794249557.83336
   },
   "checkpoints": [
-    {
-      "task_id": "verify-93scriptmode",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/3] proof_corpus store and proof_gate --receipt crash under their documented `python scripts/<module>.py` invocation",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794245844.831562,
-      "timestamp_str": "2026-11-09 20:37:24",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "Both write_receipt/_atomic_write_json import `scripts.disruption_recovery` unconditionally. Under `python scripts/proof_corpus.py` the scripts directory is sys.path[0] and the package root is not, so the import raises ModuleNotFoundError. Measured: `proof_corpus.py store valid.json --corpus c` exited 1 with a traceback, and `write_receipt` raised ModuleNotFoundError under the same import layout. Both modules already use a dual fallback for evidence_outcome, so the intended pattern is script-mode safe.",
-        "benefits": "Both documented CLIs work as printed in their own --help and `prog`, so an agent following the usage line no longer gets a stack trace after a successful proof. It also makes the existing dual-import pattern consistent across all three lazy imports.",
-        "risks": "contract: unchanged in package mode, sibling fallback only on ImportError; dependency: none; concurrency: none; state: both modules, two tests, an ADR",
-        "mitigation": "fallback only on ImportError; two hermetic tests that simulate script mode by clearing the package entry; each proven to error on the old code"
-      },
-      "plan_digest": "e8b9755adfd9df65cd319991415e0b3bacb0eab90d77d9ddd2adbac70878e8b9"
-    },
     {
       "task_id": "verify-93scriptmode",
       "phase": "verification",
@@ -272,6 +255,16 @@
       "status": "in_progress",
       "timestamp": 1794249537.499087,
       "timestamp_str": "2026-11-09 21:38:57",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-99p6",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-99p6' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794249557.8333611,
+      "timestamp_str": "2026-11-09 21:39:17",
       "agent": "commandcode:goal"
     }
   ]
