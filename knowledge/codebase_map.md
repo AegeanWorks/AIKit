@@ -9,8 +9,8 @@
 - **Total Python Modules**: `71`
 - **Total Classes**: `169`
 - **Total Top-Level Functions**: `1018`
-- **Total Class Methods**: `1279`
-- **Total Source Lines**: `47806`
+- **Total Class Methods**: `1280`
+- **Total Source Lines**: `47836`
 
 ---
 
@@ -1495,7 +1495,7 @@
 ### [`scripts/state_machines.py`](scripts/state_machines.py)
 > *Explicit state-machine registry for AIKit (PRINCIPLE-009, PRINCIPLE-016).*
 
-**Size**: `504` lines (`23646` bytes)
+**Size**: `507` lines (`23925` bytes)
 
 **Classes:**
 - `class Machine` - *One lifecycle as data: states, intended transitions, and its live source.*
@@ -1925,7 +1925,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `15770` lines (`858593` bytes)
+**Size**: `15797` lines (`859989` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3134,6 +3134,7 @@
   - Method `.test_upstream_check_states_match_the_registry()` - *The registry must name every state diff_upstream and run_revalidation produce.*
   - Method `.test_registry_names_a_readable_source_for_every_machine()` - *A drift alarm, not a proof: each machine must point at code that exists.*
   - Method `.test_registry_machine_names_match_the_doc_rows()` - *A registry machine and its doc row must describe one vocabulary, not two.*
+  - Method `.test_registry_gaps_name_no_retired_defect()` - *A gap that describes a fixed defect sends the next reader to the wrong place.*
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

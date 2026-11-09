@@ -15765,6 +15765,33 @@ class TestStateMachines(unittest.TestCase):
                 f"{machine.name}: registry states disagree with the doc row '{label}': "
                 f"{set(machine.states) ^ set(rows[label])}")
 
+    def test_registry_gaps_name_no_retired_defect(self) -> None:
+        """A gap that describes a fixed defect sends the next reader to the wrong place.
+
+        Each claim is checked against the module it names: a gap must name a live source, and
+        the two defects fixed in ADR-391 must not be described as open.
+        """
+        from scripts import state_machines as sm
+        source_root = Path(__file__).resolve().parents[1]
+
+        long_reforge = sm.BY_NAME["reforge-run"].gap
+        self.assertIn("unknown", long_reforge.lower(),
+                      "reforge-run still has the unknown-status gap")
+        self.assertNotIn("no clear status output", long_reforge,
+                         "completed -> stopped now prints a Why/Fix triad")
+
+        dossier = sm.BY_NAME["dossier-catalogue"].gap
+        self.assertNotIn("both return False", dossier,
+                         "sync_published returns a dict with a named skip reason, never False")
+
+        for machine in sm.MACHINES:
+            modules = re.findall(r"([A-Za-z0-9_]+\.py)", machine.source)
+            existing = [m for m in modules
+                        if any((source_root / d / m).is_file()
+                               for d in ("scripts", "reforge", "idea_catcher"))]
+            self.assertTrue(existing,
+                            f"{machine.name}: gap source {modules} names no readable module")
+
 
 if __name__ == "__main__":
     unittest.main()

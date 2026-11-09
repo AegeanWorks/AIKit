@@ -83,8 +83,9 @@ MACHINES: Tuple[Machine, ...] = (
         },
         source="reforge/state.py: create_run, stop_run, resume_run, settle_run; "
                ".aikit/reforge.json run.status",
-        gap="completed -> stopped is refused with no clear status output; an unknown status "
-            "string is treated as advanceable.",
+        gap="A status string outside the four states is treated as advanceable: an unknown "
+            "run.status passes plan_next_stage instead of being refused. completed -> stopped "
+            "is refused with a full Why/Fix triad (verified).",
     ),
     Machine(
         name="reforge-review",
@@ -392,8 +393,10 @@ MACHINES: Tuple[Machine, ...] = (
             "media-stale": ("media-stale", "synced"),
         },
         source="scripts/dossier_sync.py: sync_published, sync_entry; dossier repo files",
-        gap="'unchanged' and 'anchor missing' both return False, so a partial sync reports "
-            "success; an empty metadata list truncates the public atlas to one repository.",
+        gap="Every skip is a named reason in the returned dict (no dossier, no origin, another "
+            "owner, restricted tier, private repo), so a partial sync is distinguishable from a "
+            "complete one. sync_entry reports the files it touched; an empty metadata list still "
+            "truncates the public atlas to one repository.",
     ),
 )
 

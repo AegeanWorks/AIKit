@@ -45,7 +45,7 @@ enforced. Each machine records its source and a known gap.
 
 | Machine | States | Source | Enforcement / gap |
 |---|---|---|---|
-| **Run** | none, active, stopped, completed | `.aikit/reforge.json` `run.status` | `stop`/`resume`/`settle_run` guard most transitions; an unknown status is accepted as advanceable; `completed -> stopped` is refused with no status output. |
+| **Run** | none, active, stopped, completed | `.aikit/reforge.json` `run.status` | `stop`/`resume`/`settle_run` guard most transitions; an unknown status is accepted as advanceable. `completed -> stopped` is refused with a full Why/Fix triad (verified). |
 | Stage / window | stage 0..N, window size, terminal window | `stage`, `window`, `audited_commits`, `total_commits` | `plan_next_stage` refuses completed/stopped/pending review; lowering `--stop` below the current window creates a no-output deadlock. |
 | **Review** | none, unreviewed, partial, reviewed | `entry.review.status` | `review` refuses `partial`; `fix` accepts and persists it; a review older than `MAX_HISTORY` stops blocking completion. |
 | Finding | fixable/repaired/rejected, source/category | `entry.findings[]` | `mark_repairs` runs after the tree edit; a crash leaves repaired=False on a repaired tree. |
@@ -108,7 +108,7 @@ enforced. Each machine records its source and a known gap.
 | UI finding codes | 11 codes + `ui.other` escape | `ui_contract.py`, `ui_proof.py` | Prefix matching, no enum at the raise site; `ui.error` is outside the vocabulary. |
 | UI inventory / style proof | baselined, allowed, lost, empty, lint-off | `ui_proof.py` | A renamed locator reports a loss; a missing snapshot command disables the layer; only added lines are linted. |
 | UI surface evidence | evidenced, unevidenced, legacy, unreadable | `ui_contract.py` | Any edit invalidates evidence; an untracked file can block it permanently. |
-| Dossier catalogue | no-dossier, skipped, synced, partial, media-stale | `dossier_sync.py` | Seven upserts conflate "unchanged" with "anchor missing"; an empty metadata list truncates the atlas; category can freeze while JSON-LD moves. |
+| Dossier catalogue | no-dossier, skipped, synced, partial, media-stale | `dossier_sync.py` | Every skip is a named reason in the returned dict, so a partial sync is distinguishable from a complete one; an empty metadata list truncates the atlas; category can freeze while JSON-LD moves. |
 | Compat proof | absent, headless, ui, pass, findings | `project_compat.py` | Optional seed/bench/evidence sections disable checks; `ui -> headless` retires screenshots; 124/127 sentinels collide. |
 
 ## 7. Supporting cross-cutting findings
