@@ -6882,6 +6882,53 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertIn("nosuchproject", payload["error"]["message"])
         self.assertEqual(err, "")
 
+    def test_status_json_reports_each_machine_it_can_read(self):
+        """P11: a bare status string must be resolvable to its machine (ADR-394's --which)."""
+        folder = self.make_folder()
+        attach_project(folder, "machines", workspace=self.kit)
+        clean = {"modified_files": [], "untracked_files": [], "conflicted_files": [],
+                 "ledger_error": None, "git_missing": False}
+        with mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=clean):
+            code, out, _ = self.run_cli("status", "machines", "--json")
+        self.assertEqual(code, 0)
+        payload = json.loads(out)
+        block = payload["machines"]
+
+        # Every reported state must be a declared state of the machine it names.
+        from scripts import state_machines as sm
+        for name, state in block["states"].items():
+            self.assertIn(state, sm.BY_NAME[name].states,
+                          f"{name} reported {state!r}, which it does not declare")
+
+        # The states this audit can derive are present, and correct for a fresh project.
+        # An attached folder never had a LICENSE written by AIKit, so its tier is genuinely
+        # `unrecorded`; asserting `personal` here would be the report lying to be pretty.
+        self.assertEqual(block["states"]["license"], "unrecorded")
+        self.assertEqual(block["states"]["ui-task"], "none")
+        self.assertEqual(block["states"]["project-lifecycle"], "attached")
+
+        # Coverage is stated, not implied: read + unsampled must equal the registry.
+        registry = {machine.name for machine in sm.MACHINES}
+        self.assertEqual(set(block["states"]) | set(block["not_sampled"]), registry)
+        self.assertFalse(set(block["states"]) & set(block["not_sampled"]))
+        self.assertEqual(block["registry_count"], len(registry))
+        self.assertEqual(block["read_count"], len(block["states"]))
+
+    def test_status_json_names_a_local_project_as_local_and_an_attached_one_as_attached(self):
+        """project-lifecycle has two entry edges; the reported state must follow the real one."""
+        outside = self.make_folder()
+        attach_project(outside, "attachedone", workspace=self.kit)
+        created = create_project("localone", test_command="", workspace=self.kit,
+                                 git_start=lambda root: None)
+        clean = {"modified_files": [], "untracked_files": [], "conflicted_files": [],
+                 "ledger_error": None, "git_missing": False}
+        for name, expected in (("attachedone", "attached"), ("localone", "local")):
+            with mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=clean):
+                code, out, _ = self.run_cli("status", name, "--json")
+            self.assertEqual(code, 0, out)
+            self.assertEqual(json.loads(out)["machines"]["states"]["project-lifecycle"],
+                             expected, name)
+
     def test_resume_json_carries_the_audit_and_the_guidelines_count(self):
         folder = self.make_folder()
         attach_project(folder, "jsonresume", workspace=self.kit)

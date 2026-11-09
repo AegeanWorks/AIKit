@@ -6,11 +6,11 @@
 ---
 
 ## 📊 Codebase Metrics
-- **Total Python Modules**: `71`
-- **Total Classes**: `170`
-- **Total Top-Level Functions**: `1020`
-- **Total Class Methods**: `1302`
-- **Total Source Lines**: `48252`
+- **Total Python Modules**: `72`
+- **Total Classes**: `171`
+- **Total Top-Level Functions**: `1028`
+- **Total Class Methods**: `1304`
+- **Total Source Lines**: `48458`
 
 ---
 
@@ -651,7 +651,7 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1585` lines (`80096` bytes)
+**Size**: `1588` lines (`80282` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
@@ -1225,6 +1225,26 @@
 - `def public_remote_refusal(project_root, name, runner)` - *The error that stops a push of a restricted project, or None. Only a remote GitHub reports as*
 - `def _restricted_readme(text, newline)` - *`text` with its tree's licensing lines and its License section switched to the restricted tier.*
 - `def restrict_project(project_root, name, today, runner)` - *Move a project to the restricted tier at its current commit; returns the recorded state. A*
+
+---
+
+### [`scripts/project_machine_states.py`](scripts/project_machine_states.py)
+> *Read the project-level machine states that `status` can derive (P11, ADR-401).*
+
+**Size**: `156` lines (`5707` bytes)
+
+**Classes:**
+- `class _Unreadable` - *A state file exists but cannot be read into a declared state.*
+
+**Functions:**
+- `def _project_lifecycle(project)`
+- `def _license(project)`
+- `def _ui_identity(project)` - *A config read, not a filesystem scan: `status` must stay a cold-start report.*
+- `def _media_asset(project)` - *One state for the manifest: the least-reviewed asset decides it.*
+- `def _ui_task(project)`
+- `def _task_lifecycle(audit)` - *`missing` means no active task, which is the state a fresh project is in.*
+- `def _ledger_generation(audit, ledger_exists)`
+- `def project_states(project, audit, ledger_exists)` - *Each readable machine's live state, plus the ones this report did not sample.*
 
 ---
 
@@ -1927,7 +1947,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16122` lines (`877788` bytes)
+**Size**: `16169` lines (`880708` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2467,6 +2487,8 @@
   - Method `.test_status_json_honors_exit_code_when_both_flags_are_given()`
   - Method `.test_status_treats_a_corrupt_ledger_as_unclean_on_both_surfaces()`
   - Method `.test_status_json_returns_the_error_envelope_for_an_unknown_project()`
+  - Method `.test_status_json_reports_each_machine_it_can_read()` - *P11: a bare status string must be resolvable to its machine (ADR-394's --which).*
+  - Method `.test_status_json_names_a_local_project_as_local_and_an_attached_one_as_attached()` - *project-lifecycle has two entry edges; the reported state must follow the real one.*
   - Method `.test_resume_json_carries_the_audit_and_the_guidelines_count()`
   - Method `.test_new_public_without_publish_is_a_usage_error()`
   - Method `.test_aikit_ledger_commands_name_the_agent_and_guard_its_task()`

@@ -6,6 +6,14 @@ the explicit subset lives in `scripts/state_machines.py` and is readable with
 shared by more than one machine, so `--which <state>` names the machines that
 declare a bare status read from a file.
 
+`python aikit.py status <name> --json` reports the live state of the seven
+machines a project carries in its own files (`project-lifecycle`, `license`,
+`ui-identity`, `media-asset`, `ui-task`, `task-lifecycle`, `ledger-generation`)
+under `machines.states`, and lists the other fourteen by name under
+`machines.not_sampled` — reading those would mean opening Reforge runs, the
+Idea Catcher register or proof artifacts, which a cold-start report must not do
+(ADR-401).
+
 An **implicit state machine** is a set of states encoded in JSON fields, status
 strings, files or flags, with transitions enforced (or merely assumed) by code.
 The method was: map each subsystem from the source, re-read every claimed

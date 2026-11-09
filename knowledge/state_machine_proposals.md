@@ -1,8 +1,8 @@
 # State-Machine Proposals
 
 Status: analysis and verification of the fixes proposed after
-`knowledge/state_machines.md` (ADR-388). Five proposals passed and are
-implemented (P1–P4, P9, plus P10 partly); P12's discoverability half is
+`knowledge/state_machines.md` (ADR-388). Six proposals passed and are
+implemented (P1–P4, P9, P11, plus P10 partly); P12's discoverability half is
 implemented as `--which` (ADR-394); the rest are deferred with the reason.
 
 ## Decision criteria
@@ -33,7 +33,7 @@ A proposal passes only when **all** hold:
 | P8 | Make `restrict_project` transactional across LICENSE/config/README | Med | High | Med | High | Deferred |
 | P9 | Preserve a manual UI identity across `fix`/`media init` | Med | Med | Med | Low | **PASS, implemented (ADR-397)** |
 | P10 | Make `--audit` truly read-only (no mkdir, no quarantine) | Med | Med | High | High | **PASS, partly, implemented** |
-| P11 | Complete `status --json` with every machine's state | Med | Med | High | Med | Deferred |
+| P11 | Complete `status --json` with every machine's state | Med | Med | High | Low | **PASS, bounded (ADR-401)** |
 | P12 | Publish the status vocabulary in every `--help` | High | Low | High | Low | Deferred |
 
 ## Implemented proposals
@@ -126,8 +126,14 @@ the error and that no ledger file is created.
   `mkdir` half is fixed — `--audit` no longer creates `.agents` when the ledger
   is absent — while the quarantine of a corrupt ledger stays, because that is
   lossless recovery rather than a side effect.
-- **P11 (complete status JSON).** Additive, but it touches three command
-  payloads; the registry now gives the machine data, so this is a follow-up.
+- **P11 (complete status JSON).** **Implemented as far as it is honest (ADR-401).**
+  The seven project-level machines are now reported (`project-lifecycle`,
+  `license`, `ui-identity`, `media-asset`, `ui-task`, `task-lifecycle`,
+  `ledger-generation`), and the payload names the fourteen it did not sample
+  with `read_count` + `registry_count`, so 7 of 21 cannot be read as a complete
+  snapshot. Reading the rest would open Reforge runs, the idea register,
+  delegation transcripts and proof artifacts — work a cold-start status call
+  must not do.
 - **P12 (help vocabulary).** The generated help copies are test-pinned; adding
   the vocabulary means updating both copies and the README together. Follow-up.
 

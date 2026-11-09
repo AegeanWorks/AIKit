@@ -78,6 +78,7 @@ from scripts.project_registry import (
 from scripts.subagent_delegate import delegate_subagent
 from scripts import ui_contract
 from scripts import dossier_sync, project_artwork, project_media, project_topics, project_ui
+from scripts import project_machine_states
 from scripts.update_knowledge_base import (
     find_python_files,
     generate_codebase_map,
@@ -384,6 +385,8 @@ def cmd_status(args: argparse.Namespace) -> int:
             "disruption": audit,
             "ui_task_open": open_ui_task,
             "gates": [gate.name for gate in resolve_gates(project)],
+            "machines": project_machine_states.project_states(
+                project, audit, workspace_ledger_path(project.path).is_file()),
         }, indent=2, default=str))
         if audit.get("ledger_error"):
             return 1
