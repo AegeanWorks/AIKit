@@ -3,32 +3,15 @@
   "active_task": {
     "task_id": "verify-92envelope",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794245431.7773829,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794245455.5468166
   },
   "checkpoints": [
-    {
-      "task_id": "verify-87docdrift",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/4] Two doc/registry contradictions found; plan the coherent fix",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794203444.9436364,
-      "timestamp_str": "2026-11-09 08:50:44",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "knowledge/state_machines.md and scripts/state_machines.py disagree on two machines. The doc's Proof verdict row claims unproven/holds/refused, none of which appear in proof_gate.py (the CLI contract is 0 proof holds / 1 proof failed / 2 setup); the registry machine actually named proof-verdict carries the shared-outcome vocabulary instead. The doc's Receipt/corpus row says not-persisted while the registry and code say absent.",
-        "benefits": "One name maps to one vocabulary, so an agent that reads the doc and then queries --machine gets the same states; the inventory stops asserting two different things about the same concept.",
-        "risks": "contract: scripts/state_machines.py machine names and states, the --machine CLI; dependency: none (stdlib only); concurrency: none; state: state_machines.py, knowledge/state_machines.md, tests/test_kit.py, an ADR",
-        "mitigation": "verify every rename/add against the code that produces the vocabulary; keep a compatibility note in the ADR; pin with tests that read the doc and the module; run both tiers and the full gate set"
-      },
-      "plan_digest": "63a71c52a33c95accc24fe20d3ae812e8e13ebcf9e88e446bbeb54482505e097"
-    },
     {
       "task_id": "verify-87docdrift",
       "phase": "implementation",
@@ -266,6 +249,16 @@
       "status": "in_progress",
       "timestamp": 1794245431.7773829,
       "timestamp_str": "2026-11-09 20:30:31",
+      "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "verify-92envelope",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'verify-92envelope' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794245455.5468175,
+      "timestamp_str": "2026-11-09 20:30:55",
       "agent": "commandcode:goal"
     }
   ]
