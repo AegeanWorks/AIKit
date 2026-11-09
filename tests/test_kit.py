@@ -15496,7 +15496,7 @@ class TestStateMachines(unittest.TestCase):
     def test_registry_is_internally_consistent(self) -> None:
         from scripts import state_machines as sm
         from scripts.disruption_recovery import TASK_STATES
-        self.assertGreaterEqual(len(sm.MACHINES), 20)
+        self.assertGreaterEqual(len(sm.MACHINES), 21)
         names = [machine.name for machine in sm.MACHINES]
         self.assertEqual(len(names), len(set(names)))
         for machine in sm.MACHINES:
@@ -15642,7 +15642,7 @@ class TestStateMachines(unittest.TestCase):
             ("idea-status", "Proposed", "Approved", True),
             ("idea-status", "Blocked", "Proposed", False),
             ("project-lifecycle", "archived", "local", False),
-            ("proof-verdict", "pass", "fail", False),
+            ("proof-verdict", "holds", "failed", False),
             ("delegate-run", "ready", "ran-ok", True),
             ("delegate-run", "refused", "ran-ok", False),
             ("ui-task", "finished", "open", False),
@@ -15723,6 +15723,47 @@ class TestStateMachines(unittest.TestCase):
                                for d in ("scripts", "reforge", "idea_catcher"))]
             self.assertTrue(existing,
                             f"{machine.name}: source names no readable module in {modules}")
+
+    def test_registry_machine_names_match_the_doc_rows(self) -> None:
+        """A registry machine and its doc row must describe one vocabulary, not two.
+
+        The doc keeps one row per machine it documents. When a registry machine and a doc
+        row claim the same concept, their state names must agree; otherwise an agent that
+        reads the doc and then queries --machine gets two different answers.
+        """
+        from scripts import state_machines as sm
+        doc = (Path(__file__).resolve().parents[1] / "knowledge" / "state_machines.md")
+        rows = {}
+        for line in doc.read_text(encoding="utf-8").splitlines():
+            if not line.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in line.split("|")]
+            if len(cells) < 4:
+                continue
+            label = cells[1].strip("* ")
+            states = [state.strip() for state in cells[2].split(",")]
+            if label and states and all(re.fullmatch(r"[a-z0-9_-]+", s) for s in states):
+                rows[label.lower()] = states
+        # Machines whose name differs from the doc label by convention.
+        LABEL = {"shared-outcome": "shared outcome", "proof-verdict": "proof verdict",
+                 "proof-corpus": "receipt / corpus", "task-lifecycle": "task lifecycle",
+                 "reforge-run": "run", "reforge-review": "review",
+                 "reforge-delivery": "delivery", "idea-status": "idea status",
+                 "idea-repo-review": "repo review", "project-lifecycle": "project",
+                 "ui-identity": "ui identity", "gate-result": "gate result",
+                 "media-asset": "media asset", "delegate-run": "delegate run",
+                 "delegate-transcript": "delegate transcript", "ui-task": "ui task",
+                 "compat-proof": "compat proof", "dossier-catalogue": "dossier catalogue",
+                 "upstream-check": "upstream revalidation", "license": "license",
+                 "ledger-generation": "ledger generation"}
+        for machine in sm.MACHINES:
+            label = LABEL.get(machine.name)
+            if label is None or label not in rows:
+                continue
+            self.assertEqual(
+                set(rows[label]), set(machine.states),
+                f"{machine.name}: registry states disagree with the doc row '{label}': "
+                f"{set(machine.states) ^ set(rows[label])}")
 
 
 if __name__ == "__main__":

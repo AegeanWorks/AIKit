@@ -18,9 +18,9 @@ comments.
 | Reforge | 9 | 4 (run, review, delivery, lock note) |
 | Idea Catcher | 10 | 3 (`idea-status`, `idea-repo-review`, `upstream-check`) |
 | Project lifecycle | 10 | 4 (project, license, UI, media; gate result included) |
-| Proof / evidence / verification | 7 | 1 (`proof-verdict`) |
+| Proof / evidence / verification | 7 | 3 (`shared-outcome`, `proof-verdict`, `proof-corpus`) |
 | Delegation / UI task / publication | 8 | 7 (delegate run, transcript, UI task, compat, corpus, dossier; gate result shares) |
-| Total discovered | ~55 | 20 |
+| Total discovered | ~55 | 21 |
 
 The registry is the **explicit contract**, not a claim that every transition is
 enforced. Each machine records its source and a known gap.
@@ -91,9 +91,9 @@ enforced. Each machine records its source and a known gap.
 | Machine | States | Source | Enforcement / gap |
 |---|---|---|---|
 | **Shared outcome** | not_run, pass, fail, inconclusive | `evidence_outcome.py` | Zero observations -> inconclusive; an unknown string is a refusal but is never validated. |
-| **Proof verdict** | unproven, holds, refused | `proof_gate.prove()` | Base must be an `assertion` failure and current `passed`; mock-echo tests veto; timeout is a hard failure. |
+| **Proof verdict** | not-run, holds, failed, setup-error | `proof_gate.py: main` | Exit 0 holds / 1 failed / 2 setup, measured. The returned record carries only a boolean `proof`, so a setup failure is visible in the exit code, not the record. Each test run is classed separately as passed/assertion/error/timeout. |
 | Mutation scoring | killed, survived, timeout, error | `proof_gate.py` | Only `assertion` kills; the threshold shrinks to the number generated; an empty mutation set fails even when optional. `waived` is a summary count of unrun mutants, not a per-record state; a record with no mutant generated is simply absent from `records`. |
-| Receipt / corpus | not-persisted, stored, replay-pass/fail/inconclusive, pruned, corrupt | `proof_gate.write_receipt`, `proof_corpus.py` | A failing re-run of the same witness key overwrites a stored pass; corrupt entries are skipped and never pruned. |
+| Receipt / corpus | absent, stored, replay-pass, replay-fail, replay-inconclusive, pruned, corrupt | `proof_gate.write_receipt`, `proof_corpus.py` | Replay is read-only: it returns the shared three outcomes without changing the stored entry, so replay-* is an observation, not a persisted state. A failing re-run of the same witness key overwrites a stored pass; corrupt entries are skipped and never pruned. |
 | Sealed envelope | unsealed, sealed, expired, tampered, unknown-key | `proof_envelope.py` | Check order masks tamper behind unknown-key/expiry; `--keyid` is effectively single-entry. |
 | Evidence policy | pass, fail, inconclusive | `evidence_policy.py` | A `fail` is never outvoted; a quorum shortfall is inconclusive; the sealed branch is unreachable from `verify_commit`. |
 | Commit verification | pass, fail, inconclusive, skipped | `verify_commit.py` | Missing `.aikit/proof.json` silently skips the proof step; `inconclusive` and `fail` share exit 1; `quorum:N` counts `project-files`. |
@@ -156,13 +156,19 @@ enforced. Each machine records its source and a known gap.
   transition table, archived publish gap, manual UI overwrite + pinned test.
 - After edits: `python -m unittest discover tests` -> **1118 tests, OK** (one
   skipped); `python scripts/update_knowledge_base.py --check` passes.
-- Registry CLI: `--list` 20 machines; `--json` parses; `completed -> in_progress`
+- Registry CLI: `--list` 21 machines; `--json` parses; `completed -> in_progress`
   refused with exit 1; `--help` 134 ms.
 - Re-audit 2026-11-09: `upstream-check` added as the 20th explicit machine (8 states,
   source `idea_catcher/upstream_check.py`). The Mutation scoring row was corrected from
   six states to four: `waived` is a summary count of unrun mutants and `not-generated`
   never appears in the code. `test_mutation_record_states_match_the_code` now compares
   that row against `proof_gate` so the doc cannot drift back.
+- Second re-audit 2026-11-09 (ADR-390): the machine called `proof-verdict` was really the
+  shared outcome, so it is renamed `shared-outcome` and a real `proof-verdict` was added
+  with the measured `not-run/holds/failed/setup-error`. The Receipt/corpus row now says
+  `absent` (the code's word) and lists the three replay observations separately, because
+  replay is read-only. `test_registry_machine_names_match_the_doc_rows` pairs every
+  registry machine with its doc row and fails when the vocabularies differ.
 - Machine states are not all literals. `gate-result`, `delegate-run`,
   `delegate-transcript` and `proof-corpus` describe states computed at call time, so
   the registry is a contract, not a claim that every transition is enforced.

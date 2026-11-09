@@ -329,7 +329,7 @@ MACHINES: Tuple[Machine, ...] = (
             "with no finding; exit 124/127 sentinels collide with real command codes.",
     ),
     Machine(
-        name="proof-verdict",
+        name="shared-outcome",
         purpose="The shared fail-closed outcome vocabulary of proofs and gates.",
         states=("not_run", "pass", "fail", "inconclusive"),
         transitions={
@@ -344,20 +344,41 @@ MACHINES: Tuple[Machine, ...] = (
             "inconclusive to the same exit 1 and the same sentence.",
     ),
     Machine(
+        name="proof-verdict",
+        purpose="The overall verdict of one proof run: holds, failed, or could not be set up.",
+        states=("not-run", "holds", "failed", "setup-error"),
+        transitions={
+            "not-run": ("holds", "failed", "setup-error"),
+            "holds": (),
+            "failed": (),
+            "setup-error": (),
+        },
+        source="scripts/proof_gate.py: main (exit 0 holds / 1 failed / 2 setup), prove(); "
+               "classify_run gives the per-test verdicts passed/assertion/error/timeout",
+        gap="The overall verdict is a boolean: `proof` is True or False, so a run that could "
+            "not be set up is only distinguishable by exit 2, not by the returned record. "
+            "Each test run is classed separately as passed/assertion/error/timeout.",
+    ),
+    Machine(
         name="proof-corpus",
-        purpose="Content-addressed receipts that can be replayed and pruned.",
-        states=("absent", "stored", "replayed", "pruned", "corrupt"),
+        purpose="Content-addressed receipts that can be stored, replayed and pruned.",
+        states=("absent", "stored", "replay-pass", "replay-fail", "replay-inconclusive",
+                "pruned", "corrupt"),
         transitions={
             "absent": ("stored",),
-            "stored": ("stored", "replayed", "pruned"),
-            "replayed": ("replayed", "pruned"),
+            "stored": ("stored", "replay-pass", "replay-fail", "replay-inconclusive", "pruned"),
+            "replay-pass": ("replay-pass", "pruned"),
+            "replay-fail": ("replay-fail", "pruned"),
+            "replay-inconclusive": ("replay-inconclusive", "pruned"),
             "pruned": (),
             "corrupt": ("corrupt",),
         },
         source="scripts/proof_corpus.py: store, replay, prune; scripts/proof_envelope.py: "
                "seal, verify; .aikit/proof_corpus/witness_<sha>.json",
-        gap="A failing re-run of the same tree overwrites the stored pass (the witness omits "
-            "the verdict); corrupt entries are invisible and never pruned.",
+        gap="Replay is read-only: it returns the shared three outcomes (pass/fail/inconclusive) "
+            "without changing the stored entry, so replay-* is an observation, not a persisted "
+            "state. A failing re-run of the same tree overwrites the stored pass (the witness "
+            "omits the verdict); corrupt entries are invisible and never pruned.",
     ),
     Machine(
         name="dossier-catalogue",
