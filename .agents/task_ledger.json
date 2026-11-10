@@ -1,46 +1,16 @@
 {
   "version": 1,
   "active_task": {
-    "task_id": "audit-fixes-2026-11-09",
+    "task_id": "classify-infra-2026-11-09",
     "last_phase": "verification",
-    "active_phase": 5,
-    "status": "completed",
-    "updated_at": 1794290854.803488,
+    "active_phase": 4,
+    "status": "in_progress",
+    "updated_at": 1794304767.7356334,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": [],
-    "completed_at": 1794291300.9890878
+    "continuations": []
   },
   "checkpoints": [
-    {
-      "task_id": "verify-101p5",
-      "phase": "planning",
-      "phase_num": 2,
-      "description": "[1/2] Enforce the idea-status machine on the write path (P5), leaving existing history untouched",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794250459.635021,
-      "timestamp_str": "2026-11-09 21:54:19",
-      "agent": "commandcode:goal",
-      "impact_assessment": {
-        "why": "The inventory recorded that validate_ideas has no transition table, so a hand-edited register can reopen a terminal row; only Blocked and Superseded were guarded in _apply_status. Measured the blast radius from each idea's own history: 641 real transitions across 1751 ideas, of which exactly 6 violate the documented machine (4x Rejected->Deferred, 1x Superseded->Deferred, 1x Rejected->Integrated). Those 6 are historical rows, so a retroactive validate check would fail the live register for history that cannot be rewritten.",
-        "benefits": "A forbidden move through set-status is now refused with the legal targets named, so the register cannot be pushed into a state its own machine does not allow; legal edges are unaffected.",
-        "risks": "contract: set-status gains a refusal (exit 1) for moves outside the table; idea_catcher must not import scripts, so the table is declared locally and pinned by a test; existing history is untouched; dependency: none; concurrency: the register write path is unchanged; state: registry.py, 2 tests",
-        "mitigation": "the local table was verified byte-identical to the registry before wiring; a test pins them so they cannot drift; all 39 idea_catcher tests pass; the live register still validates, renders and reports exactly the same 133 pre-existing aegean-tge problems and zero aikit ones"
-      },
-      "plan_digest": "b1534d4b27c4d0b0b67f9da9ca7787e437758b47a1d0cdf52e0427a408af165c"
-    },
-    {
-      "task_id": "verify-101p5",
-      "phase": "verification",
-      "phase_num": 4,
-      "description": "[2/2] STATUS_TRANSITIONS declared locally and pinned to the registry by test; _apply_status refuses a forbidden move naming legal targets; 2 fail-first tests; CLI verified on a copy (Rejected->Deferred rc=1, Rejected->Proposed rc=0); live register status/render/validate unchanged with the same 133 pre-existing aegean-tge problems and 0 aikit; 1051 unit + 89 integration pass; budget gate over ceiling due to host load (baseline stashed measured 30.20ms vs 22.18ms here)",
-      "files_affected": [],
-      "status": "in_progress",
-      "timestamp": 1794251349.8352714,
-      "timestamp_str": "2026-11-09 22:09:09",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-101p5",
       "phase": "completed",
@@ -267,6 +237,36 @@
       "timestamp": 1794291300.9890893,
       "timestamp_str": "2026-11-10 09:15:00",
       "agent": "commandcode:goal"
+    },
+    {
+      "task_id": "classify-infra-2026-11-09",
+      "phase": "planning",
+      "phase_num": 2,
+      "description": "[1/2] Classify a gate that never ran as infra, not an assertion",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794304746.3549528,
+      "timestamp_str": "2026-11-10 12:59:06",
+      "agent": "commandcode:goal",
+      "impact_assessment": {
+        "why": "run_shell returns -1 to mean 'the gate did not run' (timeout, refused command, OSError at start), but _classify_failure only short-circuited on 124 or the text 'timed out after'. Measured: _classify_failure(-1, '') returned 'assertion', so action_hint() said 'read the failure tail above' when nothing ran and there was no tail, and a custom runner's start failure was eligible for the timeout retry that is reserved for real timeouts.",
+        "benefits": "A gate that could not run now reports an environment problem with the right next action, is never retried as a timeout, and cannot masquerade as a test assertion; pass/fail stays returncode == 0 so no verdict changes.",
+        "risks": "contract: _classify_failure and action_hint output change for code -1; only the retry decision and the hint depend on kind; dependency: none; concurrency: none; state: project_gates.py, tests, an ADR, the inventory row",
+        "mitigation": "exact signals (124, -1) are checked before the output markers; two fail-first tests pin the classification and the retry rule; all five gates and both tiers pass"
+      },
+      "plan_digest": "6d7a9826e5813bcb2fae1e7dca6298da797ffa92a4671894069646b217bf20e4"
+    },
+    {
+      "task_id": "classify-infra-2026-11-09",
+      "phase": "verification",
+      "phase_num": 4,
+      "description": "[2/2] -1 now means did-not-run: timeout only when the output says timed out, otherwise infra; markers scan only real exit codes; 2 fail-first tests; 1098 unit + 89 integration; sync/reachability/secrets/dogfood/budget green; ADR-411 + gate-result row",
+      "files_affected": [],
+      "status": "in_progress",
+      "timestamp": 1794304767.7356334,
+      "timestamp_str": "2026-11-10 12:59:27",
+      "agent": "commandcode:goal",
+      "checklists": "passed"
     }
   ]
 }

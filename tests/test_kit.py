@@ -16559,6 +16559,35 @@ class TestDeliveryAndEvidenceProposals(unittest.TestCase):
         self.assertEqual(result[0].attempts, 2)
         self.assertEqual(len(calls), 2, "an assertion is never retried; a timeout is")
 
+    def test_a_gate_that_never_ran_is_infra_never_an_assertion(self):
+        """`run_shell` returns -1 to mean "did not run"; that is not an assertion.
+
+        Measured before this fix: -1 with no output classified as `assertion`, so the hint
+        said "read the failure tail above" when there was no tail, and a custom runner's
+        start failure was eligible for the timeout retry as if it were a real test failure.
+        """
+        from scripts.project_gates import _classify_failure
+
+        self.assertEqual(_classify_failure(-1, ""), "infra")
+        self.assertEqual(_classify_failure(-1, "could not start: [WinError 2]"), "infra")
+        self.assertEqual(_classify_failure(-1, "timed out after 30s; the process tree was killed"),
+                         "timeout")
+        self.assertEqual(_classify_failure(124, ""), "timeout")
+        self.assertEqual(_classify_failure(1, "AssertionError: boom"), "assertion")
+
+    def test_a_never_ran_gate_is_not_retried_as_a_timeout(self):
+        calls = []
+
+        def runner(command, cwd, timeout):
+            calls.append(command)
+            return (-1, "")          # did not run, no timeout marker
+
+        result = run_gates(Path("."), [Gate("t", "x", "t")], runner=runner,
+                           snapshotter=lambda root: None, retry_timeouts=True)
+        self.assertEqual(result[0].kind, "infra")
+        self.assertEqual(len(calls), 1, "only a timeout retries; a start failure does not")
+        self.assertNotIn("failure tail", result[0].action_hint())
+
     def test_rewritten_tree_is_named_as_its_own_failure_kind(self):
         snapshots = iter([{"f.txt": "aaa"}, {"f.txt": "bbb"}])
         result = run_gates(Path("."), [Gate("t", "x", "t")],

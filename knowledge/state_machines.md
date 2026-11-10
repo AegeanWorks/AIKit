@@ -94,7 +94,7 @@ enforced. Each machine records its source and a known gap.
 | **UI identity** | unknown, detected, manual, required | `project.json.has_ui/ui_source/ui_required` | `fix`/`media init` pass `respect_manual=True` so a manual identity survives (ADR-397); `new`/`attach` still call `auto_ui` on a fresh project where no manual choice exists; `ui_required` is one-way (pinned by `tests/test_kit.py:11512`). |
 | Compat scaffold | no scaffold, headless, ui, verified | `.aikit/compat.json`, evidence files | Built-in gate but deletable; `emit_evidence` is unlocked. |
 | **Media asset** | absent, pending, approved, rejected | `.aikit/media.json` | Only logo and social preview block publish; an unreviewed screenshot publishes. |
-| **Gate result** | not_run, pass, fail, refused, rewrite | `project_gates.py` | Timeout and start failure both report `-1`; `new --publish` skips all gates. |
+| **Gate result** | not_run, pass, fail, refused, rewrite | `project_gates.py` | Timeout and start failure both report `-1`; `_classify_failure` now reads `-1` as "did not run" (`infra`) rather than an assertion, so the hint names the environment and only a real timeout is retried (ADR-411); `new --publish` skips all gates. |
 
 ## 5. Proof, evidence and verification
 

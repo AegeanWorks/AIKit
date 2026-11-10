@@ -9,8 +9,8 @@
 - **Total Python Modules**: `72`
 - **Total Classes**: `173`
 - **Total Top-Level Functions**: `1052`
-- **Total Class Methods**: `1361`
-- **Total Source Lines**: `50322`
+- **Total Class Methods**: `1363`
+- **Total Source Lines**: `50363`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`72` module(s))
@@ -1201,7 +1201,7 @@
 ### [`scripts/project_gates.py`](scripts/project_gates.py)
 > *Project gates: the checks a project's own configuration declares, run as its Phase 4 (ADR-122).*
 
-**Size**: `507` lines (`23274` bytes)
+**Size**: `519` lines (`23900` bytes)
 
 **Classes:**
 - `class Gate` - *A named check and the shell command that runs it; `source` says where it came from.*
@@ -1978,7 +1978,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16995` lines (`925670` bytes)
+**Size**: `17024` lines (`927202` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3237,6 +3237,8 @@
   - Method `.run_cli(*argv)`
   - Method `._green_gate(name)`
   - Method `.test_gate_failure_taxonomy_and_timeout_only_retry()`
+  - Method `.test_a_gate_that_never_ran_is_infra_never_an_assertion()` - *`run_shell` returns -1 to mean "did not run"; that is not an assertion.*
+  - Method `.test_a_never_ran_gate_is_not_retried_as_a_timeout()`
   - Method `.test_rewritten_tree_is_named_as_its_own_failure_kind()`
   - Method `.test_disk_preflight_stops_an_expensive_gate()`
   - Method `.test_lock_contention_is_reported_as_a_lock_finding()`

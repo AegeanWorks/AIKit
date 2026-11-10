@@ -144,12 +144,24 @@ class GateResult:
 
 
 def _classify_failure(code: int, output: str) -> str:
-    """The failure class of a finished gate, from its exit code and output."""
+    """The failure class of a finished gate, from its exit code and output.
+
+    Advisory, but not inert: `kind == "timeout"` is the only class `run_gates` retries, and
+    every class changes the remediation hint a user reads. Two signals are exact and come
+    first, so a marker in the output cannot outvote them: exit `124` is a timeout, and the
+    `-1` this module's own `run_shell` returns means the gate **did not run** (a timeout or a
+    start failure) — never an assertion, so it must not be retried as one or reported as
+    "read the tail above" when there is no tail.
+    """
     if code == 0:
         return "pass"
-    if code == 124 or "timed out after" in output:
+    if code == 124:
         return "timeout"
     lowered = output.lower()
+    if code == -1:
+        return "timeout" if "timed out" in lowered else "infra"
+    if "timed out after" in output:
+        return "timeout"
     if any(marker in lowered for marker in (
             "no space left", "not enough free space", "not enough free", "permission denied",
             "access is denied", "could not start:", "not recognized as an internal or external",
