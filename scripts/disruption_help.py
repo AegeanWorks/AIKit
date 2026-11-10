@@ -1,7 +1,7 @@
-"""Generated top-level help for the disruption-recovery `--help` fast path (ADR-180).
+"""Generated copy of the ledger CLI help for the fast `--help` path.
 
-The string is compared with `scripts.disruption_recovery.HELP_TEXT` by
-`tests.test_kit.TestAikitHelpFastPath`. Regenerate it when the help text changes.
+Compared with `scripts.disruption_recovery.HELP_TEXT` by
+`tests.test_kit.TestAikitHelpFastPath`; regenerate it when the help text changes.
 """
 
 HELP_TEXT = """\
@@ -20,7 +20,8 @@ Actions (default: --audit):
                              --benefits, --mitigation and --risks with 'contract:', 'dependency:',
                              'concurrency:' and 'state:' verdicts, else exit 2 (PRINCIPLE-007 R6);
                              a task reaching Phase 3+ with no assessment gets a warning
-  --complete <task_id>       Mark a task as completed
+  --complete <task_id>       Mark a task as completed; refused (exit 2) without a Phase 4
+                             checkpoint carrying --checklists, unless --force --reason is given
   --reset [reason]           Abandon and clear the active task
   --suspend <reason>         Pause the active task without abandoning it; --resume-task <id>
                              reactivates it at its recorded phase (ADR-219)
@@ -46,6 +47,10 @@ Checkpoint options:
                              next (required), state, failed, open, evidence (PRINCIPLE-004 R2)
   --redact                   With --checkpoint: record credential-shaped free text as
                              [REDACTED] instead of refusing the write (PRINCIPLE-019 R3)
+  --checklists <outcome>     With --checkpoint: Phase 4 checklist result, `passed`,
+                             `failed:<ids>` or `skipped:<ids>`; completion requires it
+  --force                    With --complete: complete without Phase 4 evidence (needs --reason)
+  --reason <text>            With --complete --force: why completion is forced; recorded
 
 Agent options (--checkpoint, --complete, --reset; ADR-209):
   --agent <name>             Who is writing, e.g. kilo:2 (default: AIKIT_AGENT, else Claude

@@ -19,9 +19,9 @@ python aikit.py ui-id <name> [--set auto|yes|no] [--kind <k>]  # durable has_ui/
 python aikit.py media init --art <name>  # IMAGE MODEL: POLLINATIONS_API_KEY env only; gen.pollinations.ai free flux model renders title+category, then the square is reframed to 1280x640; never commit the key (ADR-239, ADR-241)
 python aikit.py media apply <name> --readme-only  # update only the project README; for a dossier manifest another builder owns
 python aikit.py fix <name>           # self-heals memory, adopts UI, cleans temp buffers, syncs codebase map, seeds brand candidates and writes an approved banner into a README that lacks one
-python aikit.py checkpoint <name>    # disruption checkpoint on the project ledger; --agent <host>:<session> names you
+python aikit.py checkpoint <name>    # disruption checkpoint on the project ledger; --agent <host>:<session> names you; --checklists passed records the Phase 4 outcome
 python aikit.py resume <name>        # disruption resume on the project
-python aikit.py complete <name>      # mark project task complete; another agent's task needs --take-over
+python aikit.py complete <name>      # needs a Phase 4 checkpoint with --checklists; --force --reason for a task with none; another agent's task needs --take-over
 python scripts/disruption_recovery.py --suspend "<reason>" --workspace projects/<name>  # pause a task, keep it resumable
 python scripts/disruption_recovery.py --resume-task <task_id> --workspace projects/<name>  # reactivate a paused or superseded task (ADR-219)
 python aikit.py clean <name>         # clean dangling project buffers

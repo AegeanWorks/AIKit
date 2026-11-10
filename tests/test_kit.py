@@ -90,6 +90,8 @@ from scripts.disruption_recovery import (
     LEDGER_SCHEMA_VERSION,
     UnsupportedLedgerVersion,
     LedgerOwnershipError,
+    CompletedTaskError,
+    CompletionEvidenceError,
     agent_history,
     UNIDENTIFIED_AGENT,
     load_ledger,
@@ -197,7 +199,8 @@ import scripts.project_topics as project_topics
 import scripts.project_ui as project_ui
 
 
-from scripts.project_gates import Gate, _rewritten_paths, _tracked_snapshot, failure_tail, resolve_gates, run_gates
+from scripts.project_gates import (Gate, GateResult, _rewritten_paths, _tracked_snapshot,
+                                   failure_tail, resolve_gates, run_gates, verify_gate_warnings)
 from scripts.marked_blocks import block_span, fenced, replace_block
 from scripts.project_license import (
     _licensed_readme,
@@ -298,6 +301,8 @@ from scripts.update_knowledge_base import (
     parse_source,
     find_python_files,
     parse_readme_tree,
+    report_readme,
+    readme_budget_candidates,
     write_generated_file,
 )
 
@@ -6755,6 +6760,9 @@ class TestProjectRegistry(unittest.TestCase):
         self.assertEqual((ledger["active_task"]["task_id"], ledger["active_task"]["active_phase"]),
                          ("task-alpha", 2))
         self.assertIn("setup database", self.run_cli("resume", "demo")[1])
+        code, _, err = self.run_cli("checkpoint", "demo", "--task", "task-alpha", "--phase-num", "4",
+                                    "--desc", "verified", "--checklists", "passed")
+        self.assertEqual(code, 0, err)
         self.assertEqual(self.run_cli("complete", "demo", "--task", "other")[0], 1)
         self.assertEqual(self.run_cli("complete", "demo", "--task", "task-alpha")[0], 0)
         self.assertEqual(load_ledger(folder / ".aikit" / "task_ledger.json")["active_task"]["status"], "completed")
@@ -7026,6 +7034,10 @@ class TestProjectRegistry(unittest.TestCase):
         attach_project(self.make_folder(), "owned", workspace=self.kit)
         code, _, err = self.run_cli("checkpoint", "owned", "--task", "t", "--phase-num", "1",
                                     "--desc", "start", "--agent", "kilo:1")
+        self.assertEqual(code, 0, err)
+        code, _, err = self.run_cli("checkpoint", "owned", "--task", "t", "--phase-num", "4",
+                                    "--desc", "verified", "--checklists", "passed",
+                                    "--agent", "kilo:1")
         self.assertEqual(code, 0, err)
         code, _, err = self.run_cli("complete", "owned", "--task", "t", "--agent", "gemini:3")
         self.assertEqual(code, 1)
@@ -7303,7 +7315,7 @@ class TestProjectRegistry(unittest.TestCase):
              mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=clean), \
              mock.patch("scripts.aikit_cli.auto_push_project", return_value=(0, "")) as push:
             code, out, _ = self.run_cli("check", "uiapp")
-            self.assertEqual(code, 0)
+            self.assertEqual(code, 3, "gates green but the UI contract is not delivery-ready")
             self.assertIn("UI contract not delivery-ready", out)
             push.assert_not_called()
 
@@ -8526,6 +8538,138 @@ class TestUiContract(unittest.TestCase):
         self.assertEqual(len(history), 2, "each finished task appends one record")
         self.assertEqual(history[1]["reviewer"], "", "an unattributed review is recorded as such")
 
+    def test_backend_only_task_closes_without_a_visual_review(self):
+        self.write_contract(backend_paths=["src/api/**"])
+        fake = FakeGit(tracked=(".aikit/ui.json", "src/api/server.py"))
+        green = lambda command, cwd, timeout: (0, "")
+        task = ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=green,
+                                 backend_only=True)
+        self.assertEqual(task["mode"], "backend")
+        fake.status = " M src/api/server.py\0"
+        self.assertEqual(ui_contract.finish(self.root, git_io=fake, shell_runner=green), [])
+        record = json.loads((self.root / ".aikit" / "ui_history.json").read_text(encoding="utf-8"))[-1]
+        self.assertFalse(record["visual_change"])
+        self.assertEqual(record["changed_paths"], ["src/api/server.py"])
+
+    def test_backend_only_task_refuses_a_visual_path(self):
+        self.write_contract(backend_paths=["src/api/**"])
+        fake = FakeGit(tracked=(".aikit/ui.json", "src/api/server.py", "src/ui/menu.py"))
+        green = lambda command, cwd, timeout: (0, "")
+        ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=green, backend_only=True)
+        fake.status = " M src/ui/menu.py\0"
+        findings = ui_contract.finish(self.root, git_io=fake, shell_runner=green)
+        self.assertTrue(any("outside backend surface" in finding for finding in findings), findings)
+        self.assertTrue((self.root / ".aikit" / "ui_task.json").is_file())
+
+    def test_no_visual_finish_accepts_only_backend_paths(self):
+        self.write_contract(backend_paths=["src/api/**"],
+                            style={"theme_paths": ["src/theme.py"]})
+        fake = FakeGit(tracked=(".aikit/ui.json", "src/api/server.py", "src/ui/menu.py"))
+        green = lambda command, cwd, timeout: (0, "")
+        ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=green)
+        fake.status = " M src/api/server.py\0"
+        self.assertEqual(ui_contract.finish(self.root, git_io=fake, shell_runner=green,
+                                            no_visual=True, reason="API only"), [])
+        record = json.loads((self.root / ".aikit" / "ui_history.json").read_text(encoding="utf-8"))[-1]
+        self.assertFalse(record["visual_change"])
+        self.assertEqual(record["no_visual_reason"], "API only")
+
+        fake.status = ""
+        ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=green)
+        fake.status = " M src/ui/menu.py\0"
+        findings = ui_contract.finish(self.root, git_io=fake, shell_runner=green, no_visual=True)
+        self.assertTrue(any("visual path changed: src/ui/menu.py" in finding
+                            for finding in findings), findings)
+        self.assertTrue((self.root / ".aikit" / "ui_task.json").is_file())
+
+    def test_no_visual_without_backend_paths_is_a_usage_error(self):
+        self.write_contract()
+        fake = FakeGit(tracked=(".aikit/ui.json", "src/ui/menu.py"))
+        green = lambda command, cwd, timeout: (0, "")
+        ui_contract.begin(self.root, "menu", git_io=fake, shell_runner=green)
+        fake.status = " M src/ui/menu.py\0"
+        with self.assertRaises(ProjectError) as caught:
+            ui_contract.finish(self.root, git_io=fake, shell_runner=green, no_visual=True)
+        self.assertEqual(caught.exception.exit_code, 2)
+        self.assertIn("backend_paths", str(caught.exception))
+
+    def test_history_compaction_dedupes_and_archives(self):
+        records = [
+            {"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+             "finished_at": 1, "reviewer": "a"},
+            {"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+             "finished_at": 2, "reviewer": "b"},
+            {"surface": "menu", "surface_digest": "d2", "contract_hash": "c",
+             "finished_at": 3, "reviewer": "c"},
+        ]
+        (self.root / ".aikit" / "ui_history.json").write_text(json.dumps(records), encoding="utf-8")
+        result = ui_contract.compact_history(self.root)
+        self.assertEqual(result, {"before": 3, "after": 2, "archived": 1})
+        live = json.loads((self.root / ".aikit" / "ui_history.json").read_text(encoding="utf-8"))
+        self.assertEqual({record["surface_digest"] for record in live}, {"d1", "d2"})
+        archived = [json.loads(line) for line in
+                    (self.root / ".aikit" / "ui_history_archive.jsonl")
+                    .read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len(archived), 1)
+        self.assertEqual(archived[0]["reviewer"], "a", "the older duplicate is archived, not lost")
+        self.assertEqual(ui_contract.compact_history(self.root),
+                         {"before": 2, "after": 2, "archived": 0}, "compaction is idempotent")
+
+    def test_compaction_takes_the_task_lock_and_fsyncs_the_archive(self):
+        """The docstring says evidence is never destroyed; concurrency and power loss could.
+
+        Measured before this fix: `compact_history` took no lock (a concurrent `finish` could
+        be overwritten between the read and the write) and never fsynced the archive, so a
+        power loss could leave the archive gone and the replaced history already durable.
+        """
+        records = [
+            {"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+             "finished_at": 1, "reviewer": "a"},
+            {"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+             "finished_at": 2, "reviewer": "b"},
+        ]
+        (self.root / ".aikit" / "ui_history.json").write_text(
+            json.dumps(records), encoding="utf-8")
+        checked = {}
+        real_fsync = os.fsync
+
+        def tracking_fsync(fd):
+            checked["fsynced"] = True
+            return real_fsync(fd)
+
+        with mock.patch("scripts.ui_contract.file_lock") as lock, \
+                mock.patch("scripts.ui_contract.os.fsync", tracking_fsync):
+            @contextlib.contextmanager
+            def acquired(_path, *a, **k):
+                checked["locked"] = True
+                yield True
+            lock.side_effect = acquired
+            result = ui_contract.compact_history(self.root)
+
+        self.assertTrue(checked.get("locked"), "compaction must hold the task lock")
+        self.assertTrue(checked.get("fsynced"), "the archive must be fsynced before replacing")
+        self.assertEqual(result["archived"], 1)
+
+    def test_compaction_refuses_when_the_lock_is_held(self):
+        records = [{"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+                    "finished_at": 1},
+                   {"surface": "menu", "surface_digest": "d1", "contract_hash": "c",
+                    "finished_at": 2}]
+        (self.root / ".aikit" / "ui_history.json").write_text(
+            json.dumps(records), encoding="utf-8")
+        before = (self.root / ".aikit" / "ui_history.json").read_bytes()
+
+        @contextlib.contextmanager
+        def not_acquired(_path, *a, **k):
+            yield False
+
+        with mock.patch("scripts.ui_contract.file_lock", not_acquired):
+            with self.assertRaises(ProjectError) as caught:
+                ui_contract.compact_history(self.root)
+        self.assertIn("lock", str(caught.exception).lower())
+        self.assertEqual((self.root / ".aikit" / "ui_history.json").read_bytes(), before,
+                         "a refused compaction changes nothing")
+
     def test_finish_refuses_to_destroy_an_unreadable_history_file(self):
         self.write_contract()
         fake = FakeGit(tracked=(".aikit/ui.json", "src/ui/menu.py"))
@@ -8862,10 +9006,6 @@ class TestDelegateTranscript(unittest.TestCase):
             delegate_transcript.replay_transcript(path)
         self.assertEqual(self.calls, [], "corrupt replay must not run anything")
 
-
-class TestDelegateBudgets(unittest.TestCase):
-    """S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern)."""
-
     def test_a_tampered_transcript_cannot_replay_a_different_verdict(self):
         """The module docstring promises replay proves the identical verdict.
 
@@ -9164,28 +9304,6 @@ class TestProofCorpus(unittest.TestCase):
         framed = self._receipt(pass_to_pass=["tests/test_keep.py"])
         self.assertNotEqual(proof_corpus.witness_key(base), proof_corpus.witness_key(framed))
 
-    def test_store_lists_and_prunes_oldest_first(self) -> None:
-        from scripts import proof_corpus
-
-        root = Path(tempfile.mkdtemp(prefix="corpus_"))
-        self.addCleanup(shutil.rmtree, str(root), True)
-        corpus = root / "corpus"
-        keys = []
-        for idx in range(3):
-            key, dest = proof_corpus.store(self._receipt(base=f"base{idx}"), corpus,
-                                           now=1000 + idx)
-            keys.append(key)
-            self.assertTrue(dest.is_file())
-        self.assertEqual([row["key"] for row in proof_corpus.list_entries(corpus)], keys)
-        loaded = proof_corpus.load(corpus, keys[1])
-        self.assertEqual(loaded["receipt"]["base"], "base1")
-        self.assertIsNone(proof_corpus.load(corpus, "0" * 64))
-        deleted = proof_corpus.prune(corpus, keep=2)
-        self.assertEqual(deleted, keys[:1])
-        self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
-        with self.assertRaises(ValueError):
-            proof_corpus.prune(corpus, keep=-1)
-
     def test_replay_never_raises_on_a_non_mapping_entry(self) -> None:
         """replay's docstring says "never raises"; a bare list/None raised AttributeError."""
         from scripts import proof_corpus
@@ -9221,6 +9339,28 @@ class TestProofCorpus(unittest.TestCase):
         third, _ = proof_corpus.store(passed, corpus, now=3000)
         self.assertEqual(third, first)
         self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
+
+    def test_store_lists_and_prunes_oldest_first(self) -> None:
+        from scripts import proof_corpus
+
+        root = Path(tempfile.mkdtemp(prefix="corpus_"))
+        self.addCleanup(shutil.rmtree, str(root), True)
+        corpus = root / "corpus"
+        keys = []
+        for idx in range(3):
+            key, dest = proof_corpus.store(self._receipt(base=f"base{idx}"), corpus,
+                                           now=1000 + idx)
+            keys.append(key)
+            self.assertTrue(dest.is_file())
+        self.assertEqual([row["key"] for row in proof_corpus.list_entries(corpus)], keys)
+        loaded = proof_corpus.load(corpus, keys[1])
+        self.assertEqual(loaded["receipt"]["base"], "base1")
+        self.assertIsNone(proof_corpus.load(corpus, "0" * 64))
+        deleted = proof_corpus.prune(corpus, keep=2)
+        self.assertEqual(deleted, keys[:1])
+        self.assertEqual(len(proof_corpus.list_entries(corpus)), 2)
+        with self.assertRaises(ValueError):
+            proof_corpus.prune(corpus, keep=-1)
 
     def test_replay_matches_verdicts_and_refuses_without_evidence(self) -> None:
         from scripts import proof_corpus
@@ -16372,6 +16512,483 @@ class TestStateMachines(unittest.TestCase):
                 owners = [m.name for m in sm.machines_declaring(state)]
                 self.assertIn(machine.name, owners,
                               f"machines_declaring({state!r}) omitted {machine.name}")
+
+
+class TestDeliveryAndEvidenceProposals(unittest.TestCase):
+    """The implemented proposals: verdict truth, evidence integrity and actionable diagnosis."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="test_proposals_"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def _project(self, name="app"):
+        create_project(name, workspace=self.tmp, git_start=lambda root: None,
+                       description="A small local tool used by the proposal tests.")
+        return self.tmp / "projects" / name
+
+    def run_cli(self, *argv):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = aikit_main(["--workspace", str(self.tmp), *argv])
+        return code, out.getvalue(), err.getvalue()
+
+    @staticmethod
+    def _green_gate(name="test"):
+        return GateResult(Gate(name, "dummy", "detected"), 0, 0.1, "")
+
+    # --- PROP-04: gate taxonomy, retry, disk preflight, lock ---
+
+    def test_gate_failure_taxonomy_and_timeout_only_retry(self):
+        gate = Gate("test", "cmd", "detected")
+        result = run_gates(Path("."), [gate], runner=lambda c, d, t: (124, "x"),
+                           snapshotter=lambda root: None)
+        self.assertEqual((result[0].kind, result[0].attempts), ("timeout", 1))
+        result = run_gates(Path("."), [gate],
+                           runner=lambda c, d, t: (1, "Not enough free space: 0 MB is free"),
+                           snapshotter=lambda root: None)
+        self.assertEqual(result[0].kind, "infra")
+        calls = []
+
+        def flaky(command, cwd, timeout):
+            calls.append(command)
+            return (124, "timed out after 1s") if len(calls) == 1 else (0, "ok")
+
+        result = run_gates(Path("."), [gate], runner=flaky, snapshotter=lambda root: None,
+                           retry_timeouts=True)
+        self.assertTrue(result[0].passed)
+        self.assertEqual(result[0].attempts, 2)
+        self.assertEqual(len(calls), 2, "an assertion is never retried; a timeout is")
+
+    def test_rewritten_tree_is_named_as_its_own_failure_kind(self):
+        snapshots = iter([{"f.txt": "aaa"}, {"f.txt": "bbb"}])
+        result = run_gates(Path("."), [Gate("t", "x", "t")],
+                           runner=lambda c, d, t: (0, "ok"),
+                           snapshotter=lambda root: next(snapshots))
+        self.assertFalse(result[0].passed)
+        self.assertEqual(result[0].kind, "rewrite")
+
+    def test_disk_preflight_stops_an_expensive_gate(self):
+        calls = []
+        result = run_gates(Path("."), [Gate("test", "x", "detected")],
+                           runner=lambda c, d, t: calls.append(c) or (0, ""),
+                           snapshotter=lambda root: None, min_free_mb=100,
+                           free_space=lambda root: 1.0)
+        self.assertEqual(calls, [], "the gate must not start with too little space")
+        self.assertEqual(result[0].kind, "infra")
+        self.assertFalse(result[0].passed)
+
+    def test_lock_contention_is_reported_as_a_lock_finding(self):
+        lock = self.tmp / "check.lock"
+        with file_lock(lock):
+            result = run_gates(Path("."), [Gate("test", "x", "detected")],
+                               runner=lambda c, d, t: (0, ""),
+                               snapshotter=lambda root: None,
+                               lock_path=lock, lock_timeout=0.05)
+        self.assertFalse(result[0].passed)
+        self.assertEqual(result[0].kind, "lock")
+        self.assertIn("another check or build", result[0].output)
+
+    # --- PROP-02: a project's verify command is the gate authority ---
+
+    def test_verify_gate_replaces_the_detected_gates_it_wraps(self):
+        folder = self.tmp / "projects" / "verifyapp"
+        (folder / ".aikit").mkdir(parents=True)
+        (folder / "go.mod").write_text("module x\n", encoding="utf-8")
+        (folder / ".aikit" / "project.json").write_text(json.dumps({
+            "schema": 1, "name": "verifyapp", "test_command": None,
+            "gates": {"verify": "make verify"},
+            "replace_detected": ["test", "vet"]}), encoding="utf-8")
+        project = find_project("verifyapp", self.tmp)
+        names = [gate.name for gate in resolve_gates(project)]
+        self.assertIn("verify", names)
+        self.assertNotIn("test", names)
+        self.assertNotIn("vet", names)
+        self.assertIn("secrets", names, "built-in scans are never replaced")
+
+    def test_invalid_replace_detected_is_refused(self):
+        folder = self.tmp / "projects" / "badverify"
+        (folder / ".aikit").mkdir(parents=True)
+        (folder / ".aikit" / "project.json").write_text(json.dumps({
+            "schema": 1, "name": "badverify", "gates": {"verify": "make verify"},
+            "replace_detected": "test"}), encoding="utf-8")
+        with self.assertRaises(ProjectError):
+            resolve_gates(find_project("badverify", self.tmp))
+
+    def test_unbound_verify_gate_emits_a_warning(self):
+        folder = self.tmp / "projects" / "warnverify"
+        (folder / ".aikit").mkdir(parents=True)
+        (folder / "go.mod").write_text("module x\n", encoding="utf-8")
+        (folder / ".aikit" / "project.json").write_text(json.dumps({
+            "schema": 1, "name": "warnverify", "test_command": "go test ./...",
+            "gates": {"verify": "make verify"}}), encoding="utf-8")
+        warnings = verify_gate_warnings(find_project("warnverify", self.tmp))
+        self.assertTrue(warnings)
+        self.assertIn("replace_detected", warnings[0])
+
+    # --- PROP-01 / PROP-17: the verdict and its final status ---
+
+    def _dirty_audit(self):
+        return {"modified_files": ["core.py"], "untracked_files": [], "conflicted_files": [],
+                "ledger_error": None, "git_missing": False}
+
+    def _clean_audit(self):
+        return {"modified_files": [], "untracked_files": [], "conflicted_files": [],
+                "ledger_error": None, "git_missing": False}
+
+    def test_check_exits_three_when_gates_pass_but_delivery_is_blocked(self):
+        project = self._project("dirty")
+        (project / "core.py").write_text("x = 1\n", encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[self._green_gate()]), \
+             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[Gate("test", "dummy", "detected")]), \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._dirty_audit()):
+            code, out, _ = self.run_cli("check", "dirty", "--no-lock")
+        self.assertEqual(code, 3)
+        self.assertIn("[DELIVERY] NOT READY", out)
+
+    def test_check_json_states_the_verdict_on_stdout(self):
+        project = self._project("jsondirty")
+        (project / "core.py").write_text("x = 1\n", encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[self._green_gate()]), \
+             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[Gate("test", "dummy", "detected")]), \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._dirty_audit()):
+            code, out, _ = self.run_cli("check", "jsondirty", "--json", "--no-lock")
+        payload = json.loads(out)
+        self.assertEqual(code, 3)
+        self.assertEqual(payload["exit"], 3)
+        self.assertFalse(payload["delivery_ready"])
+        self.assertEqual(payload["gates"][0]["name"], "test")
+
+    def test_allow_dirty_keeps_exit_zero_on_a_working_copy(self):
+        """A caller that means "verify this working copy" can say so and keep 0 (ADR-410)."""
+        project = self._project("allowdirty")
+        (project / "core.py").write_text("x = 1\n", encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[self._green_gate()]), \
+             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[Gate("test", "dummy", "detected")]), \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._dirty_audit()):
+            code, out, _ = self.run_cli("check", "allowdirty", "--allow-dirty", "--no-lock")
+        self.assertEqual(code, 0, out)
+
+    def test_check_json_moves_the_report_to_stderr_and_keeps_the_failure_tail(self):
+        """The stderr triad says "shown above"; with --json the report must actually be there.
+
+        Measured before this fix: the redirected report was discarded, so the tail existed
+        nowhere, and a failed gate carried no `output` in the payload.
+        """
+        project = self._project("jsonfail")
+        failing = GateResult(Gate("test", "cmd", "detected"), 1, 0.1,
+                             "AssertionError: boom", kind="assertion")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[failing]), \
+             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[Gate("test", "cmd", "detected")]), \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._clean_audit()):
+            code, out, err = self.run_cli("check", "jsonfail", "--json", "--no-lock")
+        payload = json.loads(out)
+        self.assertEqual(code, 1)
+        self.assertIn("AssertionError: boom", payload["gates"][0]["output"])
+        self.assertIn("AssertionError: boom", err, "the human report belongs on stderr")
+
+    def test_check_json_has_an_error_object_for_an_unknown_project(self):
+        code, out, err = self.run_cli("check", "nosuchproject", "--json")
+        self.assertEqual(code, 2)
+        payload = json.loads(out)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"]["code"], "project.error")
+        self.assertIn("nosuchproject", payload["error"]["message"])
+        # The triad travels in the payload, so stdout stays one object and stderr stays clean.
+        self.assertTrue(payload["error"]["why"])
+        self.assertTrue(payload["error"]["fix"])
+
+    def test_strict_preflight_fails_before_any_gate_runs(self):
+        project = self._project("strict")
+        (project / "core.py").write_text("x = 1\n", encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.run_gates") as gates, \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._dirty_audit()):
+            code, out, err = self.run_cli("check", "strict", "--strict", "--no-lock")
+        self.assertEqual(code, 1)
+        gates.assert_not_called()
+        self.assertIn("uncommitted non-bookkeeping changes", out)
+        self.assertIn("not delivery-ready", err)
+
+    def test_check_fix_refreshes_the_map_and_still_checks(self):
+        project = self._project("fixmap")
+        (project / "core.py").write_text("def work():\n    return 1\n", encoding="utf-8")
+        with mock.patch("scripts.aikit_cli.run_gates", return_value=[self._green_gate()]), \
+             mock.patch("scripts.aikit_cli.resolve_gates", return_value=[Gate("test", "dummy", "detected")]), \
+             mock.patch("scripts.aikit_cli.run_disruption_audit", return_value=self._clean_audit()):
+            code, out, _ = self.run_cli("check", "fixmap", "--fix", "--no-lock")
+        self.assertEqual(code, 0)
+        self.assertIn("[FIXED] regenerated .aikit/codebase_map.md", out)
+        self.assertTrue((project / ".aikit" / "codebase_map.md").is_file())
+
+    # --- PROP-03 / PROP-06: completion evidence and structured checkpoints ---
+
+    def test_completion_requires_phase_four_checklists_or_a_recorded_force(self):
+        project = self._project("complete")
+        plan = ("checkpoint", "complete", "--task", "t", "--phase-num", "2", "--desc", "[1/2] plan",
+                "--why", "w", "--benefits", "b",
+                "--risks", "contract: none; dependency: none; concurrency: none; state: none",
+                "--mitigation", "m")
+        self.assertEqual(self.run_cli(*plan)[0], 0)
+        code, _, err = self.run_cli("complete", "complete", "--task", "t")
+        self.assertEqual(code, 2)
+        self.assertIn("NO PHASE 4 EVIDENCE", err)
+        self.assertEqual(self.run_cli("complete", "complete", "--task", "t", "--force")[0], 2,
+                         "a forced completion must record a reason")
+        self.assertEqual(self.run_cli("checkpoint", "complete", "--task", "t", "--phase-num", "4",
+                                      "--desc", "verified", "--checklists", "passed")[0], 0)
+        self.assertEqual(self.run_cli("complete", "complete", "--task", "t")[0], 0)
+
+    def test_checkpoint_records_files_and_structured_measurements(self):
+        project = self._project("ckpt")
+        code, _, err = self.run_cli(
+            "checkpoint", "ckpt", "--task", "t", "--phase-num", "3", "--desc", "work",
+            "--files", "a.py", "--files", "b.py",
+            "--measurement", "metric=run;baseline=10;candidate=8;unit=ms;command=bench")
+        self.assertEqual(code, 0, err)
+        entry = load_ledger(project / ".aikit" / "task_ledger.json")["checkpoints"][-1]
+        self.assertEqual(entry["files_affected"], ["a.py", "b.py"])
+        self.assertEqual(entry["measurements"][0]["baseline"], 10.0)
+        self.assertEqual(entry["measurements"][0]["metric"], "run")
+
+    def test_files_affected_is_deduplicated_in_order(self):
+        """`--files a.py --files auto` names a.py twice; the ledger is evidence, not a bag."""
+        import scripts.aikit_cli as cli
+
+        project = self._project("dedupe")
+        (project / "a.py").write_text("x = 1\n", encoding="utf-8")
+        # `auto` reads git; inject the adapter the unit tier requires (PRINCIPLE-009 R4).
+        with mock.patch.object(cli, "_auto_checkpoint_files",
+                               return_value=["a.py", "b.py"]):
+            code, _, err = self.run_cli(
+                "checkpoint", "dedupe", "--task", "t", "--phase-num", "3", "--desc", "work",
+                "--files", "a.py", "--files", "auto")
+        self.assertEqual(code, 0, err)
+        files = load_ledger(project / ".aikit" / "task_ledger.json")["checkpoints"][-1]["files_affected"]
+        self.assertEqual(files, ["a.py", "b.py"],
+                         "the duplicate is dropped and the first mention keeps its place")
+
+    def test_the_two_free_space_floors_agree(self):
+        """`project_compat` declares its own floor to avoid an import cycle; they must match."""
+        from scripts.project_gates import DEFAULT_MIN_FREE_MB
+        from scripts.project_compat import MIN_FREE_MB
+        self.assertEqual(MIN_FREE_MB, DEFAULT_MIN_FREE_MB)
+
+    def test_malformed_measurement_is_a_usage_error(self):
+        self._project("badmeasure")
+        code, _, err = self.run_cli("checkpoint", "badmeasure", "--task", "t", "--phase-num", "3",
+                                    "--desc", "x", "--measurement", "baseline=not-a-number")
+        self.assertEqual(code, 2)
+        self.assertIn("metric", err)
+
+    # --- PROP-05: lossless ledger pruning ---
+
+    def test_pruned_checkpoints_are_archived_not_lost(self):
+        ledger = self.tmp / "ledger" / "task_ledger.json"
+        ledger.parent.mkdir()
+        for index in range(25):
+            record_checkpoint("t", "implementation", f"step {index}", phase_num=3, ledger_file=ledger)
+        live = load_ledger(ledger)["checkpoints"]
+        archive = ledger.with_name("task_ledger_archive.jsonl")
+        self.assertLessEqual(len(live), 20)
+        archived = [json.loads(line) for line in archive.read_text(encoding="utf-8").splitlines() if line]
+        self.assertEqual(len(live) + len(archived), 25, "pruning must not destroy checkpoints")
+        descriptions = {entry["description"] for entry in archived}
+        self.assertIn("step 0", descriptions)
+
+    def test_mark_task_completed_can_require_evidence(self):
+        ledger = self.tmp / "evidence" / "task_ledger.json"
+        ledger.parent.mkdir()
+        record_checkpoint("t", "planning", "[1/1] plan", phase_num=2, ledger_file=ledger)
+        with self.assertRaises(CompletionEvidenceError):
+            mark_task_completed("t", ledger_file=ledger, require_evidence=True)
+        record_checkpoint("t", "verification", "done", phase_num=4, checklists="passed",
+                          ledger_file=ledger)
+        self.assertTrue(mark_task_completed("t", ledger_file=ledger, require_evidence=True))
+
+    # --- PROP-12: README budget ---
+
+    def test_readme_budget_names_the_largest_sections(self):
+        readme = ("# Title\n\n" + "a" * 100 + "\n\n## Big\n\n" + "b" * 300
+                  + "\n\n## Small\n\n" + "c" * 10)
+        rows = readme_budget_candidates(readme)
+        self.assertEqual(rows[0][0], "## Big")
+        self.assertGreater(rows[0][1], rows[1][1])
+
+    def test_oversize_readme_report_prints_candidates(self):
+        readme = "# Title\n\n" + ("x" * 120 + "\n\n") * 400
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            report_readme([f"README.md has {len(readme)} chars; the limit is 10"], readme=readme)
+        self.assertIn("Largest sections", out.getvalue())
+
+    # --- PROP-08: a pass-only gate cache ---
+
+    def test_gate_cache_reuses_only_a_pass_for_the_same_tree(self):
+        cache = self.tmp / "cache"
+        gate = Gate("test", "cmd", "detected")
+        calls = []
+        runner = lambda command, cwd, timeout: calls.append(command) or (0, "ok")
+        first = run_gates(Path("."), [gate], runner=runner, snapshotter=lambda root: None,
+                          cache_dir=cache, tree_key="tree1")
+        self.assertFalse(first[0].cached)
+        self.assertEqual(len(calls), 1)
+        second = run_gates(Path("."), [gate], runner=runner, snapshotter=lambda root: None,
+                           cache_dir=cache, tree_key="tree1")
+        self.assertTrue(second[0].cached)
+        self.assertEqual(len(calls), 1, "the same clean tree reuses the pass")
+        third = run_gates(Path("."), [gate], runner=runner, snapshotter=lambda root: None,
+                          cache_dir=cache, tree_key="tree2")
+        self.assertFalse(third[0].cached)
+        self.assertEqual(len(calls), 2, "a different tree runs the gate again")
+
+        failures = []
+        for _ in range(2):
+            run_gates(Path("."), [Gate("test", "fail", "detected")],
+                      runner=lambda command, cwd, timeout: failures.append(command) or (1, "boom"),
+                      snapshotter=lambda root: None, cache_dir=cache, tree_key="tree3")
+        self.assertEqual(len(failures), 2, "a failure is never cached")
+
+    def test_cache_is_off_by_default_so_a_planted_file_cannot_green_a_run(self):
+        """A cached file is not proof the gate ran (audit P0-2).
+
+        Measured before this fix: `check` always engaged the cache in the shared system temp
+        directory and trusted any JSON with `passed: true`, so planting one file made a
+        failing gate report success without ever running it. This proves the default by
+        observing real on-disk behaviour: the cache directory gains no entry at all.
+        """
+        project = self._project("cacheoff")
+        gate = Gate("test", "cmd", "detected")
+        calls = []
+
+        def runner(command, cwd, timeout):
+            calls.append(command)
+            return (1, "AssertionError: genuinely broken")
+
+        cache = Path(tempfile.mkdtemp(prefix="cacheoff_probe_"))
+        self.addCleanup(shutil.rmtree, str(cache), True)
+
+        # Default: no tree key is passed, so `run_gates` never reads or writes the cache.
+        run_gates(project, [gate], runner=runner, snapshotter=lambda root: None,
+                  cache_dir=cache, tree_key=None)
+        self.assertEqual(list(cache.glob("*.json")), [],
+                         "a run with no tree key must not touch the cache directory")
+        self.assertEqual(len(calls), 1, "the gate runs even when a pass could be planted")
+
+        # With a tree key the cache engages, which is what `--cache` opts into.
+        run_gates(project, [gate], runner=runner, snapshotter=lambda root: None,
+                  cache_dir=cache, tree_key="deadbeef")
+        planted = list(cache.glob("*.json"))
+        self.assertEqual(planted, [], "a failure is still never cached")
+
+        passing = lambda c, w, t: (0, "ok")
+        run_gates(project, [gate], runner=passing, snapshotter=lambda root: None,
+                  cache_dir=cache, tree_key="deadbeef")
+        self.assertEqual(len(list(cache.glob("*.json"))), 1,
+                         "an opted-in cached pass is the only entry written")
+
+        # And that entry, once planted, is what makes the opt-in path trust a file rather than
+        # the gate - the exact risk that keeps the default off.
+        calls.clear()
+        run_gates(project, [gate], runner=runner, snapshotter=lambda root: None,
+                  cache_dir=cache, tree_key="deadbeef")
+        self.assertEqual(calls, [], "an opted-in cached pass is reused without running")
+
+    def test_a_dependency_install_invalidates_a_cached_pass(self):
+        """`git status` cannot see an install into an ignored `.venv`, so the key must."""
+        from scripts.project_gates import dependency_digest, _cache_file
+
+        project = self.tmp / "depsinvalidate"
+        project.mkdir()
+        (project / "requirements.txt").write_text("a==1\n", encoding="utf-8")
+        before = dependency_digest(project)
+        gate = Gate("test", "cmd", "detected")
+        cache = self.tmp / "depcache"
+        first = _cache_file(cache, "tree", gate, project)
+
+        (project / "requirements.txt").write_text("a==2\n", encoding="utf-8")
+        stat = (project / "requirements.txt").stat()
+        os.utime(project / "requirements.txt", ns=(stat.st_atime_ns, stat.st_mtime_ns + 10**9))
+        self.assertNotEqual(before, dependency_digest(project),
+                            "a changed manifest must change the cache key")
+        self.assertNotEqual(first, _cache_file(cache, "tree", gate, project),
+                            "so a pass earned before the install cannot be reused after it")
+
+    # --- PROP-09: honest map coverage across stacks ---
+
+    def test_map_coverage_reports_non_python_sources_honestly(self):
+        folder = self.tmp / "mixed"
+        folder.mkdir()
+        (folder / "a.py").write_text("def work():\n    return 1\n", encoding="utf-8")
+        (folder / "a.cpp").write_text("int main() { return 0; }\n", encoding="utf-8")
+        (folder / "b.hpp").write_text("#pragma once\n", encoding="utf-8")
+        text = generate_codebase_map(root=folder, strict=False)
+        self.assertIn("## 🧭 Map Coverage", text)
+        self.assertIn("python (`1` module(s))", text)
+        self.assertIn("cpp (`2` file(s))", text)
+        self.assertIn("never as verified", text)
+
+    def test_map_coverage_says_none_for_a_python_only_tree(self):
+        folder = self.tmp / "pyonly"
+        folder.mkdir()
+        (folder / "a.py").write_text("value = 1\n", encoding="utf-8")
+        text = generate_codebase_map(root=folder, strict=False)
+        self.assertIn("none (no non-Python source files were found)", text)
+
+    # --- PROP-15: dossier writes name pre-existing changes ---
+
+    def test_dossier_sync_separates_pre_existing_changes_from_its_own_paths(self):
+        from scripts import aikit_cli
+        result = {"repo": "app", "category": "tools", "family": "AL",
+                  "files": ["docs/app.js"], "media": "media rebuilt."}
+        out = io.StringIO()
+        with mock.patch.object(aikit_cli.dossier_sync, "dossier_root", return_value=Path("dossier")), \
+             mock.patch.object(aikit_cli, "_dossier_status",
+                               side_effect=[{"docs/app.js", "docs/other.js"}, set()]), \
+             mock.patch.object(aikit_cli.dossier_sync, "sync_published", return_value=result):
+            with contextlib.redirect_stdout(out):
+                aikit_cli._sync_dossier(Path("."), "app")
+        text = out.getvalue()
+        self.assertIn("1 pre-existing change(s)", text)
+        self.assertIn("docs/other.js", text)
+        self.assertIn("publisher paths: docs/app.js", text)
+
+    def test_dossier_path_separators_do_not_mislabel_a_publisher_path(self):
+        """`git status` uses `\\` on Windows, `sync_entry` uses `/`; both are one path."""
+        from scripts import aikit_cli
+        result = {"repo": "app", "category": "tools", "family": "AL",
+                  "files": ["docs/app.js"], "media": "media rebuilt."}
+        out = io.StringIO()
+        with mock.patch.object(aikit_cli.dossier_sync, "dossier_root", return_value=Path("dossier")), \
+             mock.patch.object(aikit_cli, "_dossier_status",
+                               side_effect=[{"docs\\app.js", "docs\\other.js"}, set()]), \
+             mock.patch.object(aikit_cli.dossier_sync, "sync_published", return_value=result):
+            with contextlib.redirect_stdout(out):
+                aikit_cli._sync_dossier(Path("."), "app")
+        text = out.getvalue()
+        self.assertIn("1 pre-existing change(s)", text,
+                      "the backslash variant of a publisher path is not pre-existing")
+        self.assertIn("docs/other.js", text)
+
+    # --- PROP-07: compat cause preservation ---
+
+    def test_seeded_compat_failure_preserves_the_cause(self):
+        from scripts import project_compat
+        folder = self.tmp / "compat"
+        folder.mkdir()
+        project_compat.scaffold_compat(folder, "headless")
+        calls = {"n": 0}
+
+        def runner(command, root):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return (0, "start|Start|#start\n")
+            if calls["n"] == 2:
+                return (0, "WORLD-DELTA: x=1\n")
+            return (1, "Not enough free space: 0 MB is free; at least 10 MB is required.")
+
+        findings = project_compat.verify_compat(folder, runner=runner)
+        self.assertFalse(any("determinism unproven" in finding for finding in findings), findings)
+        self.assertTrue(any("infra" in finding for finding in findings), findings)
+        self.assertTrue(any("not enough free space" in finding.lower() for finding in findings), findings)
 
 
 if __name__ == "__main__":

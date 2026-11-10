@@ -13,6 +13,7 @@ PRINCIPLE-006, PRINCIPLE-011, PRINCIPLE-013, PRINCIPLE-014 and PRINCIPLE-018.
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -82,6 +83,7 @@ class UiContract:
     max_files: int
     max_lines: int
     digest: str
+    backend_paths: Tuple[str, ...] = ()
 
 
 def _error(message: str, why: str, fix: str, exit_code: int = 1) -> ProjectError:
@@ -286,8 +288,11 @@ def load_contract(root: Path) -> UiContract:
                      'set "limits": {"max_files": 6, "max_lines": 150}.', exit_code=2)
     digest = hashlib.sha256(json.dumps(raw, sort_keys=True, separators=(",", ":"))
                             .encode("utf-8")).hexdigest()
+    backend_paths = (_path_list(raw.get("backend_paths"), "backend_paths")
+                     if raw.get("backend_paths") else ())
     return UiContract(surfaces, protected, commands["fast"], timeout, snapshot,
-                      snapshot_timeout, theme_paths, max_files, max_lines, digest)
+                      snapshot_timeout, theme_paths, max_files, max_lines, digest,
+                      backend_paths)
 
 
 _matches = ui_proof.matches_pattern
@@ -424,14 +429,24 @@ def _task_error(message: str, fix: str) -> ProjectError:
 
 
 def begin(root: Path, surface: str, git_io: Optional[GitIo] = None,
-          shell_runner: Optional[ShellRunner] = None) -> Dict[str, object]:
-    """Open a bounded task for one named surface, from a clean, green baseline."""
+          shell_runner: Optional[ShellRunner] = None,
+          backend_only: bool = False) -> Dict[str, object]:
+    """Open a bounded task for one named surface, from a clean, green baseline.
+
+    `backend_only` opens a task whose scope is the contract's `backend_paths` (API-only
+    changes such as `server.py`): it needs no visual proof and no review at finish.
+    """
     contract = load_contract(root)
     if surface not in contract.surfaces:
         names = ", ".join(sorted(contract.surfaces)) or "none"
         raise _error(f"Unknown UI surface '{surface}'.",
                      f"the contract declares: {names}.",
                      "choose one of the declared surface names.", exit_code=2)
+    if backend_only and not contract.backend_paths:
+        raise _error("The UI contract declares no backend_paths.",
+                     "a backend-only task needs the paths it is allowed to change.",
+                     'add "backend_paths": ["server.py"] to .aikit/ui.json, then begin again.',
+                     exit_code=2)
     tracked = _tracked(root, git_io)
     if CONTRACT_REL not in tracked:
         raise _error(f"{CONTRACT_REL} is not tracked.",
@@ -456,7 +471,7 @@ def begin(root: Path, surface: str, git_io: Optional[GitIo] = None,
             raise _task_error(f"The fast UI proof failed before the task started (exit {code}).",
                               f"fix the baseline first; output:\n{_tail(output)}")
         baseline_snapshot: List[str] = []
-        if contract.snapshot:
+        if contract.snapshot and not backend_only:
             code, output = _run_snapshot(contract, root, shell_runner)
             if code != 0:
                 raise _task_error(
@@ -471,6 +486,7 @@ def begin(root: Path, surface: str, git_io: Optional[GitIo] = None,
         task = {
             "schema": TASK_SCHEMA,
             "surface": surface,
+            "mode": "backend" if backend_only else "visual",
             "baseline_commit": baseline,
             "contract_hash": contract.digest,
             "started_at": time.time(),
@@ -549,8 +565,13 @@ def _added_lines(root: Path, changes: Sequence[Tuple[str, str]], baseline: str,
 
 
 def verify(root: Path, git_io: Optional[GitIo] = None,
-           shell_runner: Optional[ShellRunner] = None) -> List[str]:
-    """Check the open task's scope, contract, baseline, budget and proof commands."""
+           shell_runner: Optional[ShellRunner] = None,
+           backend_ok: bool = False) -> List[str]:
+    """Check the open task's scope, contract, baseline, budget and proof commands.
+
+    `backend_ok` lets `finish --no-visual` keep a backend-path diff that a visual task's
+    surface would otherwise reject; finish itself still verifies every path is backend-only.
+    """
     contract = load_contract(root)
     with file_lock(_task_path(root)) as acquired:
         if not acquired:
@@ -568,6 +589,13 @@ def verify(root: Path, git_io: Optional[GitIo] = None,
             for _, path in changes:
                 if _matches(path, contract.protected):
                     findings.append(f"protected path changed: {path}")
+                elif task.get("mode") == "backend":
+                    if not _matches(path, contract.backend_paths):
+                        findings.append(
+                            f"path outside backend surface '{task['surface']}': {path} "
+                            f"(allowed: {', '.join(contract.backend_paths)})")
+                elif backend_ok and _matches(path, contract.backend_paths):
+                    continue
                 elif not _matches(path, surface):
                     findings.append(f"path outside surface '{task['surface']}': {path}")
             findings.extend(_budget_findings(root, changes, contract, task, git_io))
@@ -575,7 +603,7 @@ def verify(root: Path, git_io: Optional[GitIo] = None,
                 code, output = _run_fast(contract, root, shell_runner)
                 if code != 0:
                     findings.append(f"fast UI proof failed (exit {code}):\n{_tail(output)}")
-                if contract.snapshot and "baseline_snapshot" in task:
+                if contract.snapshot and "baseline_snapshot" in task and not backend_ok:
                     code, output = _run_snapshot(contract, root, shell_runner)
                     if code != 0:
                         findings.append(f"UI snapshot proof failed (exit {code}):\n{_tail(output)}")
@@ -589,7 +617,7 @@ def verify(root: Path, git_io: Optional[GitIo] = None,
                                 list(task["baseline_snapshot"]), current,
                                 [entry["pattern"]
                                  for entry in allowed_removal_entries(task)]))
-                if contract.theme_paths:
+                if contract.theme_paths and not backend_ok:
                     added = _added_lines(root, changes, str(task["baseline_commit"]),
                                          surface, git_io)
                     findings.extend(ui_proof.style_findings(added, contract.theme_paths))
@@ -664,6 +692,60 @@ def _read_history(root: Path) -> List[Dict[str, object]]:
     return loaded
 
 
+HISTORY_ARCHIVE_REL = ".aikit/ui_history_archive.jsonl"
+
+
+def history_records(root: Path) -> List[Dict[str, object]]:
+    """The finished-task records, newest last."""
+    return _read_history(root)
+
+
+def compact_history(root: Path) -> Dict[str, int]:
+    """Deduplicate history by surface+digest+contract, archiving dropped snapshots.
+
+    Evidence is per `(surface, surface_digest, contract_hash)`: any number of finishes with
+    the same triple proves the same surface state, so only the latest is kept live. The
+    dropped copies go to an append-only archive, so compaction never destroys evidence.
+
+    Runs under the task lock that every history writer takes, so a `finish` cannot land
+    between the read and the write and be overwritten. The archive is fsynced before the
+    live history is replaced: otherwise a power loss could leave the archive lost and the
+    replaced history already durable, destroying the only copy (audit finding P1-3).
+    """
+    with file_lock(_task_path(root)) as acquired:
+        if not acquired:
+            raise _task_error("Another UI operation holds the task lock.",
+                              "wait for it to finish, then retry.")
+        history = _read_history(root)
+        latest: Dict[tuple, Dict[str, object]] = {}
+        dropped: List[Dict[str, object]] = []
+        for record in history:
+            key = (record.get("surface"), record.get("surface_digest"),
+                   record.get("contract_hash"))
+            current = latest.get(key)
+            if current is None:
+                latest[key] = record
+                continue
+            if float(record.get("finished_at") or 0) >= float(current.get("finished_at") or 0):
+                dropped.append(current)
+                latest[key] = record
+            else:
+                dropped.append(record)
+        if not dropped:
+            return {"before": len(history), "after": len(history), "archived": 0}
+        archive = root / HISTORY_ARCHIVE_REL
+        archive.parent.mkdir(parents=True, exist_ok=True)
+        with open(archive, "a", encoding="utf-8") as handle:
+            for record in dropped:
+                handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        ordered = sorted(latest.values(),
+                         key=lambda record: float(record.get("finished_at") or 0))
+        atomic_write_json(root / HISTORY_REL, ordered)
+        return {"before": len(history), "after": len(ordered), "archived": len(dropped)}
+
+
 def surface_evidence_errors(root: Path, git_io: Optional[GitIo] = None) -> List[str]:
     """Surfaces whose current files do not match any finished task's recorded digest."""
     contract = load_contract(root)
@@ -673,8 +755,10 @@ def surface_evidence_errors(root: Path, git_io: Optional[GitIo] = None) -> List[
         digest = surface_digest(root, patterns, git_io)
         if not any(record.get("surface") == name and record.get("surface_digest") == digest
                    for record in history):
-            errors.append(f"UI surface '{name}' has no finished UI task matching its current files; "
-                          "finish a new UI task (records before ADR-169 have no digest)")
+            errors.append(
+                f"UI surface '{name}' has no finished UI task matching its current files "
+                f"(patterns: {', '.join(patterns)}; current digest {digest[:12]}); finish a new "
+                "UI task (records before ADR-169 have no digest)")
     return errors
 
 
@@ -690,6 +774,10 @@ def _append_history(root: Path, task: Dict[str, object], reviewer: str,
     history.append({
         "schema": TASK_SCHEMA,
         "surface": task["surface"],
+        "mode": task.get("mode", "visual"),
+        "visual_change": bool(task.get("visual_change", True)),
+        "changed_paths": list(task.get("changed_paths") or []),
+        "no_visual_reason": task.get("no_visual_reason", ""),
         "baseline_commit": task["baseline_commit"],
         "contract_hash": task["contract_hash"],
         "started_at": task["started_at"],
@@ -706,18 +794,41 @@ def _append_history(root: Path, task: Dict[str, object], reviewer: str,
 
 def finish(root: Path, git_io: Optional[GitIo] = None,
            shell_runner: Optional[ShellRunner] = None,
-           reviewed: bool = False, reviewer: str = "") -> List[str]:
-    """Close a task only after a successful verify, a recorded review and its evidence."""
-    findings = verify(root, git_io, shell_runner)
+           reviewed: bool = False, reviewer: str = "",
+           no_visual: bool = False, reason: str = "") -> List[str]:
+    """Close a task only after a successful verify and its evidence.
+
+    A visual task still needs `reviewed`; a `backend` task or one finished with `no_visual`
+    needs no review, but every changed path must match the contract's `backend_paths` and
+    must not touch a theme path. That is what makes "no visual change" checkable rather
+    than a free-text reviewer claim (voidfarer: server.py was treated as a visual surface).
+    """
+    findings = verify(root, git_io, shell_runner, backend_ok=no_visual)
     if findings:
         return findings
-    if not reviewed:
-        return ["review not recorded: no one confirmed the running UI looks right."]
+    contract = load_contract(root)
     with file_lock(_task_path(root)) as acquired:
         if not acquired:
             raise _task_error("Another UI operation holds the task lock.",
                               "wait for it to finish, then retry.")
         task = read_task(root)
+        backend_mode = task.get("mode") == "backend"
+        visual_change = not backend_mode and not no_visual
+        if no_visual and not backend_mode:
+            if not contract.backend_paths:
+                raise _error("--no-visual needs `backend_paths` in the UI contract.",
+                             "without them AIKit cannot tell a backend change from a visual one.",
+                             'add "backend_paths": ["server.py"] to .aikit/ui.json, then retry.',
+                             exit_code=2)
+            for _, path in _changes(root, git_io):
+                if _matches(path, contract.theme_paths) or not _matches(path, contract.backend_paths):
+                    return [f"no-visual change refused: visual path changed: {path}"]
+        elif visual_change and not reviewed:
+            return ["review not recorded: no one confirmed the running UI looks right."]
+        changes = _changes(root, git_io)
+        task["visual_change"] = visual_change
+        task["changed_paths"] = [path for _, path in changes]
+        task["no_visual_reason"] = "" if visual_change else reason.strip()
         _append_history(root, task, reviewer, git_io)
         _task_path(root).unlink(missing_ok=True)
         _task_path(root).with_suffix(".json.bak").unlink(missing_ok=True)

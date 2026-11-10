@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import struct
 import subprocess
 import sys
@@ -42,6 +43,10 @@ EVIDENCE_REL = Path(".aikit") / "evidence.json"
 EVIDENCE_SCHEMA = 1
 SEED_FLAG = "--seed"
 SEED_PROBE = "7"
+# The free-space floor before a disk-sensitive replay starts. Must equal
+# `project_gates.DEFAULT_MIN_FREE_MB`; a test pins them, because importing it here would
+# create the registry -> compat -> gates -> registry cycle the structure gate rejects.
+MIN_FREE_MB = 10.0
 SCREENSHOT_DIR = Path("assets") / "screenshots"
 BEFORE_NAME = "before.png"
 AFTER_NAME = "after.png"
@@ -302,12 +307,38 @@ def verify_compat(root: Path, runner=None) -> List[str]:
         if not isinstance(flag, str) or flag.strip() != SEED_FLAG:
             findings.append(f"compat seed flag must be {SEED_FLAG!r}.")
         else:
-            first_code, first_out = run(f"{scr_cmd} {SEED_FLAG} {SEED_PROBE}", root)
-            second_code, second_out = run(f"{scr_cmd} {SEED_FLAG} {SEED_PROBE}", root)
-            if first_code != 0 or second_code != 0:
-                findings.append("seeded replay command failed; determinism unproven.")
-            elif _delta_lines(first_out) != _delta_lines(second_out) or not _delta_lines(first_out):
-                findings.append("seeded replay diverged: same seed gave different WORLD-DELTA lines.")
+            free_mb = None
+            try:
+                free_mb = shutil.disk_usage(root).free / (1024 * 1024)
+            except OSError:  # hygiene: allow an unreadable disk figure; the replay still runs
+                pass
+            # Same floor the gate preflight uses. Declared here rather than imported from
+            # `project_gates` (that would close registry -> compat -> gates -> registry);
+            # a test pins the two constants equal so they cannot drift.
+            if free_mb is not None and free_mb < MIN_FREE_MB:
+                findings.append(
+                    f"seeded replay not started (infra): {free_mb:.1f} MB free; at least "
+                    f"{MIN_FREE_MB:.0f} MB is required.")
+            else:
+                first_code, first_out = run(f"{scr_cmd} {SEED_FLAG} {SEED_PROBE}", root)
+                second_code, second_out = run(f"{scr_cmd} {SEED_FLAG} {SEED_PROBE}", root)
+                if first_code != 0 or second_code != 0:
+                    # Preserve the cause: a disk/permission failure is not a determinism verdict.
+                    combined = "\n".join(part for part in (first_out, second_out) if part)
+                    lowered = combined.lower()
+                    if any(marker in lowered for marker in ("no space left", "not enough free space",
+                                                            "not enough free", "permission denied")):
+                        kind = "infra"
+                    elif "timed out" in lowered:
+                        kind = "timeout"
+                    else:
+                        kind = "product"
+                    findings.append(
+                        f"seeded replay could not run ({kind}: exit {first_code}/{second_code}) — "
+                        f"not a determinism verdict; command: {scr_cmd} {SEED_FLAG} {SEED_PROBE}\n"
+                        f"{combined[-400:]}")
+                elif _delta_lines(first_out) != _delta_lines(second_out) or not _delta_lines(first_out):
+                    findings.append("seeded replay diverged: same seed gave different WORLD-DELTA lines.")
     bench_cfg = compat.get("bench") if isinstance(compat.get("bench"), dict) else None
     if bench_cfg is not None:
         for key in ("baseline", "delta"):

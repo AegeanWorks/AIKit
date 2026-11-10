@@ -359,10 +359,12 @@ def track_golden_lifecycle(jail: Path, log: List[str]) -> Tuple[bool, str]:
         return False, "pre-flight impact assessment was not persisted (PRINCIPLE-007 R6)"
 
     # MODIFY: advance the task to a later phase; the ledger must reflect the newer phase.
+    # The Phase 4 checkpoint records its checklist outcome, which `--complete` now requires
+    # (ADR-410 follow-up): the golden path must exercise the same evidence contract an agent does.
     code, out, err = run_cli(LEDGER_CLI, [
         "--workspace", str(workspace),
         "--checkpoint", "dogfood-task", "--phase", "verification", "--phase-num", "4",
-        "--desc", "dogfood advanced",
+        "--desc", "dogfood advanced", "--checklists", "passed",
     ], workspace)
     log.append(f"[modify] rc={code} out={out.strip()[:120]}")
     if code != 0:

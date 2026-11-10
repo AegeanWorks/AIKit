@@ -118,7 +118,12 @@ EXTERNAL_SCHEMA_KEYS: Set[str] = {"scripts", "test", "build", "ui:snapshot", "pr
                                   "private", "spdx_id", "@graph",
                                   # Project-owned `.aikit/project.json` fields: license tags chosen
                                   # by the owner/topics workflow and the optional mechanics contract.
-                                  "license_topics", "core"}
+                                  "license_topics", "core",
+                                  # The canonical verify gate and its replacement list, plus the
+                                  # free-space preflight threshold (all owner-written config).
+                                  "verify", "replace_detected", "min_free_mb",
+                                  # UI contract's optional backend-only path list (owner-written).
+                                  "backend_paths"}
 
 # Generator/content functions referenced only through data structures or f-strings.
 DYNAMIC_DISPATCH_PREFIXES = ("generate_", "track_", "test_", "_")

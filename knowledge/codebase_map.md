@@ -1,16 +1,20 @@
 # Codebase Map & Symbol Catalog 🗺️
 
 > **AUTO-GENERATED & VERIFIED BY `scripts/update_knowledge_base.py`**
-> This document provides an automated, up-to-date registry of all modules, classes, and exported functions across this repository.
+> This document catalogues Python modules, classes, and exported functions. See Map Coverage for any stack it does not index.
 
 ---
 
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `72`
-- **Total Classes**: `172`
-- **Total Top-Level Functions**: `1030`
-- **Total Class Methods**: `1315`
-- **Total Source Lines**: `48810`
+- **Total Classes**: `173`
+- **Total Top-Level Functions**: `1052`
+- **Total Class Methods**: `1361`
+- **Total Source Lines**: `50322`
+
+## 🧭 Map Coverage
+- **Indexed**: python (`72` module(s))
+- **Not indexed by this map**: none (no non-Python source files were found)
 
 ---
 
@@ -653,15 +657,16 @@
 ### [`scripts/aikit_cli.py`](scripts/aikit_cli.py)
 > *`aikit` command line: create, attach, list, report on, check, fix and delegate for the projects*
 
-**Size**: `1600` lines (`81011` bytes)
+**Size**: `1886` lines (`95316` bytes)
 
 **Functions:**
 - `def failure_tail(output)`
 - `def _register_delivered_ideas(project_path, project_name)` - *Register ideas named by the project's delivered commits; raises on a bad register.*
 - `def _report_registered_ideas(project_path, project_name)` - *Best-effort registration after a push; delivery already succeeded, so never fail it.*
+- `def _dossier_status(root)` - *The dossier checkout's changed paths, or None when it cannot be read.*
 - `def _sync_dossier(project_path, project_name)` - *Best-effort dossier catalogue sync after a publish; the publish itself already succeeded.*
 - `def resolve_gates(project)`
-- `def run_gates(path, gates)`
+- `def run_gates(path, gates, **kwargs)`
 - `def present_project(name, workspace)` - *The registered project `name`, refusing one whose folder or record is gone.*
 - `def project_is_clean(audit, open_ui_task)` - *Whether the project's tree and ledger are delivery-ready, decided once for every surface.*
 - `def test_command_topic(test_command)` - *The language topic a known test runner implies, or None for a custom command.*
@@ -676,6 +681,8 @@
 - `def cmd_status(args)`
 - `def cmd_resume(args)`
 - `def cmd_guideline(args)`
+- `def parse_measurement(spec)` - *Parse one `metric=...;baseline=...;...` checkpoint measurement; raises ValueError.*
+- `def _auto_checkpoint_files(project)` - *Dirty and untracked non-ignored paths, for `--files auto`.*
 - `def cmd_checkpoint(args)`
 - `def cmd_complete(args)`
 - `def cmd_clean(args)`
@@ -683,7 +690,10 @@
 - `def default_topic_warning(project)` - *The default-only topic warning, or None when the project has a domain topic.*
 - `def ui_review_waiver(project_root)` - *The project rule that waives the person in a UI review, or None (ADR-310).*
 - `def _named_guideline(line)`
-- `def cmd_check(args)`
+- `def cmd_check(args)` - *Run the Phase 4 check; `--json` puts one verdict object on stdout, the report on stderr.*
+- `def _gate_payload(results)` - *Each gate's verdict, with its failure tail so a reader needs no side channel.*
+- `def _clean_tree_key(project_path)` - *HEAD when the tree has no uncommitted non-ignored changes, else None.*
+- `def _run_check(args, payload)`
 - `def cmd_push(args)` - *Gated push: a discoverable alias for `check --push`.*
 - `def cmd_fix(args)` - *Repair what AIKit can repair mechanically, then run the gates: everything left is the*
 - `def cmd_publish(args)`
@@ -712,7 +722,7 @@
 ### [`scripts/aikit_parser.py`](scripts/aikit_parser.py)
 > *The `aikit` command-line grammar: its parser and the Why/Fix triad for usage errors.*
 
-**Size**: `318` lines (`22212` bytes)
+**Size**: `359` lines (`25450` bytes)
 
 **Classes:**
 - `class TriadArgumentParser` - *argparse whose usage errors carry Why/Fix like every other AIKit error.*
@@ -774,7 +784,7 @@
 ### [`scripts/check_reachability.py`](scripts/check_reachability.py)
 > *Invariant Reachability Shield (PRINCIPLE-014 Rule 7)*
 
-**Size**: `382` lines (`17139` bytes)
+**Size**: `387` lines (`17560` bytes)
 
 **Functions:**
 - `def parse_module(path)` - *Parse a module once per content. Every analysis below walks the same files, and parsing each*
@@ -870,16 +880,16 @@
 ---
 
 ### [`scripts/disruption_help.py`](scripts/disruption_help.py)
-> *Generated top-level help for the disruption-recovery `--help` fast path (ADR-180).*
+> *Generated copy of the ledger CLI help for the fast `--help` path.*
 
-**Size**: `61` lines (`3770` bytes)
+**Size**: `66` lines (`4228` bytes)
 
 ---
 
 ### [`scripts/disruption_recovery.py`](scripts/disruption_recovery.py)
 > *Disruption Recovery & Task Progress Ledger (PRINCIPLE-006, PRINCIPLE-013)*
 
-**Size**: `2214` lines (`105884` bytes)
+**Size**: `2347` lines (`112754` bytes)
 
 **Classes:**
 - `class UnsupportedLedgerVersion` - *A ledger declares a schema this build cannot read (PRINCIPLE-013 R4, PRINCIPLE-016 R5).*
@@ -887,6 +897,8 @@
 - `class LedgerOwnershipError` - *A write to a task another identified agent owns, refused before anything changed (ADR-209).*
   - Method `.__init__(task_id, owner, agent, since)`
 - `class CompletedTaskError` - *A checkpoint tried to reopen a completed task (ADR-388); nothing was changed.*
+  - Method `.__init__(task_id)`
+- `class CompletionEvidenceError` - *A completion had no recorded Phase 4 checklist evidence; nothing was changed.*
   - Method `.__init__(task_id)`
 
 **Functions:**
@@ -912,6 +924,9 @@
 - `def prune_checkpoints(checkpoints, active_task_id, max_history)` - *Prune checkpoints to maintain a bounded rolling memory window (PRINCIPLE-004).*
 - `def task_plan_checkpoint(task_checkpoints)` - *The task's plan (PRINCIPLE-004 R1): its latest Phase 2 checkpoint whose description starts*
 - `def _refuse_newer_ledger_on_disk(path)` - *Re-check both slots under the lock before replacing either (PRINCIPLE-013 R3).*
+- `def _checkpoint_identity(checkpoint)` - *A checkpoint's stable identity for archive de-duplication.*
+- `def _pruned_checkpoints(before, after)` - *Entries the bounded window removed, in their original order.*
+- `def _archive_checkpoints(ledger_file, removed)` - *Append pruned checkpoints to `<ledger>_archive.jsonl`; returns how many were new.*
 - `def save_ledger(ledger, ledger_file, max_history, _locked)` - *Save the task ledger atomically to disk with bounded rolling history (PRINCIPLE-004).*
 - `def resolve_phase_num(phase, explicit_num)` - *Resolve lifecycle phase number 1..5 for compaction orientation (PRINCIPLE-002).*
 - `def unquote_git_path(path)` - *A path as git printed it, back as the real name.*
@@ -922,8 +937,9 @@
 - `def resolve_agent(explicit, env)` - *The agent a ledger write is attributed to (ADR-209): `--agent`, else `AIKIT_AGENT`, else the*
 - `def agent_history(checkpoints, active)` - *Who worked on a task, in order: `started by A; continued by B` (ADR-209). The chain the active*
 - `def _claim(active, agent, take_over)` - *Check that `agent` may write the in-progress task `active`; returns the previous owner when the*
-- `def record_checkpoint(task_id, phase, description, files_affected, status, ledger_file, phase_num, why, benefits, risks, mitigation, handoff, agent, take_over)` - *Record an atomic micro-checkpoint in the task ledger (PRINCIPLE-002, PRINCIPLE-006, PRINCIPLE-007).*
-- `def mark_task_completed(task_id, ledger_file, agent, take_over)` - *Mark the active task completed (locked, PRINCIPLE-013 R3). Returns False, changing nothing,*
+- `def record_checkpoint(task_id, phase, description, files_affected, status, ledger_file, phase_num, why, benefits, risks, mitigation, handoff, measurements, checklists, verified_phase, agent, take_over)` - *Record an atomic micro-checkpoint in the task ledger (PRINCIPLE-002, PRINCIPLE-006, PRINCIPLE-007).*
+- `def _has_completion_evidence(ledger, task_id)` - *Whether the task recorded a Phase 4 checkpoint with a checklist outcome.*
+- `def mark_task_completed(task_id, ledger_file, agent, take_over, require_evidence, force, reason)` - *Mark the active task completed (locked, PRINCIPLE-013 R3). Returns False, changing nothing,*
 - `def reset_active_task(reason, ledger_file, agent, take_over)` - *Abandon or reset the active in-progress or suspended task in the ledger (locked,*
 - `def suspend_active_task(reason, ledger_file, agent, take_over)` - *Pause the active task without abandoning it (ADR-219). The plan, phase and handoff stay in the*
 - `def resumable_tasks(ledger)` - *Tasks whose latest checkpoint is `suspended` or `superseded`, newest first (ADR-219).*
@@ -948,7 +964,7 @@
 - `def impact_errors(description, phase_num, fields, has_prior_impact)` - *PRINCIPLE-007 R6: a task's first plan checkpoint (Phase 2, `--desc` starting `[1/`) carries the*
 - `def missing_impact_warning(task_id, phase_num, has_prior_impact, has_impact_now)` - *PRINCIPLE-007 R1: a Track C task records its impact assessment before its first edit. A task*
 - `def scrub_checkpoint_text(desc, impact, redact, handoff)` - *The checkpoint's free text, scrubbed when `redact` is set, plus the detectors that fired.*
-- `def checkpoint_command(task_id, phase, phase_num, desc, impact, ledger_file, redact, handoff, agent, take_over)` - *Record a checkpoint behind the PRINCIPLE-007 R1/R6 impact gate; returns the exit code. The one*
+- `def checkpoint_command(task_id, phase, phase_num, desc, impact, ledger_file, redact, handoff, agent, take_over, files_affected, measurements, checklists, verified_phase)` - *Record a checkpoint behind the PRINCIPLE-007 R1/R6 impact gate; returns the exit code. The one*
 - `def report_ownership(error)` - *Print the triad for a refused write to another agent's task; returns exit code 1.*
 - `def argv_value_errors(argv)` - *Value flags given without a value, or with an invalid one (PRINCIPLE-003 R6). These used to*
 
@@ -957,7 +973,7 @@
 ### [`scripts/dogfood.py`](scripts/dogfood.py)
 > *Operational Dogfooding Runner (PRINCIPLE-015)*
 
-**Size**: `672` lines (`30499` bytes)
+**Size**: `674` lines (`30716` bytes)
 
 **Functions:**
 - `def sanitized_env(base)` - *Child env without code-injection vectors (S-A F1/F2).*
@@ -1161,7 +1177,7 @@
 ### [`scripts/project_compat.py`](scripts/project_compat.py)
 > *AI-compat scaffold and proof for generated projects (Track 2, now).*
 
-**Size**: `440` lines (`19677` bytes)
+**Size**: `471` lines (`21558` bytes)
 
 **Functions:**
 - `def _error(message, why, fix)`
@@ -1185,16 +1201,19 @@
 ### [`scripts/project_gates.py`](scripts/project_gates.py)
 > *Project gates: the checks a project's own configuration declares, run as its Phase 4 (ADR-122).*
 
-**Size**: `305` lines (`13563` bytes)
+**Size**: `507` lines (`23274` bytes)
 
 **Classes:**
 - `class Gate` - *A named check and the shell command that runs it; `source` says where it came from.*
 - `class GateResult` - *One gate's outcome; `returncode` is -1 when the gate could not start or timed out.*
   - Property `.passed`
+  - Method `.action_hint()` - *One line naming the next action for this failure class.*
 
 **Functions:**
 - `def _tracked_snapshot(root)` - *Content hashes of the dirty tracked files, or None when git cannot answer.*
 - `def _rewritten_paths(before, after)` - *Tracked paths whose content identity changed between two snapshots.*
+- `def _classify_failure(code, output)` - *The failure class of a finished gate, from its exit code and output.*
+- `def disk_free_mb(path)` - *Free megabytes under `path`, or None when the platform cannot report it.*
 - `def _python_gates(root)`
 - `def _node_gates(root)`
 - `def _go_gates(root)`
@@ -1203,8 +1222,13 @@
 - `def secrets_gate(project_root)` - *The built-in secret scan of the project's repository.*
 - `def compat_gate(project_root)` - *The built-in AI-compat proof for generated projects (ADR-315).*
 - `def resolve_gates(project)` - *The project's gates in run order: test, detected extras, mechanics test/bench,*
+- `def verify_gate_warnings(project)` - *Warnings when a project's canonical verify command is not the one governing the check.*
 - `def run_shell(command, cwd, timeout)` - *Run `command` through the platform shell with stdin closed; on timeout the whole process*
-- `def run_gates(project_root, gates, runner, timeout, snapshotter)` - *Run every gate, even after a failure, so one report lists all of them.*
+- `def dependency_digest(project_root)` - *A digest of the dependency manifests, so an install invalidates a cached pass.*
+- `def _cache_file(cache_dir, tree_key, gate, project_root)` - *One gate result's content-addressed path for a clean tree and its dependencies.*
+- `def _cached_pass(cache_path)` - *The cached pass for this gate, or None when absent, unreadable or not a pass.*
+- `def _store_pass(cache_path, gate, output)` - *Record a pass; only a pass is ever cached, so a failure can never hide a fix.*
+- `def run_gates(project_root, gates, runner, timeout, snapshotter, lock_path, lock_timeout, retry_timeouts, min_free_mb, free_space, cache_dir, tree_key)` - *Run every gate, even after a failure, so one report lists all of them.*
 - `def failure_tail(output, lines)` - *The last `lines` non-empty lines of a gate's output, where its error normally is.*
 
 ---
@@ -1610,7 +1634,7 @@
 ### [`scripts/ui_contract.py`](scripts/ui_contract.py)
 > *Bounded UI-surface edits against a committed `.aikit/ui.json` contract (opt-in).*
 
-**Size**: `803` lines (`39659` bytes)
+**Size**: `914` lines (`45573` bytes)
 
 **Classes:**
 - `class UiContract` - *One project's committed UI contract: surfaces, protected paths, commands and limits.*
@@ -1638,18 +1662,20 @@
 - `def _task_path(root)`
 - `def read_task(root)` - *The open UI task record, refusing a missing or unreadable one.*
 - `def _task_error(message, fix)`
-- `def begin(root, surface, git_io, shell_runner)` - *Open a bounded task for one named surface, from a clean, green baseline.*
+- `def begin(root, surface, git_io, shell_runner, backend_only)` - *Open a bounded task for one named surface, from a clean, green baseline.*
 - `def _diff_lines(root, baseline, git_io)`
 - `def _line_count(path)`
 - `def _budget_findings(root, changes, contract, task, git_io)`
 - `def _added_lines(root, changes, baseline, surface, git_io)` - *(path, line number, text) for every line added inside the task's surface.*
-- `def verify(root, git_io, shell_runner)` - *Check the open task's scope, contract, baseline, budget and proof commands.*
+- `def verify(root, git_io, shell_runner, backend_ok)` - *Check the open task's scope, contract, baseline, budget and proof commands.*
 - `def allowed_removal_entries(task)` - *One task's allowed removals as `{"pattern": ..., "reason": ...}` records.*
 - `def allow(root, pattern, reason)` - *Record one intended inventory removal pattern and its reason on the open task.*
 - `def _read_history(root)` - *Read the append-only UI history; a missing file is empty, a malformed one is an error.*
+- `def history_records(root)` - *The finished-task records, newest last.*
+- `def compact_history(root)` - *Deduplicate history by surface+digest+contract, archiving dropped snapshots.*
 - `def surface_evidence_errors(root, git_io)` - *Surfaces whose current files do not match any finished task's recorded digest.*
 - `def _append_history(root, task, reviewer, git_io)` - *Append the finished task's evidence to the project's UI history (ADR-161, ADR-169).*
-- `def finish(root, git_io, shell_runner, reviewed, reviewer)` - *Close a task only after a successful verify, a recorded review and its evidence.*
+- `def finish(root, git_io, shell_runner, reviewed, reviewer, no_visual, reason)` - *Close a task only after a successful verify and its evidence.*
 - `def abort(root, git_io)` - *Restore only the surface to its baseline, preserving and reporting everything else.*
 - `def status(root, git_io)` - *The open task, its baseline and the paths changed under it right now.*
 
@@ -1671,7 +1697,7 @@
 ### [`scripts/update_knowledge_base.py`](scripts/update_knowledge_base.py)
 > *Codebase Knowledge Base Auto-Updater & Validator (PRINCIPLE-016)*
 
-**Size**: `1256` lines (`59442` bytes)
+**Size**: `1329` lines (`62939` bytes)
 
 **Functions:**
 - `def fsync_dir(dir_path)` - *Flush the directory entry so a completed os.replace survives power loss (PRINCIPLE-013 R1).*
@@ -1687,6 +1713,7 @@
 - `def find_python_files(root)` - *Every Python file under `root`, skipping `IGNORE_DIRS`. Ignored directories are pruned while*
 - `def build_digest(rows, max_lines, max_chars, map_name)` - *`path  <lines>L <classes>C <functions>F  purpose` per module, within both budgets, shared-code*
 - `def digest_rows(root)` - *One digest row per Python module under `root`, from the AST extractor the map uses.*
+- `def source_coverage(root)` - *Count non-Python source files per language, so the map can say what it does not index.*
 - `def generate_codebase_map(root, strict)` - *Generate the markdown content for knowledge/codebase_map.md with AST validation (PRINCIPLE-003).*
 - `def validate_knowledge_links(knowledge_dir)` - *Verify that all relative file links in knowledge/INDEX.md physically exist on disk (PRINCIPLE-016).*
 - `def audit_adr_register(decisions)` - *ADR IDs must be unique and consecutive (PRINCIPLE-016 R3, PRINCIPLE-000 R3). Two sessions that*
@@ -1709,7 +1736,9 @@
 - `def check_script_references(root)` - *Run `audit_script_references` over `root`'s tracked sources; None when git is unavailable.*
 - `def report_script_references(errors)` - *Print dead `python <path>.py` references with Why/Fix (PRINCIPLE-011 R6); True when clean.*
 - `def check_readme(root)` - *Run `audit_readme` on `root`, listing tracked files with git (bounded, PRINCIPLE-010 R3).*
-- `def report_readme(errors)` - *Print README findings with the remediation triad (PRINCIPLE-011 R6); True when clean.*
+- `def _readme_text(root)` - *The README's text for the size diagnostic; empty when it cannot be read.*
+- `def readme_budget_candidates(readme, limit)` - *The largest markdown sections, so an oversize README names what to trim.*
+- `def report_readme(errors, readme)` - *Print README findings with the remediation triad (PRINCIPLE-011 R6); True when clean.*
 - `def guideline_errors(text)` - *Problems in a project's `.aikit/guidelines.md`: over the size limit, a line under `## Rules`*
 - `def memory_dir(root)` - *Where `root` keeps its map and decisions: a project's `.aikit/`, else `knowledge/`.*
 - `def check_workspace(root)` - *Every read-only audit of `--check`, for AIKit or for a project it builds: the codebase map*
@@ -1781,7 +1810,7 @@
 ### [`tests/test_integration.py`](tests/test_integration.py)
 > *Integration & Operational Dogfooding Tier (PRINCIPLE-014, PRINCIPLE-015).*
 
-**Size**: `2253` lines (`115992` bytes)
+**Size**: `2259` lines (`116505` bytes)
 
 **Classes:**
 - `class TestParallelAgentSafety` - *Multi-process reproduction of the lost-update race (PRINCIPLE-013 R3).*
@@ -1949,7 +1978,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `16378` lines (`891677` bytes)
+**Size**: `16995` lines (`925670` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -2613,6 +2642,13 @@
   - Method `.test_verify_flags_style_literals_outside_the_theme()`
   - Method `.test_finish_requires_a_recorded_human_review()`
   - Method `.test_finish_appends_each_completed_task_to_history()`
+  - Method `.test_backend_only_task_closes_without_a_visual_review()`
+  - Method `.test_backend_only_task_refuses_a_visual_path()`
+  - Method `.test_no_visual_finish_accepts_only_backend_paths()`
+  - Method `.test_no_visual_without_backend_paths_is_a_usage_error()`
+  - Method `.test_history_compaction_dedupes_and_archives()`
+  - Method `.test_compaction_takes_the_task_lock_and_fsyncs_the_archive()` - *The docstring says evidence is never destroyed; concurrency and power loss could.*
+  - Method `.test_compaction_refuses_when_the_lock_is_held()`
   - Method `.test_finish_refuses_to_destroy_an_unreadable_history_file()`
 - `class TestUiProof` - *The UI guard's mechanical proofs: inventory diffs and style drift (ADR-160).*
   - Method `.test_snapshot_lines_sort_strip_and_deduplicate()`
@@ -2647,7 +2683,6 @@
   - Method `.test_transcript_scrubs_secrets_before_writing()`
   - Method `.test_transcript_append_refuses_when_the_lock_times_out()`
   - Method `.test_replay_refuses_a_corrupt_transcript()`
-- `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
   - Method `.test_a_tampered_transcript_cannot_replay_a_different_verdict()` - *The module docstring promises replay proves the identical verdict.*
 - `class TestDelegateBudgets` - *S-D/S-B: bounded invocation — 16k prompt cap and a global kill file (ExternalTermination pattern).*
   - Method `.setUp()`
@@ -2670,9 +2705,9 @@
   - Method `._receipt(**overrides)`
   - Method `.test_witness_key_is_stable_and_content_bound()`
   - Method `.test_witness_key_omits_empty_pass_to_pass_for_compat()`
-  - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_never_raises_on_a_non_mapping_entry()` - *replay's docstring says "never raises"; a bare list/None raised AttributeError.*
   - Method `.test_a_failing_rerun_never_overwrites_a_stored_pass()` - *The docstring says a changed tree files elsewhere instead of overwriting history.*
+  - Method `.test_store_lists_and_prunes_oldest_first()`
   - Method `.test_replay_matches_verdicts_and_refuses_without_evidence()`
   - Method `.test_replay_does_not_mask_unrelated_type_errors()`
   - Method `.test_store_works_when_the_module_is_run_as_a_file()` - *`prog` is `python scripts/proof_corpus.py`, so store must work in script mode.*
@@ -3196,6 +3231,44 @@
   - Method `.test_registry_gaps_name_no_retired_defect()` - *A gap that describes a fixed defect sends the next reader to the wrong place.*
   - Method `.test_a_bare_state_name_resolves_to_its_machines()` - *An agent that found a status string must be able to learn which machine owns it.*
   - Method `.test_which_reports_every_machine_for_an_ambiguous_name()`
+- `class TestDeliveryAndEvidenceProposals` - *The implemented proposals: verdict truth, evidence integrity and actionable diagnosis.*
+  - Method `.setUp()`
+  - Method `._project(name)`
+  - Method `.run_cli(*argv)`
+  - Method `._green_gate(name)`
+  - Method `.test_gate_failure_taxonomy_and_timeout_only_retry()`
+  - Method `.test_rewritten_tree_is_named_as_its_own_failure_kind()`
+  - Method `.test_disk_preflight_stops_an_expensive_gate()`
+  - Method `.test_lock_contention_is_reported_as_a_lock_finding()`
+  - Method `.test_verify_gate_replaces_the_detected_gates_it_wraps()`
+  - Method `.test_invalid_replace_detected_is_refused()`
+  - Method `.test_unbound_verify_gate_emits_a_warning()`
+  - Method `._dirty_audit()`
+  - Method `._clean_audit()`
+  - Method `.test_check_exits_three_when_gates_pass_but_delivery_is_blocked()`
+  - Method `.test_check_json_states_the_verdict_on_stdout()`
+  - Method `.test_allow_dirty_keeps_exit_zero_on_a_working_copy()` - *A caller that means "verify this working copy" can say so and keep 0 (ADR-410).*
+  - Method `.test_check_json_moves_the_report_to_stderr_and_keeps_the_failure_tail()` - *The stderr triad says "shown above"; with --json the report must actually be there.*
+  - Method `.test_check_json_has_an_error_object_for_an_unknown_project()`
+  - Method `.test_strict_preflight_fails_before_any_gate_runs()`
+  - Method `.test_check_fix_refreshes_the_map_and_still_checks()`
+  - Method `.test_completion_requires_phase_four_checklists_or_a_recorded_force()`
+  - Method `.test_checkpoint_records_files_and_structured_measurements()`
+  - Method `.test_files_affected_is_deduplicated_in_order()` - *`--files a.py --files auto` names a.py twice; the ledger is evidence, not a bag.*
+  - Method `.test_the_two_free_space_floors_agree()` - *`project_compat` declares its own floor to avoid an import cycle; they must match.*
+  - Method `.test_malformed_measurement_is_a_usage_error()`
+  - Method `.test_pruned_checkpoints_are_archived_not_lost()`
+  - Method `.test_mark_task_completed_can_require_evidence()`
+  - Method `.test_readme_budget_names_the_largest_sections()`
+  - Method `.test_oversize_readme_report_prints_candidates()`
+  - Method `.test_gate_cache_reuses_only_a_pass_for_the_same_tree()`
+  - Method `.test_cache_is_off_by_default_so_a_planted_file_cannot_green_a_run()` - *A cached file is not proof the gate ran (audit P0-2).*
+  - Method `.test_a_dependency_install_invalidates_a_cached_pass()` - *`git status` cannot see an install into an ignored `.venv`, so the key must.*
+  - Method `.test_map_coverage_reports_non_python_sources_honestly()`
+  - Method `.test_map_coverage_says_none_for_a_python_only_tree()`
+  - Method `.test_dossier_sync_separates_pre_existing_changes_from_its_own_paths()`
+  - Method `.test_dossier_path_separators_do_not_mislabel_a_publisher_path()` - *`git status` uses `\` on Windows, `sync_entry` uses `/`; both are one path.*
+  - Method `.test_seeded_compat_failure_preserves_the_cause()`
 
 **Functions:**
 - `def _refuse_spawn(popen_self, args, *unused_args, **unused_kwargs)`

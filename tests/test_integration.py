@@ -1161,6 +1161,12 @@ class TestProjectHygieneGate(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         root = copy_project(kit)
+        # The template intentionally carries ` M README.md` (its description was filled after
+        # creation); a clean-tree verdict must describe a committed tree, so commit it first.
+        subprocess.run(["git", "add", "README.md"], cwd=root, capture_output=True, text=True,
+                       timeout=PROC_TIMEOUT, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "docs: fill README"], cwd=root,
+                       capture_output=True, text=True, timeout=PROC_TIMEOUT, check=True)
 
         # The gate's wiring runs in-process here; TestProjectSelfCheck keeps the real entry-point
         # spawn, so the tier does not pay for two identical interpreter starts.

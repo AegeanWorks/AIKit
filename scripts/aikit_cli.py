@@ -3,13 +3,18 @@
 AIKit builds (ADR-119 to ADR-128).
 
 Run through the root shim: `python aikit.py <command>`. Exit codes: 0 success, 1 the request
-could not be carried out, 2 the command line was wrong (PRINCIPLE-011).
+could not be carried out (including a failed gate), 2 the command line was wrong, 3 the gates
+passed but the tree is not delivery-ready (PRINCIPLE-011).
 """
 
 import argparse
+import contextlib
+import io
 import json
 import re
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -18,6 +23,8 @@ from scripts.aikit_parser import TriadArgumentParser, build_parser, report_error
 from scripts.disruption_recovery import (
     UnsupportedLedgerVersion,
     LedgerOwnershipError,
+    CompletedTaskError,
+    CompletionEvidenceError,
     atomic_write_json,
     checkpoint_command,
     clean_dangling_temp_files,
@@ -110,8 +117,31 @@ def _report_registered_ideas(project_path: Path, project_name: str) -> None:
               + " from the delivered commits; MATRIX.md refreshed.")
 
 
+def _dossier_status(root: Optional[Path]) -> Optional[set]:
+    """The dossier checkout's changed paths, or None when it cannot be read."""
+    if root is None:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=str(root), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=30)
+    except (OSError, subprocess.SubprocessError, AssertionError):
+        return None
+    if result.returncode != 0:
+        return None
+    paths = set()
+    for line in result.stdout.splitlines():
+        if len(line) >= 4:
+            path = line[3:]
+            paths.add(path.split(" -> ", 1)[1] if " -> " in path else path)
+    return paths
+
+
 def _sync_dossier(project_path: Path, project_name: str) -> None:
     """Best-effort dossier catalogue sync after a publish; the publish itself already succeeded."""
+    root = dossier_sync.dossier_root()
+    before = _dossier_status(root) or set()
     try:
         result = dossier_sync.sync_published(project_path, project_name)
     except (ProjectError, OSError, ValueError, KeyError) as exc:
@@ -120,10 +150,25 @@ def _sync_dossier(project_path: Path, project_name: str) -> None:
     if result.get("skipped"):
         print(f"[DOSSIER] {result['skipped']}; the catalogue is unchanged.")
         return
+    # Both sides are repo-relative paths, but `git status` uses the platform separator on
+    # Windows while `sync_entry` names forward slashes; normalise both or the difference
+    # mislabels a publisher file as pre-existing (and vice versa).
+    def _norm(path: object) -> str:
+        text = str(path).replace("\\", "/")
+        return text[2:] if text.startswith("./") else text
+
+    before_normal = {_norm(path) for path in before}
+    publishers = {_norm(path) for path in result["files"]}
+    pre_existing = sorted(before_normal - publishers)
     print(f"[DOSSIER] updated {result['repo']} in the AegeanWorks catalogue "
           f"(category={result['category']}, {result['family']}): "
           + ", ".join(str(path) for path in result["files"]))
     print(f"[DOSSIER] {result['media']}")
+    if pre_existing:
+        shown = ", ".join(pre_existing[:8]) + (" ..." if len(pre_existing) > 8 else "")
+        print(f"[DOSSIER] {len(pre_existing)} pre-existing change(s) are not from this publish: "
+              f"{shown}")
+    print(f"[DOSSIER] publisher paths: {', '.join(sorted(publishers))}")
     print("[DOSSIER] Review and commit the AegeanWorks repository; nothing was committed here.")
 
 
@@ -132,9 +177,9 @@ def resolve_gates(project):
     return _resolve_gates(project)
 
 
-def run_gates(path, gates):
+def run_gates(path, gates, **kwargs):
     from scripts.project_gates import run_gates as _run_gates
-    return _run_gates(path, gates)
+    return _run_gates(path, gates, **kwargs)
 
 
 def present_project(name: str, workspace: Path) -> Project:
@@ -446,28 +491,121 @@ def cmd_guideline(args: argparse.Namespace) -> int:
     return 0
 
 
+MEASUREMENT_FIELDS = {"metric": "", "baseline": None, "candidate": None,
+                      "unit": "", "command": "", "artifact": ""}
+MEASUREMENT_KEYS = tuple(MEASUREMENT_FIELDS)
+
+
+def parse_measurement(spec: str) -> dict:
+    """Parse one `metric=...;baseline=...;...` checkpoint measurement; raises ValueError."""
+    values: Dict[str, object] = dict(MEASUREMENT_FIELDS)
+    seen = set()
+    for part in spec.split(";"):
+        if not part.strip():
+            continue
+        key, separator, value = part.partition("=")
+        key = key.strip()
+        if not separator or key not in MEASUREMENT_FIELDS:
+            raise ValueError(
+                f"unknown measurement field '{key.strip()}'; use "
+                + ", ".join(MEASUREMENT_KEYS))
+        values[key] = value.strip()
+        seen.add(key)
+    if not values["metric"]:
+        raise ValueError("a measurement needs `metric=<name>`")
+    for field in ("baseline", "candidate"):
+        if field in seen:
+            try:
+                values[field] = float(str(values[field]))
+            except ValueError as exc:
+                raise ValueError(f"measurement {field} must be a number, got '{values[field]}'") from exc
+    return {key: values[key] for key in seen}
+
+
+def _auto_checkpoint_files(project) -> List[str]:
+    """Dirty and untracked non-ignored paths, for `--files auto`."""
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=str(project.path), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if result.returncode != 0:
+        return []
+    paths: List[str] = []
+    for line in result.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:]
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        paths.append(path)
+    return paths
+
+
 def cmd_checkpoint(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
     impact = {"why": args.why, "benefits": args.benefits, "risks": args.risks,
               "mitigation": args.mitigation}
-    return checkpoint_command(args.task, f"phase {args.phase_num}", args.phase_num, args.desc, impact,
-                              workspace_ledger_path(project.path), redact=args.redact,
-                              handoff=args.handoff, agent=args.agent, take_over=args.take_over)
+    files_affected = None
+    if getattr(args, "files", None):
+        collected: List[str] = []
+        for value in args.files:
+            collected.extend(_auto_checkpoint_files(project) if value == "auto" else [value])
+        # Order-preserving de-dupe: `--files a.py --files auto` names a.py twice, and the
+        # ledger is evidence, so it must not read as if two files were meant.
+        files_affected = list(dict.fromkeys(collected))
+    measurements = []
+    for spec in getattr(args, "measurement", None) or []:
+        try:
+            measurements.append(parse_measurement(spec))
+        except ValueError as exc:
+            return report_error(ProjectError(
+                f"measurement '{spec}': {exc}",
+                "a measurement is structured evidence, not free text.",
+                'write it as "metric=name;baseline=1.0;candidate=0.8;unit=ms;command=...".',
+                exit_code=2))
+    return checkpoint_command(
+        args.task, f"phase {args.phase_num}", args.phase_num, args.desc, impact,
+        workspace_ledger_path(project.path), redact=args.redact,
+        handoff=args.handoff, agent=args.agent, take_over=args.take_over,
+        files_affected=files_affected, measurements=measurements,
+        checklists=getattr(args, "checklists", None))
 
 
 def cmd_complete(args: argparse.Namespace) -> int:
     project = present_project(args.name, args.workspace)
+    if getattr(args, "force", False) and not (getattr(args, "reason", "") or "").strip():
+        return report_error(ProjectError(
+            "--force needs --reason.",
+            "a forced completion without recorded Phase 4 evidence must say why.",
+            'pass --reason "the task is a spike with no Phase 4" so the ledger keeps the cause.',
+            exit_code=2))
     try:
         writer = resolve_agent(args.agent)
     except ValueError as error:
         return report_error(ProjectError(str(error), "the ledger names the agent behind every write (ADR-209).",
                                          "pass --agent <host>:<session>, or set AIKIT_AGENT.", exit_code=2))
     try:
-        completed = mark_task_completed(args.task, ledger_file=workspace_ledger_path(project.path),
-                                        agent=writer, take_over=args.take_over)
+        completed = mark_task_completed(
+            args.task, ledger_file=workspace_ledger_path(project.path), agent=writer,
+            take_over=args.take_over, require_evidence=True,
+            force=bool(getattr(args, "force", False)),
+            reason=getattr(args, "reason", "") or "")
     except LedgerOwnershipError as error:
         return report_ownership(error)
+    except CompletionEvidenceError as error:
+        print(f"[NO PHASE 4 EVIDENCE] {error}", file=sys.stderr)
+        print("Why: a completed task claims verified work; without a recorded Phase 4 checklist "
+              "the ledger cannot show that the check ran.", file=sys.stderr)
+        print("Fix: record `checkpoint ... --phase-num 4 --checklists passed` after `check`, or "
+              'rerun with `--force --reason "<why>"` for a task that has no Phase 4.', file=sys.stderr)
+        return 2
     if completed:
+        if getattr(args, "force", False):
+            print(f"[NOTE] Forced completion recorded: {getattr(args, 'reason', '').strip()}",
+                  file=sys.stderr)
         print(f"[OK] Task '{args.task}' marked as completed in '{project.name}'.")
         return 0
     print(f"Error: task '{args.task}' is not the active task of '{project.name}'.", file=sys.stderr)
@@ -565,17 +703,133 @@ def _named_guideline(line: str) -> str:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
+    """Run the Phase 4 check; `--json` puts one verdict object on stdout, the report on stderr."""
+    payload = {}
+    if getattr(args, "json", False):
+        report = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(report):
+                code = _run_check(args, payload)
+        except ProjectError as exc:
+            # The machine-readable contract holds on every path: one object on stdout, even when
+            # the project cannot be resolved (P1-1). The triad still goes to stderr.
+            sys.stderr.write(report.getvalue())
+            print(json.dumps({
+                "ok": False, "exit": exc.exit_code,
+                "error": {"code": "project.error", "message": str(exc),
+                          "why": exc.why, "fix": exc.fix},
+            }, indent=2, default=str))
+            return exc.exit_code
+        # The human report is *moved* to stderr, not discarded: its failure tails are the only
+        # explanation of a failed gate, and the stderr triad points at "shown above" (P1-1).
+        sys.stderr.write(report.getvalue())
+        sys.stderr.flush()
+        print(json.dumps(payload, indent=2, default=str))
+        return code
+    return _run_check(args, payload)
+
+
+def _gate_payload(results):
+    """Each gate's verdict, with its failure tail so a reader needs no side channel."""
+    rows = []
+    for result in results:
+        row = {"name": result.gate.name, "passed": bool(result.passed),
+               "seconds": round(float(result.seconds), 3), "source": result.gate.source,
+               "command": result.gate.command, "kind": getattr(result, "kind", "pass"),
+               "attempts": getattr(result, "attempts", 1),
+               "cached": bool(getattr(result, "cached", False))}
+        if not result.passed:
+            row["output"] = "\n".join(failure_tail(result.output))
+        rows.append(row)
+    return rows
+
+
+def _clean_tree_key(project_path: Path) -> Optional[str]:
+    """HEAD when the tree has no uncommitted non-ignored changes, else None.
+
+    A clean tree at one commit is the only safe cache key: a dirty tree may change between
+    two checks, and a cached pass must never describe an unverified working copy.
+    """
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            cwd=str(project_path), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=30)
+        if status.returncode != 0 or status.stdout.strip():
+            return None
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(project_path), capture_output=True,
+            text=True, encoding="utf-8", errors="replace", timeout=30)
+    # The unit tier refuses process spawns; a missing key simply disables the cache there.
+    except (OSError, subprocess.SubprocessError, AssertionError):
+        return None
+    return head.stdout.strip() if head.returncode == 0 else None
+
+
+def _run_check(args: argparse.Namespace, payload: dict) -> int:
+    def finish(code: int, **extra) -> int:
+        payload.update({"ok": code == 0, "exit": code, **extra})
+        return code
+
     project = present_project(args.name, args.workspace)
+    if getattr(args, "fix", False) and find_python_files(project.path):
+        write_generated_file(project.path / ".aikit" / "codebase_map.md",
+                             generate_codebase_map(root=project.path, strict=False))
+        print("[FIXED] regenerated .aikit/codebase_map.md")
     # A restricted project may be pushed only to a private repository (ADR-214); checked before the
     # gates so a refused push costs nothing.
     if getattr(args, "push", False):
         refusal = public_remote_refusal(project.path, project.name)
         if refusal:
-            return report_error(refusal)
-    results = run_gates(project.path, resolve_gates(project))
+            return finish(report_error(refusal), stage="preflight", delivery_ready=False,
+                          error={"code": "project.error", "message": str(refusal),
+                                 "why": refusal.why, "fix": refusal.fix})
+
+    # Preflight: the delivery baseline is cheap to compute, so a known blocker must not wait
+    # behind a full suite. Non-strict keeps reporting it as a warning; strict fails fast.
+    audit = run_disruption_audit(workspace_dir=project.path)
+    baseline_errors = project_baseline_errors(project, audit)
+    strict = bool(getattr(args, "strict", False))
+    for error in baseline_errors:
+        print(f"[{'FAIL' if strict else 'WARN'}] {error}")
+    if audit.get("ledger_error") or (strict and baseline_errors):
+        print("Error: the project is not delivery-ready.", file=sys.stderr)
+        print("Why: a passing gate run must describe the committed tree, not an unverified working copy.",
+              file=sys.stderr)
+        print("Fix: commit the non-bookkeeping changes, resolve any merge conflicts, finish or "
+              "abort any open UI task, run `python aikit.py fix <name>` for a missing map, or "
+              "open the ledger with the AIKit version that wrote it; then rerun with --strict.",
+              file=sys.stderr)
+        return finish(1, stage="preflight", blockers=baseline_errors, delivery_ready=False)
+
+    config = load_config(project.path)
+    gate_config = config.get("gates") if isinstance(config.get("gates"), dict) else {}
+    from scripts.project_gates import DEFAULT_MIN_FREE_MB
+    try:
+        min_free_mb = float(gate_config.get("min_free_mb", DEFAULT_MIN_FREE_MB))
+    except (TypeError, ValueError):
+        min_free_mb = DEFAULT_MIN_FREE_MB
+    lock_path = (None if getattr(args, "no_lock", False)
+                 else project.path / ".aikit" / "check.lock")
+    # Off by default: a cached file is not proof that the gate ran, and the cache lives outside
+    # the project where any local process could plant a "passed" entry (audit finding P0-2).
+    # `--cache` opts in; `--no-cache` stays accepted so existing scripts keep working.
+    use_cache = bool(getattr(args, "cache", False)) and not getattr(args, "no_cache", False)
+    tree_key = _clean_tree_key(project.path) if use_cache else None
+    results = run_gates(project.path, resolve_gates(project),
+                        lock_path=lock_path, retry_timeouts=True, min_free_mb=min_free_mb,
+                        cache_dir=Path(tempfile.gettempdir()) / "aikit-gate-cache",
+                        tree_key=tree_key)
     for result in results:
         mark = "PASS" if result.passed else "FAIL"
-        print(f"[{mark}] {result.gate.name} ({result.seconds:.1f}s, {result.gate.source}): {result.gate.command}")
+        if getattr(result, "cached", False):
+            detail = " [cached]"
+        elif result.passed:
+            detail = ""
+        else:
+            detail = f" [kind={getattr(result, 'kind', 'assertion')}]"
+        print(f"[{mark}] {result.gate.name} ({result.seconds:.1f}s, {result.gate.source}): "
+              f"{result.gate.command}{detail}")
         if not result.passed:
             for line in failure_tail(result.output):
                 print(f"       {line}")
@@ -590,27 +844,32 @@ def cmd_check(args: argparse.Namespace) -> int:
     warning = default_topic_warning(project)
     if warning:
         print(warning)
-    failed = [result.gate.name for result in results if not result.passed]
+    from scripts.project_gates import verify_gate_warnings
+    for warning in verify_gate_warnings(project):
+        print(f"[WARN] {warning}")
+    failed = [result for result in results if not result.passed]
     sys.stdout.flush()  # the report above, then the triad, in that order when both are piped
     if failed:
-        print(f"Error: gate(s) failed: {', '.join(failed)}", file=sys.stderr)
+        names = ", ".join(result.gate.name for result in failed)
+        print(f"Error: gate(s) failed: {names}", file=sys.stderr)
         print("Why: a project commits only when every gate passes (PRINCIPLE-011 R8, PRINCIPLE-014 R1).",
               file=sys.stderr)
         print(f"Fix: run `python aikit.py fix {project.name}` for memory and map drift; fix any other "
               "cause shown above by hand, then rerun the check.", file=sys.stderr)
-        return 1
+        for result in failed:
+            print(f"[FAIL] {result.gate.name}: {result.action_hint()} "
+                  f"(kind={getattr(result, 'kind', 'assertion')}, attempts={getattr(result, 'attempts', 1)})",
+                  file=sys.stderr)
+        return finish(1, stage="gates", gates=_gate_payload(results),
+                      blockers=baseline_errors, delivery_ready=False)
     if not any(result.gate.name == "test" for result in results):
         print("Error: the project has no test gate.", file=sys.stderr)
         print("Why: without tests the gates prove nothing about behaviour (PRINCIPLE-011 R8, PRINCIPLE-014 R1).", file=sys.stderr)
         print("Fix: write tests, and set `test_command` in .aikit/project.json when it is not detected.",
               file=sys.stderr)
-        return 1
+        return finish(1, stage="gates", gates=_gate_payload(results),
+                      blockers=baseline_errors, delivery_ready=False)
 
-    audit = run_disruption_audit(workspace_dir=project.path)
-    baseline_errors = project_baseline_errors(project, audit)
-    strict = bool(getattr(args, "strict", False))
-    for error in baseline_errors:
-        print(f"[{'FAIL' if strict else 'WARN'}] {error}")
     identity = project_ui.ui_payload(project.path)
     if (identity.get("has_ui")
             and not (project.path / ui_contract.CONTRACT_REL).is_file()):
@@ -620,15 +879,6 @@ def cmd_check(args: argparse.Namespace) -> int:
     if is_game_project(game_config) and not isinstance(game_config.get("mechanics"), dict):
         print("[WARN] Game detected but .aikit/project.json has no mechanics contract; declare "
               "`mechanics.core` and `mechanics.test` for a headless AI-testable core.")
-    if audit.get("ledger_error") or (strict and baseline_errors):
-        print("Error: the project is not delivery-ready.", file=sys.stderr)
-        print("Why: a passing gate run must describe the committed tree, not an unverified working copy.",
-              file=sys.stderr)
-        print("Fix: commit the non-bookkeeping changes, resolve any merge conflicts, finish or "
-              "abort any open UI task, run `python aikit.py fix <name>` for a missing map, or "
-              "open the ledger with the AIKit version that wrote it; then rerun with --strict.",
-              file=sys.stderr)
-        return 1
 
     open_ui_task = (project.path / ui_contract.TASK_REL).is_file()
     ui_unready = any(error.startswith(("ui_required is true", "the UI contract is unusable",
@@ -659,15 +909,26 @@ def cmd_check(args: argparse.Namespace) -> int:
                   "differs from it.", file=sys.stderr)
             print("Fix: commit or resolve the changes and run `check --strict` before pushing.",
                   file=sys.stderr)
-            return 1
+            return finish(1, stage="push", gates=_gate_payload(results),
+                          blockers=baseline_errors, delivery_ready=False)
         push_code, push_report = auto_push_project(project.path, project.name)
         if push_code != 0:
             print(push_report, file=sys.stderr)
-            return 1
+            return finish(1, stage="push", gates=_gate_payload(results),
+                          blockers=baseline_errors, delivery_ready=False)
         if push_report:
             print(push_report)
         _report_registered_ideas(project.path, project.name)
-    return 0
+        payload["pushed"] = True
+    # A passing gate run on a working copy that cannot be delivered is not success: exit 3 in
+    # non-strict mode, distinct from a gate failure (1) and from command-line misuse (2).
+    # `fix` asks for this: its repairs intentionally leave the tree dirty, and its contract is
+    # "repair, then check", not a delivery verdict.
+    if dirty and not getattr(args, "allow_dirty", False):
+        return finish(3, stage="delivery", gates=_gate_payload(results),
+                      blockers=baseline_errors, delivery_ready=False)
+    return finish(0, stage="ready", gates=_gate_payload(results),
+                  blockers=baseline_errors, delivery_ready=True)
 
 
 
@@ -743,6 +1004,7 @@ def cmd_fix(args: argparse.Namespace) -> int:
     for fix in fixes:
         print(f"[FIXED] {fix}")
     print(f"Checking '{project.name}' after {len(fixes)} repair(s):")
+    args.allow_dirty = True
     return cmd_check(args)
 
 
@@ -1445,9 +1707,11 @@ def cmd_ui(args: argparse.Namespace) -> int:
               f"kind={identity['kind']}. Review and commit it, then run `ui begin`.")
         return 0
     if args.ui_action == "begin":
-        task = ui_contract.begin(project.path, args.surface)
+        task = ui_contract.begin(project.path, args.surface,
+                                 backend_only=bool(getattr(args, "backend_only", False)))
         identity = project_ui.refresh_ui_identifier(project.path)
-        print(f"[OK] UI task opened on '{args.surface}' from "
+        mode = task.get("mode", "visual")
+        print(f"[OK] UI task opened on '{args.surface}' ({mode}) from "
               f"{str(task['baseline_commit'])[:12]}; UI identifier: "
               f"has_ui={identity['has_ui']} kind={identity['kind']}.")
         return 0
@@ -1470,7 +1734,10 @@ def cmd_ui(args: argparse.Namespace) -> int:
                 reviewer = reviewer or f"agent:{resolve_agent()}"
                 print(f"[NOTE] {_named_guideline(waiver)} waives human UI review; recording "
                       f"the verification as a review by {reviewer}.")
-            findings = ui_contract.finish(project.path, reviewed=reviewed, reviewer=reviewer)
+            findings = ui_contract.finish(
+                project.path, reviewed=reviewed, reviewer=reviewer,
+                no_visual=bool(getattr(args, "no_visual", False)),
+                reason=getattr(args, "reason", "") or "")
         else:
             try:
                 findings = ui_contract.verify(project.path)
@@ -1547,6 +1814,25 @@ def cmd_ui(args: argparse.Namespace) -> int:
         if result["skipped"]:
             print("[WARN] Left outside the surface: " + ", ".join(result["skipped"]),
                   file=sys.stderr)
+        return 0
+    if args.ui_action == "history":
+        if getattr(args, "compact", False):
+            result = ui_contract.compact_history(project.path)
+            if getattr(args, "json", False):
+                print(json.dumps({"ok": True, "result": result}, indent=2))
+                return 0
+            print(f"[OK] UI history compacted: {result['before']} -> {result['after']} "
+                  f"record(s); archived {result['archived']}.")
+            return 0
+        records = ui_contract.history_records(project.path)
+        if getattr(args, "json", False):
+            print(json.dumps({"ok": True, "records": records}, indent=2, default=str))
+            return 0
+        print(f"UI history: {len(records)} record(s)")
+        for record in records[-10:]:
+            print(f"  {record.get('surface')} {str(record.get('surface_digest', ''))[:12]} "
+                  f"visual_change={record.get('visual_change', True)} "
+                  f"reviewer={record.get('reviewer', '')}")
         return 0
     info = ui_contract.status(project.path)
     print(f"Surface:  {info['surface']}")

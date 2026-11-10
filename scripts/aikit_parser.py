@@ -112,11 +112,23 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint.add_argument("--handoff", default="",
                             help="cold-start packet: 'next: ...' plus optional state, failed, "
                                  "open, evidence, separated by ';' (PRINCIPLE-004 R2)")
+    checkpoint.add_argument("--files", action="append", default=None, metavar="PATH",
+                            help="a file this checkpoint touched, repeatable; 'auto' reads "
+                                 "`git status --porcelain` excluding ignored files")
+    checkpoint.add_argument("--measurement", action="append", default=None, metavar="SPEC",
+                            help="structured before/after evidence, repeatable: "
+                                 "metric=...;baseline=...;candidate=...;unit=...;command=...;artifact=...")
+    checkpoint.add_argument("--checklists", default=None,
+                            help="Phase 4 checklist outcome: passed, failed:<ids> or skipped:<ids>")
     checkpoint.add_argument("--redact", action="store_true",
                             help="record credential-shaped text as [REDACTED] instead of refusing it")
 
     complete = project_command("complete", "mark the project's active task completed")
     complete.add_argument("--task", required=True, help="the active task's ID")
+    complete.add_argument("--force", action="store_true",
+                          help="complete without recorded Phase 4 checklists; requires --reason")
+    complete.add_argument("--reason", default="", metavar="TEXT",
+                          help="why completion is forced; recorded in the ledger")
     # Every ledger write names its agent; another agent's task needs --take-over (ADR-209).
     for sub in (checkpoint, complete):
         sub.add_argument("--agent", metavar="NAME",
@@ -141,6 +153,21 @@ def build_parser() -> argparse.ArgumentParser:
                           help="the default; kept so existing scripts still run")
     check.add_argument("--strict", action="store_true",
                        help="require a clean non-bookkeeping tree and a codebase map before passing")
+    check.add_argument("--json", action="store_true",
+                       help="print one machine-readable verdict object on stdout")
+    check.add_argument("--fix", action="store_true",
+                       help="repair declared generated files (the codebase map) before checking; "
+                            "a normal check stays read-only")
+    check.add_argument("--no-lock", action="store_true",
+                       help="skip the per-project gate lock (a second check may then collide)")
+    check.add_argument("--no-cache", action="store_true",
+                       help="kept for compatibility: caching is already off by default")
+    check.add_argument("--cache", action="store_true",
+                       help="reuse a pass recorded for this exact clean tree and dependency set; "
+                            "off by default because a cached file is not proof the gate ran")
+    check.add_argument("--allow-dirty", action="store_true",
+                       help="exit 0 even when the tree is not delivery-ready; for verifying a "
+                            "working copy mid-edit (a dirty tree otherwise exits 3)")
     # A discoverable, thin alias for `check --push`: the gates still run first.
     project_command("push", "run every project gate, then push unpushed commits to origin "
                             "(never forced; same as `check --push`)")
@@ -261,12 +288,16 @@ def build_parser() -> argparse.ArgumentParser:
                          ("finish", "verify, then close the task (needs --reviewed)"),
                          ("allow", "record an intended inventory removal pattern"),
                          ("abort", "restore only the surface to its baseline"),
-                         ("status", "show the open task and its changed paths")):
+                         ("status", "show the open task and its changed paths"),
+                         ("history", "show or compact the finished-task evidence")):
         sub = ui_commands.add_parser(action, help=text)
         sub.add_argument("name", help="project name, as `list` shows it")
         if action == "begin":
             sub.add_argument("--surface", required=True,
                              help="surface name declared in .aikit/ui.json")
+            sub.add_argument("--backend-only", action="store_true",
+                             help="bound the task to .aikit/ui.json backend_paths; no visual proof "
+                                  "or review is required")
         if action == "init":
             sub.add_argument("--surface", default="app",
                              help="surface name for the generated contract")
@@ -287,9 +318,19 @@ def build_parser() -> argparse.ArgumentParser:
                                   "guideline that waives human review lets an agent review instead")
             sub.add_argument("--reviewer", metavar="NAME",
                              help="who reviewed the running UI, recorded in the task history")
+            sub.add_argument("--no-visual", action="store_true",
+                             help="close a backend-only change without a visual review; every "
+                                  "changed path must match backend_paths and none may touch theme paths")
+            sub.add_argument("--reason", default="", metavar="TEXT",
+                             help="why no visual change occurred; recorded in the history")
         if action == "verify":
             sub.add_argument("--json", action="store_true",
                              help="emit stable finding codes as JSON for CI")
+        if action == "history":
+            sub.add_argument("--compact", action="store_true",
+                             help="dedupe identical surface+digest records, archiving dropped copies")
+            sub.add_argument("--json", action="store_true",
+                             help="print the records or the compaction result as JSON")
 
 
     reforge = commands.add_parser("reforge", help="audit Git history in 3/6/9 stages and repair "

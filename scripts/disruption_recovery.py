@@ -554,6 +554,50 @@ def _refuse_newer_ledger_on_disk(path: Path) -> None:
         validate_ledger_version(data, candidate)
 
 
+def _checkpoint_identity(checkpoint: Dict[str, Any]) -> Any:
+    """A checkpoint's stable identity for archive de-duplication."""
+    return (str(checkpoint.get("task_id")), checkpoint.get("timestamp"),
+            str(checkpoint.get("description", "")))
+
+
+def _pruned_checkpoints(before: List[Dict[str, Any]],
+                        after: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Entries the bounded window removed, in their original order."""
+    kept = {_checkpoint_identity(checkpoint) for checkpoint in after}
+    return [checkpoint for checkpoint in before if _checkpoint_identity(checkpoint) not in kept]
+
+
+def _archive_checkpoints(ledger_file: Path, removed: List[Dict[str, Any]]) -> int:
+    """Append pruned checkpoints to `<ledger>_archive.jsonl`; returns how many were new.
+
+    Pruning keeps the live ledger bounded but must not destroy the durable memory that
+    `resume`/`status` rely on. The archive is append-only and de-duplicated by identity,
+    so re-saving the same pruned state adds nothing.
+    """
+    archive = ledger_file.with_name(ledger_file.stem + "_archive.jsonl")
+    existing = set()
+    if archive.is_file():
+        for line in archive.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                existing.add(_checkpoint_identity(json.loads(line)))
+            except (ValueError, TypeError):
+                continue
+    fresh = [checkpoint for checkpoint in removed
+             if _checkpoint_identity(checkpoint) not in existing]
+    if not fresh:
+        return 0
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    with open(archive, "a", encoding="utf-8") as handle:
+        for checkpoint in fresh:
+            handle.write(json.dumps(checkpoint, ensure_ascii=False) + "\n")
+        handle.flush()
+        try:
+            os.fsync(handle.fileno())
+        except OSError:  # hygiene: allow best-effort durability; the archive is evidence, not state
+            pass
+    return len(fresh)
+
+
 def save_ledger(
     ledger: Dict[str, Any],
     ledger_file: Optional[Path] = None,
@@ -579,9 +623,17 @@ def save_ledger(
         migrate_ledger_schema(ledger)
     active_id = ledger.get("active_task", {}).get("task_id") if ledger.get("active_task") else None
     if "checkpoints" in ledger:
-        ledger["checkpoints"] = prune_checkpoints(
-            ledger["checkpoints"], active_task_id=active_id, max_history=max_history
+        before = list(ledger["checkpoints"])
+        after = prune_checkpoints(
+            before, active_task_id=active_id, max_history=max_history
         )
+        removed = _pruned_checkpoints(before, after)
+        if removed:
+            archived = _archive_checkpoints(path, removed)
+            if archived:
+                print(f"[LEDGER] archived {archived} checkpoint(s); ledger holds {len(after)}",
+                      file=sys.stderr)
+        ledger["checkpoints"] = after
     if _locked:
         _refuse_newer_ledger_on_disk(path)
         atomic_write_json(path, ledger)
@@ -838,6 +890,16 @@ class CompletedTaskError(Exception):
                          "Start a new task id, or use --resume-task only for a suspended task.")
 
 
+class CompletionEvidenceError(Exception):
+    """A completion had no recorded Phase 4 checklist evidence; nothing was changed."""
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        super().__init__(
+            f"task '{task_id}' has no Phase 4 checkpoint recording `checklists: passed` "
+            "(or the failed/skipped item IDs).")
+
+
 def _claim(active: Dict[str, Any], agent: str, take_over: bool) -> Optional[str]:
     """
     Check that `agent` may write the in-progress task `active`; returns the previous owner when the
@@ -867,6 +929,9 @@ def record_checkpoint(
     risks: Optional[str] = None,
     mitigation: Optional[str] = None,
     handoff: Optional[Dict[str, str]] = None,
+    measurements: Optional[List[Dict[str, Any]]] = None,
+    checklists: Optional[str] = None,
+    verified_phase: Optional[int] = None,
     agent: Optional[str] = None,
     take_over: bool = False,
 ) -> Dict[str, Any]:
@@ -910,6 +975,13 @@ def record_checkpoint(
         if mitigation:
             impact["mitigation"] = mitigation
         checkpoint_entry["impact_assessment"] = impact
+
+    if measurements:
+        checkpoint_entry["measurements"] = measurements
+    if checklists:
+        checkpoint_entry["checklists"] = checklists
+    if verified_phase is not None:
+        checkpoint_entry["verified_phase"] = verified_phase
 
     if resolved_phase == 2 and description.startswith("[1/"):
         # A versioned digest of the plan text itself, instead of a second plan document
@@ -980,22 +1052,43 @@ def record_checkpoint(
     return checkpoint_entry
 
 
+def _has_completion_evidence(ledger: Dict[str, Any], task_id: str) -> bool:
+    """Whether the task recorded a Phase 4 checkpoint with a checklist outcome."""
+    for checkpoint in reversed(ledger.get("checkpoints") or []):
+        if checkpoint.get("task_id") != task_id or checkpoint.get("phase_num") != 4:
+            continue
+        if checkpoint.get("checklists"):
+            return True
+        if "checklists:" in str(checkpoint.get("description", "")).lower():
+            return True
+    return False
+
+
 def mark_task_completed(task_id: str, ledger_file: Optional[Path] = None, agent: Optional[str] = None,
-                        take_over: bool = False) -> bool:
+                        take_over: bool = False, require_evidence: bool = False,
+                        force: bool = False, reason: str = "") -> bool:
     """
     Mark the active task completed (locked, PRINCIPLE-013 R3). Returns False, changing nothing,
     when `task_id` is not the active task: a mistyped id used to print [OK] and leave the task
     in progress, so the next `--resume` reopened finished work. Another identified agent's task
     needs `take_over` (LedgerOwnershipError, ADR-209).
+
+    `require_evidence` refuses completion without a recorded Phase 4 checkpoint carrying a
+    checklist outcome (CompletionEvidenceError); `force` bypasses it and records the reason.
     """
     agent = agent or resolve_agent()
     with locked_ledger(ledger_file) as ledger:
         if ledger.get("active_task", {}).get("task_id") != task_id:
             return False
         continued_from = _claim(ledger["active_task"], agent, take_over)
+        if require_evidence and not force and not _has_completion_evidence(ledger, task_id):
+            raise CompletionEvidenceError(task_id)
         if continued_from:
             ledger["active_task"].setdefault("continuations", []).append(
                 {"agent": agent, "from": continued_from, "at": time.time()})
+        if force and require_evidence:
+            ledger["active_task"]["forced_completion"] = {
+                "agent": agent, "reason": reason.strip(), "at": time.time()}
         ledger["active_task"]["status"] = "completed"
         ledger["active_task"]["active_phase"] = 5
         ledger["active_task"]["completed_at"] = time.time()
@@ -1588,7 +1681,7 @@ TRACK_C_DOC_NAMES = frozenset({
 # documentation-only task into Track C.
 BOOKKEEPING_PATHS = frozenset({".agents/task_ledger.json", ".aikit/task_ledger.json",
                                ".aikit/ui_task.json", ".aikit/ui_task.json.bak",
-                               ".aikit/ui_history.json"})
+                               ".aikit/ui_history.json", ".aikit/ui_history_archive.jsonl"})
 
 
 def _ast_without_docstrings(source: str) -> str:
@@ -1687,11 +1780,12 @@ VALUE_FLAGS = {
     "--validate-commit", "--checkpoint", "--phase", "--phase-num", "--desc",
     "--why", "--benefits", "--benefit", "--risks", "--mitigation", "--handoff",
     "--complete", "--reset", "--workspace", "--agent", "--suspend", "--resume-task",
+    "--checklists", "--reason",
 }
 # Standalone action flags.
 ACTION_FLAGS = {"--clean", "--resume", "--audit", "--track", "--help", "-h"}
 # Valueless flags that modify an action rather than being one.
-MODIFIER_FLAGS = {"--redact", "--take-over"}
+MODIFIER_FLAGS = {"--redact", "--take-over", "--force"}
 KNOWN_FLAGS = VALUE_FLAGS | ACTION_FLAGS | MODIFIER_FLAGS
 
 HELP_TEXT = """AIKit Disruption Recovery & Task Ledger (PRINCIPLE-006, PRINCIPLE-013)
@@ -1709,7 +1803,8 @@ Actions (default: --audit):
                              --benefits, --mitigation and --risks with 'contract:', 'dependency:',
                              'concurrency:' and 'state:' verdicts, else exit 2 (PRINCIPLE-007 R6);
                              a task reaching Phase 3+ with no assessment gets a warning
-  --complete <task_id>       Mark a task as completed
+  --complete <task_id>       Mark a task as completed; refused (exit 2) without a Phase 4
+                             checkpoint carrying --checklists, unless --force --reason is given
   --reset [reason]           Abandon and clear the active task
   --suspend <reason>         Pause the active task without abandoning it; --resume-task <id>
                              reactivates it at its recorded phase (ADR-219)
@@ -1735,6 +1830,10 @@ Checkpoint options:
                              next (required), state, failed, open, evidence (PRINCIPLE-004 R2)
   --redact                   With --checkpoint: record credential-shaped free text as
                              [REDACTED] instead of refusing the write (PRINCIPLE-019 R3)
+  --checklists <outcome>     With --checkpoint: Phase 4 checklist result, `passed`,
+                             `failed:<ids>` or `skipped:<ids>`; completion requires it
+  --force                    With --complete: complete without Phase 4 evidence (needs --reason)
+  --reason <text>            With --complete --force: why completion is forced; recorded
 
 Agent options (--checkpoint, --complete, --reset; ADR-209):
   --agent <name>             Who is writing, e.g. kilo:2 (default: AIKIT_AGENT, else Claude
@@ -1886,7 +1985,10 @@ def scrub_checkpoint_text(desc: str, impact: Dict[str, Optional[str]], redact: b
 def checkpoint_command(task_id: str, phase: str, phase_num: Optional[int], desc: str,
                        impact: Dict[str, Optional[str]], ledger_file: Optional[Path] = None,
                        redact: bool = False, handoff: str = "", agent: Optional[str] = None,
-                       take_over: bool = False) -> int:
+                       take_over: bool = False, files_affected: Optional[List[str]] = None,
+                       measurements: Optional[List[Dict[str, Any]]] = None,
+                       checklists: Optional[str] = None,
+                       verified_phase: Optional[int] = None) -> int:
     """
     Record a checkpoint behind the PRINCIPLE-007 R1/R6 impact gate; returns the exit code. The one
     path for every CLI that records checkpoints (`--checkpoint` here, `aikit checkpoint`): a second
@@ -1935,7 +2037,9 @@ def checkpoint_command(task_id: str, phase: str, phase_num: Optional[int], desc:
                                why=impact.get("why"), benefits=impact.get("benefits"),
                                risks=impact.get("risks"), mitigation=impact.get("mitigation"),
                                ledger_file=ledger_file, handoff=packet, agent=writer,
-                               take_over=take_over)
+                               take_over=take_over, files_affected=files_affected,
+                               measurements=measurements, checklists=checklists,
+                               verified_phase=verified_phase)
     except LedgerOwnershipError as error:
         return report_ownership(error)
     except CompletedTaskError as error:
@@ -2100,11 +2204,18 @@ if __name__ == "__main__":
             if len(sys.argv) > hidx + 1 and not sys.argv[hidx + 1].startswith("--"):
                 handoff = sys.argv[hidx + 1]
 
+        checklists = None
+        if "--checklists" in sys.argv:
+            cidx = sys.argv.index("--checklists")
+            if len(sys.argv) > cidx + 1 and not sys.argv[cidx + 1].startswith("--"):
+                checklists = sys.argv[cidx + 1]
+
         sys.exit(checkpoint_command(task_id, phase, phase_num, desc,
                                     {"why": why, "benefits": benefits, "risks": risks,
                                      "mitigation": mitigation}, _ledger,
                                     redact="--redact" in sys.argv, handoff=handoff,
-                                    agent=_agent_arg, take_over=_take_over))
+                                    agent=_agent_arg, take_over=_take_over,
+                                    checklists=checklists))
     elif "--complete" in sys.argv:
         idx = sys.argv.index("--complete")
         tid = sys.argv[idx + 1]
@@ -2115,10 +2226,32 @@ if __name__ == "__main__":
             print("Why: the ledger names the agent behind every write (ADR-209).", file=sys.stderr)
             print("Fix: pass --agent <host>:<session>, or set AIKIT_AGENT.", file=sys.stderr)
             sys.exit(2)
+        # The same evidence gate as `aikit complete`: a second CLI must not walk around it.
+        _force = "--force" in sys.argv
+        _reason = ""
+        if "--reason" in sys.argv:
+            ridx = sys.argv.index("--reason")
+            if len(sys.argv) > ridx + 1 and not sys.argv[ridx + 1].startswith("--"):
+                _reason = sys.argv[ridx + 1]
+        if _force and not _reason.strip():
+            print("[INVALID USAGE] --force needs --reason.", file=sys.stderr)
+            print("Why: a forced completion without recorded Phase 4 evidence must say why.",
+                  file=sys.stderr)
+            print('Fix: add --reason "<why this task has no Phase 4>".', file=sys.stderr)
+            sys.exit(2)
         try:
-            completed = mark_task_completed(tid, ledger_file=_ledger, agent=_writer, take_over=_take_over)
+            completed = mark_task_completed(tid, ledger_file=_ledger, agent=_writer,
+                                            take_over=_take_over, require_evidence=True,
+                                            force=_force, reason=_reason)
         except LedgerOwnershipError as error:
             sys.exit(report_ownership(error))
+        except CompletionEvidenceError as error:
+            print(f"[NO PHASE 4 EVIDENCE] {error}", file=sys.stderr)
+            print("Why: a completed task claims verified work; without a recorded Phase 4 "
+                  "checklist the ledger cannot show that the check ran.", file=sys.stderr)
+            print("Fix: record `--checkpoint <id> --phase-num 4 --desc <text> --checklists passed` "
+                  'after the check, or rerun with --force --reason "<why>".', file=sys.stderr)
+            sys.exit(2)
         if not completed:
             print(f"[NOT COMPLETED] Task '{tid}' is not the active task.", file=sys.stderr)
             print("Why: only the active task can be completed; nothing was changed.", file=sys.stderr)

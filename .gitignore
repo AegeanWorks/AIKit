@@ -15,6 +15,12 @@ __pycache__/
 *.bak
 *.lock
 
+# Pruned checkpoints, appended by save_ledger as local evidence. The live ledger is the
+# tracked record; the archive exists so pruning is lossless on this machine, not to be
+# committed (it would grow without bound and duplicate history the ledger already holds).
+.agents/task_ledger_archive.jsonl
+.aikit/task_ledger_archive.jsonl
+
 # Virtual environments
 venv/
 .venv/

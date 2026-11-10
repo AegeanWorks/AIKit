@@ -369,6 +369,34 @@ def digest_rows(root: Path) -> List[DigestRow]:
     return rows
 
 
+SOURCE_LANGUAGES = {
+    ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".c": "cpp", ".hpp": "cpp", ".hh": "cpp",
+    ".h": "cpp", ".rs": "rust", ".go": "go", ".js": "javascript", ".jsx": "javascript",
+    ".ts": "typescript", ".tsx": "typescript", ".cs": "csharp", ".java": "java",
+    ".kt": "kotlin", ".swift": "swift", ".m": "objective-c", ".mm": "objective-c",
+    ".rb": "ruby", ".php": "php", ".lua": "lua", ".zig": "zig",
+}
+
+
+def source_coverage(root: Path) -> Dict[str, int]:
+    """Count non-Python source files per language, so the map can say what it does not index.
+
+    The Python AST scanner cannot describe a C++, Rust or Go tree. Reporting those files as
+    "not indexed" is honest; claiming a verified catalogue of zero source files was a false
+    green on the memory gate (aegean-tge: 1 Python module, 80 C++ files).
+    """
+    ignored_top = gitignored_top_dirs(root)
+    counts: Dict[str, int] = {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        skipped = IGNORE_DIRS | ignored_top if Path(dirpath) == root else IGNORE_DIRS
+        dirnames[:] = [name for name in dirnames if name not in skipped]
+        for name in filenames:
+            language = SOURCE_LANGUAGES.get(Path(name).suffix.lower())
+            if language:
+                counts[language] = counts.get(language, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def generate_codebase_map(root: Optional[Path] = None, strict: bool = True) -> str:
     """Generate the markdown content for knowledge/codebase_map.md with AST validation (PRINCIPLE-003)."""
     target_root = root or ROOT_DIR
@@ -376,7 +404,8 @@ def generate_codebase_map(root: Optional[Path] = None, strict: bool = True) -> s
         "# Codebase Map & Symbol Catalog 🗺️",
         "",
         "> **AUTO-GENERATED & VERIFIED BY `scripts/update_knowledge_base.py`**",
-        "> This document provides an automated, up-to-date registry of all modules, classes, and exported functions across this repository.",
+        "> This document catalogues Python modules, classes, and exported functions. "
+        "See Map Coverage for any stack it does not index.",
         "",
         "---",
         ""
@@ -422,6 +451,19 @@ def generate_codebase_map(root: Optional[Path] = None, strict: bool = True) -> s
     lines.append(f"- **Total Top-Level Functions**: `{total_functions}`")
     lines.append(f"- **Total Class Methods**: `{total_methods}`")
     lines.append(f"- **Total Source Lines**: `{total_lines}`")
+    lines.append("")
+    coverage = source_coverage(target_root)
+    lines.append("## 🧭 Map Coverage")
+    lines.append(f"- **Indexed**: python (`{len(modules_data)}` module(s))")
+    if coverage:
+        listed = ", ".join(f"{language} (`{count}` file(s))"
+                           for language, count in coverage.items())
+        lines.append(f"- **Not indexed by this map**: {listed}")
+        lines.append("")
+        lines.append("> Only Python symbols are catalogued. A language above is reported as not "
+                     "indexed, never as verified by this map.")
+    else:
+        lines.append("- **Not indexed by this map**: none (no non-Python source files were found)")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -1008,7 +1050,34 @@ def check_readme(root: Path = ROOT_DIR) -> List[str]:
                         lambda rel: (root / rel).exists(), script_source)
 
 
-def report_readme(errors: List[str]) -> bool:
+def _readme_text(root: Path) -> str:
+    """The README's text for the size diagnostic; empty when it cannot be read."""
+    try:
+        return (root / "README.md").read_text(encoding="utf-8")
+    except OSError:  # hygiene: allow a missing README; audit_readme reports its absence
+        return ""
+
+
+def readme_budget_candidates(readme: str, limit: int = 5) -> List[Tuple[str, int]]:
+    """The largest markdown sections, so an oversize README names what to trim.
+
+    The cap alone ("too many chars") forces guesswork. Headings partition the text, and
+    the preamble (before the first heading) is a section too.
+    """
+    sections = re.split(r"(?m)^(#{1,6} .*)$", readme)
+    rows: List[Tuple[str, int]] = []
+    preamble = sections[0] if sections else ""
+    if preamble.strip():
+        rows.append(("(preamble)", len(preamble)))
+    for index in range(1, len(sections) - 1, 2):
+        heading = sections[index].strip()
+        body = sections[index + 1] if index + 1 < len(sections) else ""
+        rows.append((heading, len(heading) + len(body)))
+    rows.sort(key=lambda row: row[1], reverse=True)
+    return rows[:limit]
+
+
+def report_readme(errors: List[str], readme: str = "") -> bool:
     """Print README findings with the remediation triad (PRINCIPLE-011 R6); True when clean."""
     if not errors:
         print("[OK] README.md: size, labels, directory tree and documented commands verified (PRINCIPLE-005)")
@@ -1018,6 +1087,10 @@ def report_readme(errors: List[str]) -> bool:
         print(f"   - {error}")
     if len(errors) > 20:
         print(f"   ... and {len(errors) - 20} more")
+    if readme and len(readme) > README_MAX_CHARS:
+        print("   Largest sections (trim from these):")
+        for heading, chars in readme_budget_candidates(readme):
+            print(f"     {chars:>6}  {heading}")
     print("   Why: a cold-starting agent trusts README.md; a dead path or command wastes its first turn.")
     print("   Fix: edit README.md as each line says (rule numbers are PRINCIPLE-005's), then re-run.")
     return False
@@ -1097,7 +1170,7 @@ def check_workspace(root: Path = ROOT_DIR) -> bool:
                       else f'python scripts/update_knowledge_base.py --workspace "{root}"')
             print(f"[FAIL] {rel} is stale. Fix: run `{remedy}`.")
             ok = False
-    ok = report_readme(check_readme(root)) and ok
+    ok = report_readme(check_readme(root), readme=_readme_text(root)) and ok
     if root == ROOT_DIR:
         # Only AIKit: a project's docs name AIKit's own `aikit.py` and `scripts/`, which live in
         # the AIKit folder, so every project would fail on them (44 of 44 measured).
@@ -1248,7 +1321,7 @@ if __name__ == "__main__":
         write_generated_file(map_path, map_content)
         print(f"[UPDATED] {map_path.relative_to(target_root)}")
 
-    readme_ok = report_readme(check_readme(target_root))
+    readme_ok = report_readme(check_readme(target_root), readme=_readme_text(target_root))
     lazy_ok = report_lazy_code(check_lazy_code(target_root))
     arch_ok = report_architecture(check_architecture(target_root))
     if not (readme_ok and lazy_ok and arch_ok) and not is_lenient:
