@@ -394,6 +394,31 @@ def dependency_digest(project_root: Path) -> str:
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
 
 
+CACHE_MAX_ENTRIES = 500
+
+
+def _prune_cache(cache_dir: Path, keep: int = CACHE_MAX_ENTRIES) -> int:
+    """Drop the oldest entries past `keep`, so the opt-in cache cannot grow without bound.
+
+    Each entry is capped at 4 KB of output, so `keep` bounds the whole cache; without a cap a
+    long-lived checkout accumulates one file per tree/gate forever. Deletion is best-effort:
+    an unreadable directory or a racing writer must not fail a check.
+    """
+    try:
+        entries = sorted(cache_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
+    except OSError:  # hygiene: allow an unreadable cache dir; a failed prune is not a gate failure
+        return 0
+    excess = entries[:max(0, len(entries) - keep)]
+    removed = 0
+    for path in excess:
+        try:
+            path.unlink()
+            removed += 1
+        except OSError:  # hygiene: allow a racing or locked entry to survive this pass
+            continue
+    return removed
+
+
 def _cache_file(cache_dir: Path, tree_key: str, gate: Gate, project_root: Path) -> Path:
     """One gate result's content-addressed path for a clean tree and its dependencies."""
     material = "\0".join(("gates-v2", tree_key, dependency_digest(project_root),
@@ -500,6 +525,8 @@ def run_gates(project_root: Path, gates: List[Gate],
                     _store_pass(cache_path, gate, output)
                 except OSError:  # hygiene: allow a cache write failure; the gate result still stands
                     pass
+        if cache_path is not None:
+            _prune_cache(cache_path.parent)
         return results
 
     if lock_path is None:

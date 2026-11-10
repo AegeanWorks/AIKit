@@ -16941,6 +16941,35 @@ class TestDeliveryAndEvidenceProposals(unittest.TestCase):
         self.assertNotEqual(first, _cache_file(cache, "tree", gate, project),
                             "so a pass earned before the install cannot be reused after it")
 
+    def test_the_cache_prunes_oldest_entries_past_its_cap(self):
+        """An opt-in cache must not grow without bound: one file per tree/gate, forever.
+
+        Each entry is capped at 4 KB of output, so the entry count is the only unbounded axis.
+        Measured before this fix: 40 runs left 40 files and nothing ever removed one.
+        """
+        import scripts.project_gates as pg
+
+        cache = Path(tempfile.mkdtemp(prefix="prune_"))
+        self.addCleanup(shutil.rmtree, str(cache), True)
+        gate = Gate("test", "cmd", "detected")
+        for index in range(6):
+            path = pg._cache_file(cache, f"tree{index}", gate, self.tmp)
+            pg._store_pass(path, gate, "ok")
+            os.utime(path, ns=(1_000_000_000 * (index + 1),) * 2)
+        self.assertEqual(len(list(cache.glob("*.json"))), 6)
+
+        removed = pg._prune_cache(cache, keep=2)
+        remaining = sorted(cache.glob("*.json"))
+        self.assertEqual(removed, 4)
+        self.assertEqual(len(remaining), 2)
+        newest = max(p.stat().st_mtime_ns for p in remaining)
+        self.assertGreaterEqual(newest, 5_000_000_000, "the newest entries survive")
+
+    def test_pruning_is_best_effort_on_an_unreadable_dir(self):
+        import scripts.project_gates as pg
+
+        self.assertEqual(pg._prune_cache(self.tmp / "does-not-exist"), 0)
+
     # --- PROP-09: honest map coverage across stacks ---
 
     def test_map_coverage_reports_non_python_sources_honestly(self):

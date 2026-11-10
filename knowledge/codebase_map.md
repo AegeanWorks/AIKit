@@ -8,9 +8,9 @@
 ## 📊 Codebase Metrics
 - **Total Python Modules**: `72`
 - **Total Classes**: `173`
-- **Total Top-Level Functions**: `1052`
-- **Total Class Methods**: `1363`
-- **Total Source Lines**: `50363`
+- **Total Top-Level Functions**: `1053`
+- **Total Class Methods**: `1365`
+- **Total Source Lines**: `50419`
 
 ## 🧭 Map Coverage
 - **Indexed**: python (`72` module(s))
@@ -1201,7 +1201,7 @@
 ### [`scripts/project_gates.py`](scripts/project_gates.py)
 > *Project gates: the checks a project's own configuration declares, run as its Phase 4 (ADR-122).*
 
-**Size**: `519` lines (`23900` bytes)
+**Size**: `546` lines (`24930` bytes)
 
 **Classes:**
 - `class Gate` - *A named check and the shell command that runs it; `source` says where it came from.*
@@ -1225,6 +1225,7 @@
 - `def verify_gate_warnings(project)` - *Warnings when a project's canonical verify command is not the one governing the check.*
 - `def run_shell(command, cwd, timeout)` - *Run `command` through the platform shell with stdin closed; on timeout the whole process*
 - `def dependency_digest(project_root)` - *A digest of the dependency manifests, so an install invalidates a cached pass.*
+- `def _prune_cache(cache_dir, keep)` - *Drop the oldest entries past `keep`, so the opt-in cache cannot grow without bound.*
 - `def _cache_file(cache_dir, tree_key, gate, project_root)` - *One gate result's content-addressed path for a clean tree and its dependencies.*
 - `def _cached_pass(cache_path)` - *The cached pass for this gate, or None when absent, unreadable or not a pass.*
 - `def _store_pass(cache_path, gate, output)` - *Record a pass; only a pass is ever cached, so a failure can never hide a fix.*
@@ -1978,7 +1979,7 @@
 ### [`tests/test_kit.py`](tests/test_kit.py)
 > *Automated Test Suite for Portable Agent Kit (PRINCIPLE-011, PRINCIPLE-016)*
 
-**Size**: `17024` lines (`927202` bytes)
+**Size**: `17053` lines (`928541` bytes)
 
 **Classes:**
 - `class TestPrincipleSync` - *Verifies that all 20 principles are maintained and synchronized (PRINCIPLE-001, PRINCIPLE-017).*
@@ -3266,6 +3267,8 @@
   - Method `.test_gate_cache_reuses_only_a_pass_for_the_same_tree()`
   - Method `.test_cache_is_off_by_default_so_a_planted_file_cannot_green_a_run()` - *A cached file is not proof the gate ran (audit P0-2).*
   - Method `.test_a_dependency_install_invalidates_a_cached_pass()` - *`git status` cannot see an install into an ignored `.venv`, so the key must.*
+  - Method `.test_the_cache_prunes_oldest_entries_past_its_cap()` - *An opt-in cache must not grow without bound: one file per tree/gate, forever.*
+  - Method `.test_pruning_is_best_effort_on_an_unreadable_dir()`
   - Method `.test_map_coverage_reports_non_python_sources_honestly()`
   - Method `.test_map_coverage_says_none_for_a_python_only_tree()`
   - Method `.test_dossier_sync_separates_pre_existing_changes_from_its_own_paths()`
