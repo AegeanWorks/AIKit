@@ -3,24 +3,15 @@
   "active_task": {
     "task_id": "audit-fixes-2026-11-09",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794290854.803488,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794291300.9890878
   },
   "checkpoints": [
-    {
-      "task_id": "verify-100p12",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-100p12' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794250035.9275012,
-      "timestamp_str": "2026-11-09 21:47:15",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-101p5",
       "phase": "planning",
@@ -266,6 +257,16 @@
       "timestamp_str": "2026-11-10 09:07:34",
       "agent": "commandcode:goal",
       "checklists": "passed"
+    },
+    {
+      "task_id": "audit-fixes-2026-11-09",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'audit-fixes-2026-11-09' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794291300.9890893,
+      "timestamp_str": "2026-11-10 09:15:00",
+      "agent": "commandcode:goal"
     }
   ]
 }
