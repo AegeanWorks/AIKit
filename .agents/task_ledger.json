@@ -3,24 +3,15 @@
   "active_task": {
     "task_id": "classify-infra-2026-11-09",
     "last_phase": "verification",
-    "active_phase": 4,
-    "status": "in_progress",
+    "active_phase": 5,
+    "status": "completed",
     "updated_at": 1794304767.7356334,
     "owner": "commandcode:goal",
     "started_by": "commandcode:goal",
-    "continuations": []
+    "continuations": [],
+    "completed_at": 1794305037.5651245
   },
   "checkpoints": [
-    {
-      "task_id": "verify-101p5",
-      "phase": "completed",
-      "phase_num": 5,
-      "description": "Task 'verify-101p5' completed successfully.",
-      "status": "completed",
-      "timestamp": 1794251374.5184047,
-      "timestamp_str": "2026-11-09 22:09:34",
-      "agent": "commandcode:goal"
-    },
     {
       "task_id": "verify-102pms",
       "phase": "planning",
@@ -267,6 +258,16 @@
       "timestamp_str": "2026-11-10 12:59:27",
       "agent": "commandcode:goal",
       "checklists": "passed"
+    },
+    {
+      "task_id": "classify-infra-2026-11-09",
+      "phase": "completed",
+      "phase_num": 5,
+      "description": "Task 'classify-infra-2026-11-09' completed successfully.",
+      "status": "completed",
+      "timestamp": 1794305037.565126,
+      "timestamp_str": "2026-11-10 13:03:57",
+      "agent": "commandcode:goal"
     }
   ]
 }
